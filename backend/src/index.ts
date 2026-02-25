@@ -30,6 +30,9 @@ if (missing.length > 0) {
 const app = express()
 const port = process.env.PORT || 3000
 
+// Trust reverse proxy (Render, etc.) for correct IP detection in rate limiter
+app.set('trust proxy', 1)
+
 // Security middleware
 app.use(helmet())
 app.use(compression())
