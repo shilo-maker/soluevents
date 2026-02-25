@@ -42,9 +42,7 @@ export const errorHandler = (
     }
   }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('ERROR:', err)
-  }
+  console.error('ERROR:', err)
 
   return res.status(500).json({
     status: 'error',
