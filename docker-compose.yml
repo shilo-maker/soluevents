@@ -1,0 +1,25 @@
+# Shared local PostgreSQL for SoluCast + SoluPlan development
+# Usage:
+#   1. docker compose up -d
+#   2. Start SoluCast (creates tables via Sequelize sync)
+#   3. Run SoluPlan migrations: cd backend && npx prisma migrate deploy
+#
+# SoluCast backend/.env:  DATABASE_URL=postgresql://solu:solu_dev_password@localhost:5433/soludb
+# SoluPlan  backend/.env:  DATABASE_URL=postgresql://solu:solu_dev_password@localhost:5433/soludb
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: solu-shared-db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: solu
+      POSTGRES_PASSWORD: solu_dev_password
+      POSTGRES_DB: soludb
+    volumes:
+      - solu_pgdata:/var/lib/postgresql/data
+
+volumes:
+  solu_pgdata:
