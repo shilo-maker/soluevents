@@ -1,0 +1,41 @@
+services:
+  # Single service: Backend API + Frontend (same pattern as SoluFlow)
+  - type: web
+    name: soluevents
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install && npx prisma generate && npm run build
+    startCommand: cd backend && node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+      # Database — shared with SoluCast/SoluFlow (set manually in Render dashboard)
+      - key: DATABASE_URL
+        sync: false
+
+      # JWT — must match SoluCast's JWT_SECRET for cross-app auth
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+
+      # CORS — set to the Render service URL after first deploy
+      - key: CORS_ORIGIN
+        sync: false
+
+      # SoluCast app URL for share links
+      - key: SOLUCAST_APP_URL
+        value: https://solucast.app
+
+      # Google Maps API Key (optional, for venue location picker)
+      - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false

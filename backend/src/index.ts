@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express'
+import path from 'path'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
@@ -66,10 +67,30 @@ app.use('/api/contacts', contactRoutes)
 app.use('/api/venues', venueRoutes)
 app.use('/api/integration', integrationRoutes)
 
-// 404 handler
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ status: 'error', message: 'Route not found' })
-})
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, '../../frontend/dist')
+
+  app.use(express.static(clientBuildPath, {
+    maxAge: '1y',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+      }
+    },
+  }))
+
+  // SPA fallback — send index.html for all non-API routes
+  app.use((req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.sendFile(path.join(clientBuildPath, 'index.html'))
+  })
+} else {
+  // 404 handler for development (API only)
+  app.use((_req: Request, res: Response) => {
+    res.status(404).json({ status: 'error', message: 'Route not found' })
+  })
+}
 
 // Error handling middleware
 app.use(errorHandler)
