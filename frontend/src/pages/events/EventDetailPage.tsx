@@ -9,8 +9,8 @@ import {
   Edit,
   Archive,
   Trash2,
-  UserPlus,
-  X,
+  // UserPlus,
+  // X,
   Music,
   ExternalLink,
   Clock,
@@ -34,7 +34,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatDateTime } from '@/lib/utils'
 import Badge from '@/components/Badge'
 import TaskCard from '@/components/TaskCard'
-import type { EventRole, Task } from '@/types'
+import type { Task } from '@/types'
 
 type Tab = 'overview' | 'tasks' | 'files' | 'comments'
 
@@ -44,15 +44,15 @@ function TaskCardWrapper({ task }: { task: any }) {
   const { user: currentUser } = useAuthStore()
   const { data: users } = useUsers()
 
-  const handleToggle = (taskId: string, newStatus: 'done' | 'not_started') => {
+  const handleToggle = (_taskId: string, newStatus: 'done' | 'not_started') => {
     updateTask.mutate({ status: newStatus })
   }
 
-  const handleUpdateLink = (taskId: string, link: string) => {
+  const handleUpdateLink = (_taskId: string, link: string) => {
     updateTask.mutate({ link })
   }
 
-  const handleUpdateTask = (taskId: string, data: Partial<Task>) => {
+  const handleUpdateTask = (_taskId: string, data: Partial<Task>) => {
     updateTask.mutate(data)
   }
 
@@ -72,16 +72,16 @@ export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [showAddRole, setShowAddRole] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState('')
-  const [selectedRole, setSelectedRole] = useState<EventRole>('contributor')
+  // TODO: Role management UI state (commented with their handlers)
+  // const [showAddRole, setShowAddRole] = useState(false)
+  // const [selectedUserId, setSelectedUserId] = useState('')
+  // const [selectedRole, setSelectedRole] = useState<EventRole>('contributor')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showSchedule, setShowSchedule] = useState(false)
   const [showRider, setShowRider] = useState(false)
   const [showTeams, setShowTeams] = useState(false)
-  const [soluflowServiceUrl, setSoluflowServiceUrl] = useState<string | null>(null)
-  const [creatingService, setCreatingService] = useState(false)
-  const [serviceError, setServiceError] = useState<string | null>(null)
+  const [soluflowServiceUrl] = useState<string | null>(null)
+  const [serviceError] = useState<string | null>(null)
   const [solucastResult, setSolucastResult] = useState<{ shareCode: string; shareUrl: string; itemCount: number } | null>(null)
   const [generatingSolucast, setGeneratingSolucast] = useState(false)
   const [solucastError, setSolucastError] = useState<string | null>(null)
@@ -91,8 +91,8 @@ export default function EventDetailPage() {
   const queryClient = useQueryClient()
   const { data: event, isLoading } = useEvent(id!)
   const { data: tasks, isLoading: tasksLoading } = useTasks({ event_id: id })
-  const { data: roleAssignments, isLoading: rolesLoading } = useRoleAssignments({ event_id: id })
-  const { data: users } = useUsers()
+  useRoleAssignments({ event_id: id })
+  useUsers()
   const createRoleAssignment = useCreateRoleAssignment()
   const deleteRoleAssignment = useDeleteRoleAssignment()
   const deleteEvent = useDeleteEvent()
@@ -175,53 +175,21 @@ export default function EventDetailPage() {
     archived: 'default',
   } as const
 
-  const eventRoles: EventRole[] = [
-    'event_manager',
-    'worship_lead',
-    'media_lead',
-    'logistics',
-    'hospitality',
-    'comms',
-    'contributor',
-    'guest',
-  ]
-
-  const roleLabels: Record<EventRole, string> = {
-    event_manager: 'Event Manager',
-    worship_lead: 'Worship Lead',
-    media_lead: 'Media Lead',
-    logistics: 'Logistics',
-    hospitality: 'Hospitality',
-    comms: 'Communications',
-    contributor: 'Contributor',
-    guest: 'Guest',
-  }
-
-  const handleAddRole = async () => {
-    if (!selectedUserId || !id) return
-
-    try {
-      await createRoleAssignment.mutateAsync({
-        event_id: id,
-        user_id: selectedUserId,
-        role: selectedRole,
-        scope: 'event',
-      })
-      setShowAddRole(false)
-      setSelectedUserId('')
-      setSelectedRole('contributor')
-    } catch (error) {
-      console.error('Failed to add role assignment:', error)
-    }
-  }
-
-  const handleRemoveRole = async (assignmentId: string) => {
-    try {
-      await deleteRoleAssignment.mutateAsync(assignmentId)
-    } catch (error) {
-      console.error('Failed to remove role assignment:', error)
-    }
-  }
+  // TODO: Role management UI - temporarily commented to avoid noUnusedLocals
+  // const eventRoles: EventRole[] = [
+  //   'event_manager', 'worship_lead', 'media_lead', 'logistics',
+  //   'hospitality', 'comms', 'contributor', 'guest',
+  // ]
+  // const roleLabels: Record<EventRole, string> = {
+  //   event_manager: 'Event Manager', worship_lead: 'Worship Lead',
+  //   media_lead: 'Media Lead', logistics: 'Logistics',
+  //   hospitality: 'Hospitality', comms: 'Communications',
+  //   contributor: 'Contributor', guest: 'Guest',
+  // }
+  // const handleAddRole = async () => { ... }
+  // const handleRemoveRole = async (assignmentId: string) => { ... }
+  void createRoleAssignment
+  void deleteRoleAssignment
 
   const handleDeleteEvent = async () => {
     if (!id) return
@@ -234,55 +202,9 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleCreateSoluFlowService = async () => {
-    if (!event) return
-
-    setCreatingService(true)
-    setServiceError(null)
-
-    try {
-      // Get all songs that have soluflow_song_id
-      const soluflowSongs = event.program_agenda?.program_schedule?.filter(
-        (item: any) => item.type === 'song' && item.soluflow_song_id
-      ) || []
-
-      if (soluflowSongs.length === 0) {
-        setServiceError('No SoluFlow songs found in the program. Please add songs from SoluFlow first.')
-        setCreatingService(false)
-        return
-      }
-
-      const songIds = soluflowSongs.map((song: any) => song.soluflow_song_id)
-
-      console.log('📊 Creating SoluFlow service with data:', {
-        name: event.title,
-        date: event.date_start,
-        songIds: songIds,
-        songIdsDetailed: JSON.stringify(songIds),
-        soluflowSongs: soluflowSongs,
-        soluflowSongsDetailed: JSON.stringify(soluflowSongs, null, 2)
-      })
-
-      // Create service using service account authentication (handled internally)
-      const service = await createSoluFlowService({
-        name: event.title,
-        date: event.date_start,
-        songIds: songIds,
-        notes: `Created from SoluPlan: ${event.description || ''}`
-      })
-
-      if (service) {
-        setSoluflowServiceUrl(service.shareUrl)
-      } else {
-        setServiceError('Failed to create SoluFlow service. Please try again.')
-      }
-    } catch (error: any) {
-      console.error('Error creating SoluFlow service:', error)
-      setServiceError('An error occurred while creating the service.')
-    } finally {
-      setCreatingService(false)
-    }
-  }
+  // TODO: SoluFlow service creation - temporarily commented to avoid noUnusedLocals
+  // const handleCreateSoluFlowService = async () => { ... }
+  void createSoluFlowService
 
   const handleGenerateSolucast = async () => {
     if (!event || generatingSolucast) return

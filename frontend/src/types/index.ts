@@ -17,7 +17,42 @@ export interface User {
   email: string
   org_role: OrgRole
   avatar_url?: string
+  phone?: string
   is_active: boolean
+  activeWorkspaceId?: string
+  defaultWorkspaceId?: string
+  activeWorkspace?: Workspace
+}
+
+export type WorkspaceType = 'personal' | 'organization'
+export type WorkspaceMemberRole = 'admin' | 'planner' | 'leader' | 'member'
+
+export interface Workspace {
+  id: string
+  name: string
+  slug: string
+  workspaceType: WorkspaceType
+  role?: WorkspaceMemberRole
+  is_active?: boolean
+}
+
+export interface WorkspaceMember {
+  id: string
+  workspaceId: string
+  userId: string
+  role: WorkspaceMemberRole
+  joinedAt: string
+  user: { id: string; email: string; username?: string; name?: string; avatar_url?: string }
+}
+
+export interface WorkspaceInvitation {
+  id: string
+  token: string
+  expiresAt?: string
+  usageCount: number
+  maxUses?: number
+  createdAt: string
+  creator?: { id: string; name?: string; email: string }
 }
 
 // Event types
@@ -88,6 +123,8 @@ export interface Event {
       role: string
       person: string
       user_id?: string
+      contact_id?: string
+      is_user?: boolean
       needs: string[]
       eDrums?: boolean
       eDrumsNeeds?: string[]
@@ -100,9 +137,9 @@ export interface Event {
       description: string
     }
     production_team?: {
-      soundman: { person: string; user_id?: string; contact: string }
-      projection: { person: string; user_id?: string; contact: string }
-      host: { person: string; user_id?: string; contact: string }
+      soundman: { person: string; user_id?: string; contact: string; contact_id?: string; is_user?: boolean }
+      projection: { person: string; user_id?: string; contact: string; contact_id?: string; is_user?: boolean }
+      host: { person: string; user_id?: string; contact: string; contact_id?: string; is_user?: boolean }
     }
     contact_person?: string
     contact_phone?: string

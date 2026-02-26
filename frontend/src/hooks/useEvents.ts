@@ -1,26 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { Event, FlowService } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function useEvents() {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
+
   return useQuery({
-    queryKey: ['events'],
+    queryKey: ['events', 'list', activeWorkspaceId],
     queryFn: async () => {
       const response = await api.get<{ data: Event[]; pagination: any }>('/events')
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
     staleTime: 5 * 60 * 1000,
   })
 }
 
-export function useEvent(id: string) {
+export function useEvent(id: string, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ['events', id],
+    queryKey: ['events', 'detail', id],
     queryFn: async () => {
       const response = await api.get<Event>(`/events/${id}`)
       return response.data
     },
-    enabled: !!id,
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
     staleTime: 2 * 60 * 1000,
   })
 }
@@ -49,8 +53,8 @@ export function useUpdateEvent() {
     },
     onSuccess: (updatedEvent, variables) => {
       // Optimistic cache update for the detail view
-      queryClient.setQueryData(['events', variables.id], updatedEvent)
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.setQueryData(['events', 'detail', variables.id], updatedEvent)
+      queryClient.invalidateQueries({ queryKey: ['events', 'list'] })
     },
   })
 }

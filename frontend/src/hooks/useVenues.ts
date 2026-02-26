@@ -1,14 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { Venue } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function useVenues() {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
+
   return useQuery({
-    queryKey: ['venues'],
+    queryKey: ['venues', 'list', activeWorkspaceId],
     queryFn: async () => {
       const response = await api.get<{ data: Venue[]; pagination: any }>('/venues')
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
   })
 }
 

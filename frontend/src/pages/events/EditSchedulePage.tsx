@@ -859,12 +859,12 @@ export default function EditSchedulePage() {
                                   {item.type === 'song' ? (
                                     <SongAutocomplete
                                       value={item.title}
-                                      soluflowSongId={item.soluflow_song_id}
+                                      soluflowSongId={item.soluflow_song_id ? Number(item.soluflow_song_id) : undefined}
                                       onChange={(title, song) => {
                                         const updated = [...programSchedule]
                                         updated[index].title = title
                                         if (song) {
-                                          updated[index].soluflow_song_id = song.id
+                                          updated[index].soluflow_song_id = String(song.id)
                                           updated[index].key = song.key || updated[index].key
                                           updated[index].bpm = song.bpm?.toString() || updated[index].bpm
                                         } else {

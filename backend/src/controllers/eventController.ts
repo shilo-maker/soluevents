@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
+import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
 
 export const getEvents = async (
   req: AuthRequest,
@@ -13,13 +14,33 @@ export const getEvents = async (
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50))
     const skip = (page - 1) * limit
 
-    const where = {
-      status: { not: 'archived' as const },
-      OR: [
-        { created_by: req.user!.id },
-        { role_assignments: { some: { user_id: req.user!.id } } },
-      ],
+    let activeWsId = req.user!.activeWorkspaceId
+
+    // Validate membership — stale activeWorkspaceId can reference a workspace the user was removed from
+    if (activeWsId) {
+      const isMember = await checkWorkspaceMembership(activeWsId, req.user!.id)
+      if (!isMember) {
+        activeWsId = null
+      }
     }
+
+    const where = activeWsId
+      ? {
+          status: { not: 'archived' as const },
+          OR: [
+            { workspace_id: activeWsId },
+            // Include pre-workspace events the user owns or is assigned to
+            { workspace_id: null, created_by: req.user!.id },
+            { workspace_id: null, role_assignments: { some: { user_id: req.user!.id } } },
+          ],
+        }
+      : {
+          status: { not: 'archived' as const },
+          OR: [
+            { created_by: req.user!.id },
+            { role_assignments: { some: { user_id: req.user!.id } } },
+          ],
+        }
 
     const [events, total] = await Promise.all([
       prisma.event.findMany({
@@ -88,9 +109,15 @@ export const getEvent = async (
       throw new AppError('Event not found', 404)
     }
 
-    // Authorization: creator or assigned user
-    const isAssigned = event.role_assignments.some(ra => ra.user_id === req.user!.id)
-    if (event.created_by !== req.user!.id && !isAssigned && req.user!.org_role !== 'admin') {
+    // Authorization: workspace member, creator, or assigned user
+    let authorized = event.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!authorized) {
+      authorized = event.role_assignments.some(ra => ra.user_id === req.user!.id)
+    }
+    if (!authorized && event.workspace_id) {
+      authorized = await checkWorkspaceMembership(event.workspace_id, req.user!.id)
+    }
+    if (!authorized) {
       throw new AppError('Not authorized to view this event', 403)
     }
 
@@ -113,6 +140,26 @@ export const createEvent = async (
       event_teams,
     } = req.body
 
+    // Validate workspace membership before stamping workspace_id
+    let wsId = req.user!.activeWorkspaceId || null
+    if (wsId) {
+      const isMember = await checkWorkspaceMembership(wsId, req.user!.id)
+      if (!isMember) wsId = null
+    }
+
+    // Validate parent_tour_id if provided — user must have access to the tour
+    if (parent_tour_id) {
+      const tour = await prisma.tour.findUnique({
+        where: { id: parent_tour_id },
+        select: { director_user_id: true, logistics_user_id: true, comms_user_id: true, media_user_id: true, hospitality_user_id: true },
+      })
+      if (!tour) throw new AppError('Tour not found', 404)
+      const tourUsers = [tour.director_user_id, tour.logistics_user_id, tour.comms_user_id, tour.media_user_id, tour.hospitality_user_id]
+      if (!tourUsers.includes(req.user!.id) && req.user!.org_role !== 'admin') {
+        throw new AppError('Not authorized to link events to this tour', 403)
+      }
+    }
+
     const event = await prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
         data: {
@@ -128,12 +175,13 @@ export const createEvent = async (
           phase: phase || 'concept',
           status: status || 'planned',
           venue_id: venue_id || null,
-          parent_tour_id,
+          parent_tour_id: parent_tour_id || null,
           tags: tags || [],
           program_agenda: program_agenda || null,
           rider_details: rider_details || null,
           event_teams: event_teams || null,
           created_by: req.user!.id,
+          workspace_id: wsId,
         },
         include: {
           creator: {
@@ -205,12 +253,17 @@ export const updateEvent = async (
   try {
     const { id } = req.params
 
-    // Verify ownership
+    // Verify ownership or workspace admin
     const existing = await prisma.event.findUnique({ where: { id } })
     if (!existing) {
       throw new AppError('Event not found', 404)
     }
-    if (existing.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
+    let canModify = existing.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!canModify && existing.workspace_id) {
+      const wsRole = await getWorkspaceMemberRole(existing.workspace_id, req.user!.id)
+      canModify = wsRole === 'admin' || wsRole === 'planner'
+    }
+    if (!canModify) {
       throw new AppError('Not authorized to modify this event', 403)
     }
 
@@ -270,7 +323,12 @@ export const deleteEvent = async (
     if (!existing) {
       throw new AppError('Event not found', 404)
     }
-    if (existing.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
+    let canDelete = existing.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!canDelete && existing.workspace_id) {
+      const wsRole = await getWorkspaceMemberRole(existing.workspace_id, req.user!.id)
+      canDelete = wsRole === 'admin'
+    }
+    if (!canDelete) {
       throw new AppError('Not authorized to delete this event', 403)
     }
 

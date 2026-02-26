@@ -10,7 +10,7 @@ import type { TaskStatus } from '@/types'
 type View = 'list' | 'kanban'
 
 export default function TasksPage() {
-  const { user } = useAuthStore()
+  const { user: _user } = useAuthStore()
   const [view, setView] = useState<View>('list')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -24,7 +24,7 @@ export default function TasksPage() {
 
   const updateTaskMutation = useUpdateTask('')
 
-  const handleToggleTask = (taskId: string, newStatus: TaskStatus) => {
+  const handleToggleTask = (_taskId: string, newStatus: TaskStatus) => {
     updateTaskMutation.mutate({ status: newStatus })
   }
 

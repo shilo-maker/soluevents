@@ -192,9 +192,9 @@ export default function EditRiderPage() {
                     onChange={(name, contactId, isUser) => {
                       const updated = [...worshipTeam]
                       updated[memberIndex].person = name
-                      updated[memberIndex].contact_id = contactId
-                      updated[memberIndex].is_user = isUser
-                      updated[memberIndex].user_id = contactId
+                      updated[memberIndex].contact_id = contactId || ''
+                      updated[memberIndex].is_user = isUser || false
+                      updated[memberIndex].user_id = contactId || ''
                       setWorshipTeam(updated)
                     }}
                     placeholder="Enter name..."

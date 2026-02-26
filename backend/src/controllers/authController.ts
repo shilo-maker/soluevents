@@ -8,6 +8,7 @@ import {
   verifyRefreshToken,
 } from '../utils/jwt'
 import prisma from '../lib/prisma'
+import { createPersonalWorkspace, ensurePersonalWorkspace } from '../services/workspaceService'
 
 const BCRYPT_ROUNDS = 12
 
@@ -46,6 +47,15 @@ export const register = async (
       },
     })
 
+    // Create personal workspace for new user (uses ensurePersonalWorkspace for idempotency)
+    let workspaceId: string | null = null
+    try {
+      const workspace = await ensurePersonalWorkspace(user.id, name)
+      workspaceId = workspace.id
+    } catch (err) {
+      console.error('Failed to create personal workspace during register:', err)
+    }
+
     const tokenPayload = {
       id: user.id,
       email: user.email,
@@ -61,7 +71,8 @@ export const register = async (
         email: user.email,
         org_role: user.org_role || 'member',
         avatar_url: user.avatar_url,
-        is_active: user.isActive,
+        is_active: user.isActive ?? true,
+        activeWorkspaceId: workspaceId,
       },
       access_token,
       refresh_token,
@@ -86,7 +97,7 @@ export const login = async (
       throw new AppError('Invalid credentials', 401)
     }
 
-    if (!user.isActive) {
+    if (user.isActive === false) {
       throw new AppError('Account is inactive', 401)
     }
 
@@ -97,6 +108,18 @@ export const login = async (
     const isValidPassword = await bcrypt.compare(password, user.password)
     if (!isValidPassword) {
       throw new AppError('Invalid credentials', 401)
+    }
+
+    // Ensure personal workspace exists (migration path for existing users)
+    // Non-blocking: login succeeds even if workspace bootstrap fails
+    const userName = user.name || user.username || user.email.split('@')[0]
+    let activeWorkspaceId = user.activeWorkspaceId
+    try {
+      const workspace = await ensurePersonalWorkspace(user.id, userName)
+      // ensurePersonalWorkspace sets activeWorkspaceId if it was missing
+      activeWorkspaceId = activeWorkspaceId ?? workspace.id
+    } catch (err) {
+      console.error('Failed to ensure personal workspace during login:', err)
     }
 
     const tokenPayload = {
@@ -110,11 +133,12 @@ export const login = async (
     res.json({
       user: {
         id: user.id,
-        name: user.name || user.username || user.email.split('@')[0],
+        name: userName,
         email: user.email,
         org_role: user.org_role || 'member',
         avatar_url: user.avatar_url,
-        is_active: user.isActive,
+        is_active: user.isActive ?? true,
+        activeWorkspaceId: activeWorkspaceId ?? null,
       },
       access_token,
       refresh_token,
@@ -149,7 +173,7 @@ export const refreshToken = async (
       },
     })
 
-    if (!user || !user.isActive) {
+    if (!user || user.isActive === false) {
       throw new AppError('Invalid refresh token', 401)
     }
 
@@ -194,6 +218,43 @@ export const me = async (
       throw new AppError('User not found', 404)
     }
 
+    // Fetch active workspace details if set, clean up stale reference
+    let activeWorkspace = null
+    let resolvedActiveWsId = user.activeWorkspaceId
+    if (user.activeWorkspaceId) {
+      activeWorkspace = await prisma.workspace.findUnique({
+        where: { id: user.activeWorkspaceId },
+        select: { id: true, name: true, slug: true, workspaceType: true },
+      })
+      if (!activeWorkspace) {
+        // Stale reference — workspace was deleted. Fall back to default or clear.
+        resolvedActiveWsId = user.defaultWorkspaceId ?? null
+        if (resolvedActiveWsId) {
+          // Verify the user is still a member of the fallback workspace
+          const fallbackMember = await prisma.workspaceMember.findUnique({
+            where: { workspaceId_userId: { workspaceId: resolvedActiveWsId, userId: user.id } },
+          })
+          if (fallbackMember) {
+            activeWorkspace = await prisma.workspace.findUnique({
+              where: { id: resolvedActiveWsId },
+              select: { id: true, name: true, slug: true, workspaceType: true },
+            })
+          }
+          if (!activeWorkspace) {
+            // Default workspace stale or user not a member — clear everything
+            resolvedActiveWsId = null
+          }
+        }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            activeWorkspaceId: resolvedActiveWsId,
+            ...(!activeWorkspace && user.defaultWorkspaceId ? { defaultWorkspaceId: null } : {}),
+          },
+        })
+      }
+    }
+
     res.json({
       id: user.id,
       name: user.name || user.username || user.email.split('@')[0],
@@ -201,11 +262,12 @@ export const me = async (
       org_role: user.org_role || 'member',
       avatar_url: user.avatar_url,
       phone: user.phone,
-      is_active: user.isActive,
+      is_active: user.isActive ?? true,
       role: user.solucastRole,
       preferences: user.preferences,
-      activeWorkspaceId: user.activeWorkspaceId,
-      defaultWorkspaceId: user.defaultWorkspaceId,
+      activeWorkspaceId: resolvedActiveWsId,
+      defaultWorkspaceId: activeWorkspace ? (user.defaultWorkspaceId ?? resolvedActiveWsId) : null,
+      activeWorkspace,
     })
   } catch (error) {
     next(error)

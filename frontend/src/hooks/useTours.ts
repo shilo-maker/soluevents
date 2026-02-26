@@ -1,20 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { Tour } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function useTours() {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
   return useQuery({
-    queryKey: ['tours'],
+    queryKey: ['tours', 'list', activeWorkspaceId],
     queryFn: async () => {
       const response = await api.get<{ data: Tour[]; pagination: any }>('/tours')
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
   })
 }
 
 export function useTour(id: string) {
   return useQuery({
-    queryKey: ['tours', id],
+    queryKey: ['tours', 'detail', id],
     queryFn: async () => {
       const response = await api.get<Tour>(`/tours/${id}`)
       return response.data
@@ -47,7 +50,6 @@ export function useUpdateTour(id: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tours'] })
-      queryClient.invalidateQueries({ queryKey: ['tours', id] })
     },
   })
 }

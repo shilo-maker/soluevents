@@ -6,7 +6,6 @@ import {
   MapPin,
   Loader2,
   Edit,
-  Users,
 } from 'lucide-react'
 import { useTour } from '@/hooks/useTours'
 import { useTasks } from '@/hooks/useTasks'

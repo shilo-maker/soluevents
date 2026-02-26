@@ -1,14 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { Contact } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function useContacts() {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
+
   return useQuery({
-    queryKey: ['contacts'],
+    queryKey: ['contacts', 'list', activeWorkspaceId],
     queryFn: async () => {
       const response = await api.get<{ data: Contact[]; pagination: any }>('/contacts')
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
   })
 }
 

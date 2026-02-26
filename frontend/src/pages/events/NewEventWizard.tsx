@@ -6,11 +6,9 @@ import { useUsers } from '@/hooks/useUsers'
 import { useContacts } from '@/hooks/useContacts'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
 import { useUpdateVenue } from '@/hooks/useVenues'
-import UserAutocomplete from '@/components/UserAutocomplete'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import type { EventType, EventPhase, EventStatus } from '@/types'
-import type { SoluFlowSong } from '@/lib/soluflowApi'
 import {
   DndContext,
   closestCenter,
@@ -30,6 +28,99 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 const DRAFT_KEY = 'event_wizard_draft'
+
+interface PreEventItem {
+  item: string
+  offset_minutes: number
+  notes?: string
+}
+
+interface ProgramItem {
+  offset_minutes: number
+  title: string
+  type: string
+  person: string
+  person_id: string
+  person_is_user: boolean
+  key: string
+  bpm: string
+  soluflow_song_id?: string
+  speaker: string
+  speaker_id: string
+  speaker_is_user: boolean
+  topic: string
+  points: string
+  prayer_leader: string
+  prayer_leader_id: string
+  prayer_leader_is_user: boolean
+  facilitator: string
+  facilitator_id: string
+  facilitator_is_user: boolean
+  has_ministry_team: boolean
+}
+
+interface PostEventItem {
+  item: string
+  offset_minutes: number
+  notes?: string
+}
+
+interface WorshipMember {
+  role: string
+  person: string
+  contact_id: string
+  is_user: boolean
+  user_id: string
+  needs: string[]
+  eDrums?: boolean
+  eDrumsNeeds?: string[]
+}
+
+interface ProductionPerson {
+  person: string
+  contact: string
+  contact_id: string
+  is_user: boolean
+  user_id: string
+}
+
+interface FormData {
+  type: EventType
+  title: string
+  description: string
+  event_date: string
+  event_time: string
+  location_name: string
+  address: string
+  venue_id: string
+  est_attendance: string
+  phase: EventPhase
+  status: EventStatus
+  tags: string
+  pre_event_schedule: PreEventItem[]
+  program_schedule: ProgramItem[]
+  has_post_event_schedule: boolean
+  post_event_schedule: PostEventItem[]
+  worship_team: WorshipMember[]
+  has_prayer_leader: boolean
+  prayer_leader: {
+    person: string
+    user_id?: string
+    is_user?: boolean
+    topic: string
+    description: string
+  }
+  production_team: {
+    soundman: ProductionPerson
+    projection: ProductionPerson
+    host: ProductionPerson
+  }
+  contact_person: string
+  contact_phone: string
+  soundman_needed: boolean
+  projection_needed: boolean
+  special_requirements: string
+}
 
 const steps = [
   { id: 1, name: 'Template', description: 'Choose event type' },
@@ -62,7 +153,7 @@ export default function NewEventWizard() {
   const [editingPostEventItem, setEditingPostEventItem] = useState<number | null>(null)
 
   // Load initial form data from localStorage or use defaults
-  const getInitialFormData = () => {
+  const getInitialFormData = (): FormData => {
     const savedDraft = localStorage.getItem(DRAFT_KEY)
     if (savedDraft) {
       try {
@@ -958,19 +1049,8 @@ export default function NewEventWizard() {
           return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`
         }
 
-        // Helper to get row color based on item type
-        const getItemColor = (title: string) => {
-          if (title.toLowerCase().includes('song')) {
-            return 'bg-gradient-to-r from-blue-50 to-purple-50'
-          }
-          if (title.toLowerCase().includes('prayer')) {
-            return 'bg-gradient-to-r from-yellow-50 to-orange-50'
-          }
-          if (title.toLowerCase().includes('opening') || title.toLowerCase().includes('closing')) {
-            return 'bg-gradient-to-r from-green-50 to-emerald-50'
-          }
-          return 'bg-white'
-        }
+        // TODO: Helper to get row color based on item type (currently unused)
+        // const getItemColor = (title: string) => { ... }
 
         return (
           <div className="space-y-6">
@@ -1197,12 +1277,12 @@ export default function NewEventWizard() {
                                         {item.type === 'song' ? (
                                           <SongAutocomplete
                                             value={item.title}
-                                            soluflowSongId={item.soluflow_song_id}
+                                            soluflowSongId={item.soluflow_song_id ? Number(item.soluflow_song_id) : undefined}
                                             onChange={(title, song) => {
                                               const newSchedule = [...formData.program_schedule]
                                               newSchedule[index].title = title
                                               if (song) {
-                                                newSchedule[index].soluflow_song_id = song.id
+                                                newSchedule[index].soluflow_song_id = String(song.id)
                                                 newSchedule[index].key = song.key || newSchedule[index].key
                                                 newSchedule[index].bpm = song.bpm?.toString() || newSchedule[index].bpm
                                               } else {
@@ -1646,9 +1726,9 @@ export default function NewEventWizard() {
                           onChange={(name, contactId, isUser) => {
                             const newTeam = [...formData.worship_team]
                             newTeam[memberIndex].person = name
-                            newTeam[memberIndex].contact_id = contactId
-                            newTeam[memberIndex].is_user = isUser
-                            newTeam[memberIndex].user_id = contactId
+                            newTeam[memberIndex].contact_id = contactId || ''
+                            newTeam[memberIndex].is_user = isUser || false
+                            newTeam[memberIndex].user_id = contactId || ''
                             setFormData({ ...formData, worship_team: newTeam })
                           }}
                           placeholder="Enter name..."
@@ -1701,7 +1781,7 @@ export default function NewEventWizard() {
                                 onChange={(e) => {
                                   const newTeam = [...formData.worship_team]
                                   if (member.role === 'Drums' && member.eDrums) {
-                                    newTeam[memberIndex].eDrumsNeeds[needIndex] = e.target.value
+                                    newTeam[memberIndex].eDrumsNeeds![needIndex] = e.target.value
                                   } else {
                                     newTeam[memberIndex].needs[needIndex] = e.target.value
                                   }
@@ -1715,7 +1795,7 @@ export default function NewEventWizard() {
                                 onClick={() => {
                                   const newTeam = [...formData.worship_team]
                                   if (member.role === 'Drums' && member.eDrums) {
-                                    newTeam[memberIndex].eDrumsNeeds = newTeam[memberIndex].eDrumsNeeds.filter((_, i) => i !== needIndex)
+                                    newTeam[memberIndex].eDrumsNeeds = newTeam[memberIndex].eDrumsNeeds!.filter((_: string, i: number) => i !== needIndex)
                                   } else {
                                     newTeam[memberIndex].needs = newTeam[memberIndex].needs.filter((_, i) => i !== needIndex)
                                   }
@@ -1776,7 +1856,7 @@ export default function NewEventWizard() {
                   onClick={() => {
                     setFormData({
                       ...formData,
-                      worship_team: [...(formData.worship_team || []), { role: '', person: '', needs: [''] }]
+                      worship_team: [...(formData.worship_team || []), { role: '', person: '', contact_id: '', is_user: false, user_id: '', needs: [''] }]
                     })
                   }}
                   className="btn-secondary"
@@ -1864,7 +1944,7 @@ export default function NewEventWizard() {
                           ...formData,
                           production_team: {
                             ...formData.production_team,
-                            soundman: { ...formData.production_team.soundman, person: name, contact_id: contactId, is_user: isUser, user_id: contactId }
+                            soundman: { ...formData.production_team.soundman, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
                         placeholder="Enter name..."
@@ -1906,7 +1986,7 @@ export default function NewEventWizard() {
                           ...formData,
                           production_team: {
                             ...formData.production_team,
-                            projection: { ...formData.production_team.projection, person: name, contact_id: contactId, is_user: isUser, user_id: contactId }
+                            projection: { ...formData.production_team.projection, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
                         placeholder="Enter name..."
@@ -1948,7 +2028,7 @@ export default function NewEventWizard() {
                           ...formData,
                           production_team: {
                             ...formData.production_team,
-                            host: { ...formData.production_team.host, person: name, contact_id: contactId, is_user: isUser, user_id: contactId }
+                            host: { ...formData.production_team.host, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
                         placeholder="Enter name..."

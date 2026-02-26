@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, Save, Plus, X, Users, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import RoleCombobox from '@/components/RoleCombobox'

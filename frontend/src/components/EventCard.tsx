@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, MoreVertical, Pencil, Trash2 } from 'lucide-react'
-import { formatDate, formatDateTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { useDeleteEvent } from '@/hooks/useEvents'
 import Badge from './Badge'
 import type { Event } from '@/types'

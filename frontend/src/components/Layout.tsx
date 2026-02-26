@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import WorkspaceSwitcher from './WorkspaceSwitcher'
 import {
   Home,
   Calendar,
@@ -97,6 +98,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="pl-64">
         {/* Top bar */}
         <div className="sticky top-0 z-10 flex items-center h-16 px-8 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+          <WorkspaceSwitcher />
           <div className="flex-1"></div>
           <button className="relative p-3 text-gray-600 hover:text-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200">
             <Bell className="w-5 h-5" />

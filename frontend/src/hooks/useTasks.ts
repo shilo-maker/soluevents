@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { Task } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 interface TaskFilters {
   assignee?: string
@@ -10,6 +11,7 @@ interface TaskFilters {
 }
 
 export function useTasks(filters?: TaskFilters) {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
   const params = new URLSearchParams()
   if (filters?.assignee) params.append('assignee', filters.assignee)
   if (filters?.event_id) params.append('event_id', filters.event_id)
@@ -17,17 +19,18 @@ export function useTasks(filters?: TaskFilters) {
   if (filters?.status) params.append('status', filters.status)
 
   return useQuery({
-    queryKey: ['tasks', filters],
+    queryKey: ['tasks', 'list', activeWorkspaceId, filters],
     queryFn: async () => {
       const response = await api.get<{ data: Task[]; pagination: any }>(`/tasks?${params.toString()}`)
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
   })
 }
 
 export function useTask(id: string) {
   return useQuery({
-    queryKey: ['tasks', id],
+    queryKey: ['tasks', 'detail', id],
     queryFn: async () => {
       const response = await api.get<Task>(`/tasks/${id}`)
       return response.data
@@ -60,7 +63,6 @@ export function useUpdateTask(id: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      queryClient.invalidateQueries({ queryKey: ['tasks', id] })
     },
   })
 }

@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     id: string
     email: string
     org_role: string
+    activeWorkspaceId: string | null
   }
 }
 
@@ -50,10 +51,11 @@ export const authenticate = async (
         email: true,
         org_role: true,
         isActive: true,
+        activeWorkspaceId: true,
       },
     })
 
-    if (!user || !user.isActive) {
+    if (!user || user.isActive === false) {
       throw new AppError('User not found or inactive', 401)
     }
 
@@ -61,6 +63,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       org_role: user.org_role || 'member',
+      activeWorkspaceId: user.activeWorkspaceId ?? null,
     }
     next()
   } catch (error) {

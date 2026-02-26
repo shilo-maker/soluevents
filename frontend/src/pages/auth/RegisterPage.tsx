@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
 import type { AuthResponse, RegisterData } from '@/types'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { setAuth } = useAuthStore()
+  const redirectTo = (location.state as { from?: string } | null)?.from || '/'
   const [formData, setFormData] = useState<RegisterData>({
     name: '',
     email: '',
@@ -24,7 +26,7 @@ export default function RegisterPage() {
       const response = await api.post<AuthResponse>('/auth/register', formData)
       const { user, access_token, refresh_token } = response.data
       setAuth(user, access_token, refresh_token)
-      navigate('/')
+      navigate(redirectTo, { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.')
     } finally {
@@ -119,6 +121,7 @@ export default function RegisterPage() {
           <div className="text-center">
             <Link
               to="/login"
+              state={{ from: redirectTo !== '/' ? redirectTo : undefined }}
               className="text-sm text-primary-600 hover:text-primary-500"
             >
               Already have an account? Sign in

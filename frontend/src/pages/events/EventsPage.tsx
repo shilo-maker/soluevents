@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Loader2, Search, Filter, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Loader2, Search, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
 import CreateEventDialog from './CreateEventDialog'

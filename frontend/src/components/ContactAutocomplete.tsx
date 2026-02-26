@@ -323,7 +323,7 @@ export default function ContactAutocomplete({
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-gray-900">{contact.name}</span>
                     {contact.isUser && (
-                      <Shield className="h-3 w-3 text-purple-600" title="Registered User" />
+                      <Shield className="h-3 w-3 text-purple-600" />
                     )}
                   </div>
                   {contact.email && (

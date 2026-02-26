@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, isAfter, isBefore, addDays, differenceInDays } from 'date-fns'
+import { format, formatDistanceToNow, isAfter, isBefore, addDays } from 'date-fns'
 
 export function formatDate(date: string | Date, formatStr: string = 'MMM d, yyyy') {
   return format(new Date(date), formatStr)

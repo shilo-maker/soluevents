@@ -35,7 +35,7 @@ export default function Dashboard() {
 
   const updateTaskMutation = useUpdateTask('')
 
-  const handleToggleTask = (taskId: string, newStatus: 'done' | 'not_started') => {
+  const handleToggleTask = (_taskId: string, newStatus: 'done' | 'not_started') => {
     updateTaskMutation.mutate({ status: newStatus }, {
       onSuccess: () => {
         // Task will be refetched automatically

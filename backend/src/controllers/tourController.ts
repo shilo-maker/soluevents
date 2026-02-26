@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
+import { checkWorkspaceMembership } from '../services/workspaceService'
 
 export const getTours = async (
   req: AuthRequest,
@@ -13,8 +14,38 @@ export const getTours = async (
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50))
     const skip = (page - 1) * limit
 
+    let activeWsId = req.user!.activeWorkspaceId
+    if (activeWsId) {
+      const isMember = await checkWorkspaceMembership(activeWsId, req.user!.id)
+      if (!isMember) activeWsId = null
+    }
+
+    // Filter child_events by workspace to prevent cross-workspace data leaks
+    const childEventsWhere = activeWsId
+      ? { OR: [{ workspace_id: activeWsId }, { workspace_id: null }] }
+      : undefined
+
+    // Filter tours: user must be director, a role user, or have child events in their workspace
+    const tourWhere: Record<string, any> = {
+      OR: [
+        { director_user_id: req.user!.id },
+        { logistics_user_id: req.user!.id },
+        { comms_user_id: req.user!.id },
+        { media_user_id: req.user!.id },
+        { hospitality_user_id: req.user!.id },
+        ...(activeWsId
+          ? [{ child_events: { some: { workspace_id: activeWsId } } }]
+          : []),
+      ],
+    }
+    // Org admins see all tours
+    if (req.user!.org_role === 'admin') {
+      delete tourWhere.OR
+    }
+
     const [tours, total] = await Promise.all([
       prisma.tour.findMany({
+        where: tourWhere,
         include: {
           director: {
             select: { id: true, name: true, email: true },
@@ -27,6 +58,7 @@ export const getTours = async (
             select: { id: true, date: true, city: true, venue_name: true },
           },
           child_events: {
+            where: childEventsWhere,
             select: { id: true, title: true, date_start: true, status: true },
           },
         },
@@ -34,7 +66,7 @@ export const getTours = async (
         take: limit,
         skip,
       }),
-      prisma.tour.count(),
+      prisma.tour.count({ where: tourWhere }),
     ])
 
     res.json({
@@ -53,6 +85,15 @@ export const getTour = async (
 ) => {
   try {
     const { id } = req.params
+
+    let activeWsId = req.user!.activeWorkspaceId
+    if (activeWsId) {
+      const isMember = await checkWorkspaceMembership(activeWsId, req.user!.id)
+      if (!isMember) activeWsId = null
+    }
+    const childEventsWhere = activeWsId
+      ? { OR: [{ workspace_id: activeWsId }, { workspace_id: null }] }
+      : undefined
 
     const tour = await prisma.tour.findUnique({
       where: { id },
@@ -84,6 +125,7 @@ export const getTour = async (
           },
         },
         child_events: {
+          where: childEventsWhere,
           select: { id: true, title: true, date_start: true, status: true },
         },
         tasks: {
@@ -104,6 +146,27 @@ export const getTour = async (
       throw new AppError('Tour not found', 404)
     }
 
+    // Authorization: director, any role user, workspace member via child events, or admin
+    let authorized = tour.director_user_id === req.user!.id || req.user!.org_role === 'admin'
+    if (!authorized) {
+      const roleUsers = [
+        tour.logistics_user_id, tour.comms_user_id,
+        tour.media_user_id, tour.hospitality_user_id,
+      ]
+      authorized = roleUsers.includes(req.user!.id)
+    }
+    if (!authorized && activeWsId) {
+      // Check if tour has any child events in the user's workspace
+      const hasWsEvent = await prisma.event.findFirst({
+        where: { parent_tour_id: tour.id, workspace_id: activeWsId },
+        select: { id: true },
+      })
+      authorized = !!hasWsEvent
+    }
+    if (!authorized) {
+      throw new AppError('Not authorized to view this tour', 403)
+    }
+
     res.json(tour)
   } catch (error) {
     next(error)
@@ -116,6 +179,16 @@ export const createTour = async (
   next: NextFunction
 ) => {
   try {
+    // Authorization: must be a workspace admin/planner, or org admin
+    let activeWsId = req.user!.activeWorkspaceId
+    if (activeWsId) {
+      const isMember = await checkWorkspaceMembership(activeWsId, req.user!.id)
+      if (!isMember) activeWsId = null
+    }
+    if (req.user!.org_role !== 'admin' && !activeWsId) {
+      throw new AppError('Active workspace required to create a tour', 400)
+    }
+
     const {
       title, start_date, end_date, regions,
       director_user_id, logistics_user_id, comms_user_id,

@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
 import type { AuthResponse, LoginCredentials } from '@/types'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { setAuth } = useAuthStore()
+  const redirectTo = (location.state as any)?.from || '/'
   const [credentials, setCredentials] = useState<LoginCredentials>({
     email: '',
     password: '',
@@ -23,7 +25,7 @@ export default function LoginPage() {
       const response = await api.post<AuthResponse>('/auth/login', credentials)
       const { user, access_token, refresh_token } = response.data
       setAuth(user, access_token, refresh_token)
-      navigate('/')
+      navigate(redirectTo, { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
     } finally {
@@ -116,6 +118,7 @@ export default function LoginPage() {
             <div className="text-center">
               <Link
                 to="/register"
+                state={{ from: redirectTo !== '/' ? redirectTo : undefined }}
                 className="text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors"
               >
                 Don't have an account? <span className="underline">Sign up</span>

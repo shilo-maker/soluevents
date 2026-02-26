@@ -875,6 +875,7 @@ model Event {
   @@index([parent_tour_id])
   @@index([status])
   @@index([date_start])
+  @@index([workspace_id])
   @@map("events")
 }
 
