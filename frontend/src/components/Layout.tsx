@@ -9,10 +9,10 @@ import {
   CheckSquare,
   Users,
   UserCog,
-  User,
   LogOut,
   Settings,
 } from 'lucide-react'
+import Avatar from './Avatar'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -73,9 +73,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="p-4 border-t border-white/20 bg-black/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg">
-                  <User className="w-5 h-5 text-white" />
-                </div>
+                <Avatar src={user?.avatar_url} name={user?.name || ''} size="md" className="shadow-lg" />
                 <div className="ml-3">
                   <p className="text-sm font-semibold text-white">
                     {user?.name}

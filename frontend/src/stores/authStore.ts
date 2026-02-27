@@ -10,6 +10,7 @@ interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
+  patchUser: (partial: Partial<User>) => void
   clearAuth: () => void
 }
 
@@ -27,6 +28,10 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           isAuthenticated: true,
         }),
+      patchUser: (partial) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : state.user,
+        })),
       clearAuth: () => {
         useWorkspaceStore.getState().clearWorkspaces()
         queryClient.clear()

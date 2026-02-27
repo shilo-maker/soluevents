@@ -161,12 +161,13 @@ export const updateUser = async (
       throw new AppError('Not authorized to modify this user', 403)
     }
 
-    const { name, email, password, org_role, is_active } = req.body
+    const { name, email, password, org_role, is_active, avatar_url } = req.body
 
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name
     if (email !== undefined) updateData.email = email.toLowerCase().trim()
     if (is_active !== undefined) updateData.isActive = is_active
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url
 
     // Only admin can change org_role
     if (org_role !== undefined) {

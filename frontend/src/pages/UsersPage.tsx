@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { UserPlus, Users as UsersIcon, Mail, Shield, X, Edit2, Save, Trash2, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
+import Avatar from '@/components/Avatar'
 import type { User } from '@/types'
 
 export default function UsersPage() {
@@ -239,9 +240,7 @@ export default function UsersPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar src={user.avatar_url} name={user.name} size="md" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">{user.name}</h3>
                       <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full capitalize mt-1">

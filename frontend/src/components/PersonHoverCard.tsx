@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useLayoutEffect } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts } from '@/hooks/useContacts'
 import { Shield } from 'lucide-react'
+import Avatar from './Avatar'
 
 interface PersonHoverCardProps {
   name: string
@@ -25,9 +26,9 @@ export default function PersonHoverCard({
   const person = useMemo(() => {
     if (!contactId) return null
     const u = users?.find(u => u.id === contactId)
-    if (u) return { name: u.name, email: u.email, role: u.org_role, phone: undefined as string | undefined, isUser: true }
+    if (u) return { name: u.name, email: u.email, role: u.org_role, phone: undefined as string | undefined, avatar_url: u.avatar_url, isUser: true }
     const c = contacts?.find(c => c.id === contactId)
-    if (c) return { name: c.name, email: c.email, phone: c.phone, role: c.role, isUser: false }
+    if (c) return { name: c.name, email: c.email, phone: c.phone, role: c.role, avatar_url: undefined as string | undefined, isUser: false }
     return null
   }, [contactId, users, contacts])
 
@@ -76,13 +77,7 @@ export default function PersonHoverCard({
           className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 pointer-events-none whitespace-nowrap ${popupPos ? '' : 'invisible'} ${popupPos?.flipY ? 'bottom-full mb-1' : 'top-full mt-1'} ${popupPos?.flipX ? 'right-0' : 'left-0'}`}
         >
           <span className="flex items-center gap-2 mb-1">
-            {person.isUser ? (
-              <Shield className="h-4 w-4 text-purple-600 flex-shrink-0" />
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
-            )}
+            <Avatar src={person.avatar_url} name={person.name} size="sm" />
             <span className="font-semibold text-sm text-gray-900">{person.name}</span>
             <span className="text-xs text-gray-400">{person.isUser ? 'Member' : 'Contact'}</span>
           </span>

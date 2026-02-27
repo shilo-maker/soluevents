@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Settings, Shield, Users, Link, Trash2, Copy, Loader2, Save, AlertTriangle, UserPlus, Search, Mail, Clock } from 'lucide-react'
+import Avatar from '@/components/Avatar'
 import { isAxiosError } from 'axios'
 import { useWorkspaces, useGenerateInvite } from '@/hooks/useWorkspaces'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
@@ -301,9 +302,7 @@ export default function WorkspaceSettingsPage() {
             {searchResult.found ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                    {(searchResult.user?.name || searchResult.user?.email || '?').charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar src={searchResult.user?.avatar_url} name={searchResult.user?.name || searchResult.user?.email || '?'} size="sm" />
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {searchResult.user?.name || searchResult.user?.username || searchResult.user?.email}
@@ -378,9 +377,7 @@ export default function WorkspaceSettingsPage() {
                 className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar src={member.user.avatar_url} name={displayName} size="sm" />
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {displayName}
@@ -454,9 +451,7 @@ export default function WorkspaceSettingsPage() {
                     className="flex items-center justify-between p-3 rounded-lg bg-gray-50/60 opacity-70"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {displayName.charAt(0).toUpperCase()}
-                      </div>
+                      <Avatar src={inv.invitedUser?.avatar_url} name={displayName} size="sm" />
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-gray-700 truncate flex items-center gap-2">
                           {displayName}

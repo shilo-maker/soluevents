@@ -35,7 +35,7 @@ export interface User {
   name: string
   email: string
   org_role: OrgRole
-  avatar_url?: string
+  avatar_url?: string | null
   phone?: string
   is_active: boolean
   activeWorkspaceId?: string

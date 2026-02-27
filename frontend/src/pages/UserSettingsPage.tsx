@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Settings, Mail, Save, Send, Loader2 } from 'lucide-react'
+import { Settings, Mail, Save, Send, Loader2, User } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import {
   useUserEmailSettings,
   useUpdateUserEmailSettings,
   useTestUserEmailSettings,
 } from '@/hooks/useUserSettings'
+import { useAuthStore } from '@/stores/authStore'
+import AvatarUpload from '@/components/AvatarUpload'
+import api from '@/lib/axios'
 
 function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
@@ -18,6 +21,40 @@ export default function UserSettingsPage() {
   const { data: emailSettings, isLoading } = useUserEmailSettings()
   const updateMutation = useUpdateUserEmailSettings()
   const testMutation = useTestUserEmailSettings()
+  const user = useAuthStore((s) => s.user)
+  const patchUser = useAuthStore((s) => s.patchUser)
+  const [avatarLoading, setAvatarLoading] = useState(false)
+  const [avatarMsg, setAvatarMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const handleAvatarUpload = async (base64: string) => {
+    if (!user) return
+    setAvatarLoading(true)
+    setAvatarMsg(null)
+    try {
+      await api.patch(`/users/${user.id}`, { avatar_url: base64 })
+      patchUser({ avatar_url: base64 })
+      setAvatarMsg({ type: 'success', text: 'Profile photo updated' })
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: errorMessage(err) })
+    } finally {
+      setAvatarLoading(false)
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    if (!user) return
+    setAvatarLoading(true)
+    setAvatarMsg(null)
+    try {
+      await api.patch(`/users/${user.id}`, { avatar_url: null })
+      patchUser({ avatar_url: null })
+      setAvatarMsg({ type: 'success', text: 'Profile photo removed' })
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: errorMessage(err) })
+    } finally {
+      setAvatarLoading(false)
+    }
+  }
 
   const [smtpHost, setSmtpHost] = useState('')
   const [smtpPort, setSmtpPort] = useState('587')
@@ -76,6 +113,35 @@ export default function UserSettingsPage() {
           User Settings
         </h1>
         <p className="text-gray-600 mt-1">Manage your personal settings</p>
+      </div>
+
+      {/* Profile */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <User className="w-5 h-5 text-purple-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
+        </div>
+
+        <div className="flex items-start gap-6">
+          <AvatarUpload
+            src={user?.avatar_url}
+            name={user?.name || ''}
+            onUpload={handleAvatarUpload}
+            onRemove={handleAvatarRemove}
+            loading={avatarLoading}
+          />
+          <div className="pt-1">
+            <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+            <p className="text-xs text-gray-400 capitalize mt-0.5">{user?.org_role}</p>
+          </div>
+        </div>
+
+        {avatarMsg && (
+          <p className={`text-sm mt-3 ${avatarMsg.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+            {avatarMsg.text}
+          </p>
+        )}
       </div>
 
       {/* Email Settings */}

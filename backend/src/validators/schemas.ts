@@ -179,6 +179,12 @@ export const updateUserSchema = z.object({
   password: z.string().min(8).max(128).optional(),
   org_role: z.enum(['admin', 'manager', 'member', 'viewer']).optional(),
   is_active: z.boolean().optional(),
+  avatar_url: z
+    .string()
+    .max(50000)
+    .regex(/^data:image\/(jpeg|png|webp);base64,/, 'Must be a base64 data URL (jpeg, png, or webp)')
+    .optional()
+    .nullable(),
 })
 
 // ── Integration ───────────────────────────────────────────────────

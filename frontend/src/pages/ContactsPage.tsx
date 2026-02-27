@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { UserPlus, Mail, Phone, Briefcase, X, Edit2, Save, Trash2, Loader2, Search, Shield } from 'lucide-react'
 import { useContacts, useCreateContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useUsers } from '@/hooks/useUsers'
+import Avatar from '@/components/Avatar'
 import type { Contact, User } from '@/types'
 
 type UnifiedContact = {
@@ -14,6 +15,7 @@ type UnifiedContact = {
   notes?: string
   isUser: boolean
   org_role?: string
+  avatar_url?: string | null
   originalContact?: Contact
   originalUser?: User
 }
@@ -54,6 +56,7 @@ export default function ContactsPage() {
       notes: undefined,
       isUser: true,
       org_role: user.org_role,
+      avatar_url: user.avatar_url,
       originalUser: user,
     })) || []
 
@@ -291,9 +294,7 @@ export default function ContactsPage() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {contact.name.charAt(0).toUpperCase()}
-                    </div>
+                    <Avatar src={contact.avatar_url} name={contact.name} size="md" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">{contact.name}</h3>
                       {contact.nickname && (
