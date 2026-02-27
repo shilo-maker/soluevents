@@ -1,35 +1,81 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Plus, Loader2, Search, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
 import CreateEventDialog from './CreateEventDialog'
+import type { Event } from '@/types'
 
 export default function EventsPage() {
   const { data: events, isLoading } = useEvents()
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [duplicateEvent, setDuplicateEvent] = useState<Event | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showPastEvents, setShowPastEvents] = useState(false)
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   // Filter events
-  const filteredEvents = events?.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredEvents = useMemo(() => events?.filter((event) => {
+    const matchesSearch = event.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      event.location_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
     const matchesType = filterType === 'all' || event.type === filterType
     const matchesStatus = filterStatus === 'all' || event.status === filterStatus
     return matchesSearch && matchesType && matchesStatus
-  })
+  }), [events, debouncedSearch, filterType, filterStatus])
 
   // Group events
-  const now = new Date()
-  const upcomingEvents = filteredEvents?.filter(e =>
-    (e.status === 'confirmed' || e.status === 'planned') && new Date(e.date_end) >= now
-  )
-  const pastEvents = filteredEvents?.filter(e =>
-    (e.status === 'confirmed' || e.status === 'planned') && new Date(e.date_end) < now
-  )
-  const archivedEvents = filteredEvents?.filter(e => e.status === 'archived')
+  const upcomingEvents = useMemo(() => {
+    const now = new Date()
+    return filteredEvents?.filter(e =>
+      (e.status === 'confirmed' || e.status === 'planned') && new Date(e.date_end) >= now
+    )
+  }, [filteredEvents])
+  const pastEvents = useMemo(() => {
+    const now = new Date()
+    return filteredEvents?.filter(e =>
+      (e.status === 'confirmed' || e.status === 'planned') && new Date(e.date_end) < now
+    )
+  }, [filteredEvents])
+  const archivedEvents = useMemo(() => filteredEvents?.filter(e => e.status === 'archived'), [filteredEvents])
+
+  const handleDuplicate = useCallback((event: Event) => {
+    setDuplicateEvent(event)
+    setIsCreateDialogOpen(true)
+  }, [])
+
+  const handleDialogClose = useCallback(() => {
+    setIsCreateDialogOpen(false)
+    setDuplicateEvent(null)
+  }, [])
+
+  const duplicateInitialData = useMemo(() => {
+    if (!duplicateEvent) return undefined
+
+    const startDate = new Date(duplicateEvent.date_start)
+    const hours = String(startDate.getHours()).padStart(2, '0')
+    const minutes = String(startDate.getMinutes()).padStart(2, '0')
+
+    const programAgenda = undefined
+
+    return {
+      type: duplicateEvent.type,
+      title: `Copy of ${duplicateEvent.title}`,
+      location_name: duplicateEvent.location_name || '',
+      address: duplicateEvent.address || '',
+      venue_id: duplicateEvent.venue_id || '',
+      description: duplicateEvent.description || '',
+      tags: duplicateEvent.tags?.join(', ') || '',
+      est_attendance: duplicateEvent.est_attendance ? String(duplicateEvent.est_attendance) : '',
+      event_time: `${hours}:${minutes}`,
+      program_agenda: programAgenda,
+    }
+  }, [duplicateEvent])
 
   return (
     <div className="space-y-6">
@@ -109,7 +155,7 @@ export default function EventsPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event.id} event={event} onDuplicate={handleDuplicate} />
                 ))}
               </div>
             </div>
@@ -127,7 +173,7 @@ export default function EventsPage() {
               {showPastEvents && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {pastEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
+                    <EventCard key={event.id} event={event} onDuplicate={handleDuplicate} />
                   ))}
                 </div>
               )}
@@ -141,7 +187,7 @@ export default function EventsPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {archivedEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event.id} event={event} onDuplicate={handleDuplicate} />
                 ))}
               </div>
             </div>
@@ -154,11 +200,11 @@ export default function EventsPage() {
             No events found
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            {searchQuery || filterType !== 'all' || filterStatus !== 'all'
+            {debouncedSearch || filterType !== 'all' || filterStatus !== 'all'
               ? 'Try adjusting your filters'
               : 'Get started by creating your first event'}
           </p>
-          {!searchQuery && filterType === 'all' && filterStatus === 'all' && (
+          {!debouncedSearch && filterType === 'all' && filterStatus === 'all' && (
             <button
               onClick={() => setIsCreateDialogOpen(true)}
               className="btn-primary"
@@ -169,7 +215,11 @@ export default function EventsPage() {
           )}
         </div>
       )}
-      <CreateEventDialog isOpen={isCreateDialogOpen} onClose={() => setIsCreateDialogOpen(false)} />
+      <CreateEventDialog
+        isOpen={isCreateDialogOpen}
+        onClose={handleDialogClose}
+        initialData={duplicateInitialData}
+      />
     </div>
   )
 }

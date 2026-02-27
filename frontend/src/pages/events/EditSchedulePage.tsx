@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, Music, RefreshCw, Plus } from 'lucide-react'
-import { useEvent, useUpdateEvent, useFlowService, useFlowServiceByCode } from '@/hooks/useEvents'
+import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, Music, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEvent, useUpdateEvent, useFlowService, useFlowServiceByCode, useSetlist } from '@/hooks/useEvents'
+import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
+import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import BibleRefPicker from '@/components/BibleRefPicker'
 import type { FlowServiceSong } from '@/types'
@@ -135,6 +138,7 @@ interface LinkState {
 export default function EditSchedulePage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data: event, isLoading } = useEvent(id!)
   const updateEvent = useUpdateEvent()
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -146,14 +150,6 @@ export default function EditSchedulePage() {
   const [eventTime, setEventTime] = useState('19:00')
   const [error, setError] = useState('')
 
-  // Extract worship team members for song leader dropdown
-  const worshipTeamMembers = useMemo(() => {
-    if (!event?.event_teams || !Array.isArray(event.event_teams)) return []
-    const worshipTeam = event.event_teams.find((t: any) => t.name === 'Worship Team')
-    if (!worshipTeam?.members) return []
-    return worshipTeam.members.filter((m: any) => m.name?.trim())
-  }, [event?.event_teams])
-
   const [showSoluFlow, setShowSoluFlow] = useState(false)
   const [soluFlowMode, setSoluFlowMode] = useState<'choose' | 'link'>('choose')
   const [link, setLink] = useState<LinkState>({
@@ -164,6 +160,16 @@ export default function EditSchedulePage() {
   const [editingPreEventItem, setEditingPreEventItem] = useState<number | null>(null)
   const [editingProgramItem, setEditingProgramItem] = useState<number | null>(null)
   const [editingPostEventItem, setEditingPostEventItem] = useState<number | null>(null)
+
+  // SoluCast state
+  const [generatingSolucast, setGeneratingSolucast] = useState(false)
+  const [solucastError, setSolucastError] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [codeCopied, setCodeCopied] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { data: linkedSetlist } = useSetlist(event?.setlist_id)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -213,10 +219,16 @@ export default function EditSchedulePage() {
     const opening = currentSchedule[0]
     const closing = currentSchedule[currentSchedule.length - 1]
 
-    // Preserve non-song items the user may have manually added between opening and closing
-    const manualNonSongItems = currentSchedule
-      .slice(1, -1)
-      .filter(item => item.type !== 'song')
+    // Record non-song items with their relative position (how many songs appeared before them)
+    const nonSongPositions: { item: ProgramItem; afterSongIndex: number }[] = []
+    let songCount = 0
+    for (const item of currentSchedule.slice(1, -1)) {
+      if (item.type === 'song') {
+        songCount++
+      } else {
+        nonSongPositions.push({ item, afterSongIndex: songCount })
+      }
+    }
 
     // Build a map of existing songs by soluflow_song_id to preserve manual edits
     const existingSongMap = new Map<string, ProgramItem>()
@@ -246,8 +258,14 @@ export default function EditSchedulePage() {
       }
     })
 
-    // Non-song items first (they have times), then songs in setlist order
-    const middleItems = [...manualNonSongItems, ...songItems]
+    // Re-insert non-song items at their original relative positions
+    const middleItems = [...songItems]
+    let insertionOffset = 0
+    for (const { item, afterSongIndex } of nonSongPositions) {
+      const pos = Math.min(afterSongIndex, middleItems.length) + insertionOffset
+      middleItems.splice(pos, 0, item)
+      insertionOffset++
+    }
 
     return [opening, ...middleItems, closing]
   }, [transposeKey])
@@ -446,24 +464,24 @@ export default function EditSchedulePage() {
     return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`
   }, [eventTime])
 
-  // Extract details text for a program item (avoids recreating inside .map())
-  const getItemDetails = useCallback((item: ProgramItem): string => {
-    const details: string[] = []
+  // Extract details for a program item as JSX with hover cards
+  const getItemDetails = useCallback((item: ProgramItem): React.ReactNode[] => {
+    const parts: React.ReactNode[] = []
     if (item.type === 'song') {
-      if (item.person) details.push(item.person)
-      if (item.key) details.push(`Key: ${item.key}`)
-      if (item.bpm) details.push(`BPM: ${item.bpm}`)
+      if (item.person) parts.push(<PersonHoverCard key="person" name={item.person} contactId={item.person_id} isUser={item.person_is_user} />)
+      if (item.key) parts.push(<span key="key">Key: {item.key}</span>)
+      if (item.bpm) parts.push(<span key="bpm">BPM: {item.bpm}</span>)
     } else if (item.type === 'share') {
-      if (item.speaker) details.push(`Speaker: ${item.speaker}`)
-      if (item.topic) details.push(`Topic: ${item.topic}`)
+      if (item.speaker) parts.push(<span key="speaker">Speaker: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
+      if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
     } else if (item.type === 'prayer') {
-      if (item.prayer_leader) details.push(`Leader: ${item.prayer_leader}`)
-      if (item.topic) details.push(`Topic: ${item.topic}`)
+      if (item.prayer_leader) parts.push(<span key="leader">Leader: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
+      if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
     } else if (item.type === 'ministry') {
-      if (item.facilitator) details.push(`Facilitator: ${item.facilitator}`)
-      if (item.has_ministry_team) details.push('Ministry Team')
+      if (item.facilitator) parts.push(<span key="facilitator">Facilitator: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
+      if (item.has_ministry_team) parts.push(<span key="ministry">Ministry Team</span>)
     }
-    return details.join(' • ')
+    return parts
   }, [])
 
   const getNextPreEventTime = () => {
@@ -514,6 +532,71 @@ export default function EditSchedulePage() {
     }
   }
 
+  // SoluCast handlers
+  const handleGenerateSolucast = async () => {
+    if (!event || generatingSolucast) return
+    setGeneratingSolucast(true)
+    setSolucastError(null)
+    try {
+      await api.post(`/integration/events/${event.id}/generate-solucast`)
+      queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+      queryClient.invalidateQueries({ queryKey: ['setlists'] })
+    } catch (error: any) {
+      setSolucastError(error.response?.data?.message || 'Failed to generate SoluCast setlist.')
+    } finally {
+      setGeneratingSolucast(false)
+    }
+  }
+
+  const handleSyncSolucast = async () => {
+    if (!event || syncing) return
+    setSyncing(true)
+    setSyncMessage(null)
+    setSolucastError(null)
+    try {
+      await api.post(`/integration/events/${event.id}/generate-solucast`)
+      queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+      queryClient.invalidateQueries({ queryKey: ['setlists'] })
+      setSyncMessage('Synced successfully')
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
+      syncTimerRef.current = setTimeout(() => setSyncMessage(null), 3000)
+    } catch (error: any) {
+      setSolucastError(error.response?.data?.message || 'Failed to sync SoluCast setlist.')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleUnlinkSolucast = async () => {
+    if (!event) return
+    try {
+      await api.post(`/integration/events/${event.id}/link-service`, { setlist_id: null })
+      queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+      setSyncMessage(null)
+    } catch (error: any) {
+      setSolucastError(error.response?.data?.message || 'Failed to unlink SoluCast.')
+    }
+  }
+
+  const copyShareCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCodeCopied(true)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCodeCopied(false), 2000)
+    } catch {
+      // Clipboard API unavailable
+    }
+  }
+
+  // Cleanup SoluCast timers on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
+    }
+  }, [])
+
   const handleSave = async () => {
     setError('')
     try {
@@ -529,6 +612,12 @@ export default function EditSchedulePage() {
           flow_service_id: link.serviceId || null,
         } as any,
       })
+
+      // Auto-sync SoluCast setlist if SoluFlow is linked (fire-and-forget)
+      if (link.serviceId) {
+        api.post(`/integration/events/${id}/generate-solucast`).catch(() => {})
+      }
+
       navigate(`/events/${id}`)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save schedule')
@@ -711,7 +800,20 @@ export default function EditSchedulePage() {
                   <Link2 className="w-4 h-4 text-blue-600" />
                   <div>
                     <p className="text-sm font-semibold text-blue-900">
-                      Linked to: {link.serviceTitle || 'SoluFlow Service'}
+                      Linked to:{' '}
+                      {linkedService?.code ? (
+                        <a
+                          href={`https://soluflow.app/service/code/${linkedService.code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {link.serviceTitle || 'SoluFlow Service'}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        link.serviceTitle || 'SoluFlow Service'
+                      )}
                     </p>
                     <p className="text-xs text-blue-700">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
                   </div>
@@ -880,6 +982,7 @@ export default function EditSchedulePage() {
                                       value={item.prayer_leader}
                                       contactId={item.prayer_leader_id}
                                       isUser={item.prayer_leader_is_user}
+                                      freeTextOnly
                                       onChange={(name, contactId, isUser) => {
                                         const updated = [...programSchedule]
                                         updated[index].prayer_leader = name
@@ -911,47 +1014,21 @@ export default function EditSchedulePage() {
                               {item.type === 'song' && (
                                 <div className="flex gap-2">
                                   <div className="flex-1">
-                                    {worshipTeamMembers.length > 0 ? (
-                                      <select
-                                        value={item.person_id || ''}
-                                        onChange={(e) => {
-                                          const updated = [...programSchedule]
-                                          const member = worshipTeamMembers.find((m: any) => m.contact_id === e.target.value)
-                                          if (member) {
-                                            updated[index].person = member.name
-                                            updated[index].person_id = member.contact_id
-                                            updated[index].person_is_user = member.is_user || false
-                                          } else {
-                                            updated[index].person = ''
-                                            updated[index].person_id = ''
-                                            updated[index].person_is_user = false
-                                          }
-                                          setProgramSchedule(updated)
-                                        }}
-                                        className="input text-sm"
-                                      >
-                                        <option value="">Leader</option>
-                                        {worshipTeamMembers.map((m: any) => (
-                                          <option key={m.contact_id || m.name} value={m.contact_id}>
-                                            {m.name}{m.role ? ` (${m.role})` : ''}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    ) : (
-                                      <input
-                                        type="text"
-                                        value={item.person || ''}
-                                        onChange={(e) => {
-                                          const updated = [...programSchedule]
-                                          updated[index].person = e.target.value
-                                          updated[index].person_id = ''
-                                          updated[index].person_is_user = false
-                                          setProgramSchedule(updated)
-                                        }}
-                                        placeholder="Leader"
-                                        className="input text-sm"
-                                      />
-                                    )}
+                                    <ContactAutocomplete
+                                      value={item.person || ''}
+                                      contactId={item.person_id || undefined}
+                                      isUser={item.person_is_user}
+                                      freeTextOnly
+                                      onChange={(name, contactId, isUser) => {
+                                        const updated = [...programSchedule]
+                                        updated[index].person = name
+                                        updated[index].person_id = contactId || ''
+                                        updated[index].person_is_user = isUser || false
+                                        setProgramSchedule(updated)
+                                      }}
+                                      placeholder="Leader"
+                                      className="input text-sm"
+                                    />
                                   </div>
                                   <input
                                     type="text"
@@ -987,6 +1064,7 @@ export default function EditSchedulePage() {
                                         value={item.speaker}
                                         contactId={item.speaker_id}
                                         isUser={item.speaker_is_user}
+                                        freeTextOnly
                                         onChange={(name, contactId, isUser) => {
                                           const updated = [...programSchedule]
                                           updated[index].speaker = name
@@ -1191,6 +1269,7 @@ export default function EditSchedulePage() {
                                       value={item.facilitator}
                                       contactId={item.facilitator_id}
                                       isUser={item.facilitator_is_user}
+                                      freeTextOnly
                                       onChange={(name, contactId, isUser) => {
                                         const updated = [...programSchedule]
                                         updated[index].facilitator = name
@@ -1227,7 +1306,16 @@ export default function EditSchedulePage() {
                               className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
                             >
                               <div className="font-semibold">{item.title || 'Click to edit'}</div>
-                              {getItemDetails(item) && <div className="text-xs text-gray-600 mt-1">{getItemDetails(item)}</div>}
+                              {getItemDetails(item).length > 0 && (
+                                <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
+                                  {getItemDetails(item).map((el, i) => (
+                                    <span key={i} className="inline-flex items-center">
+                                      {i > 0 && <span className="mx-1">•</span>}
+                                      {el}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </button>
                           )}
                         </td>
@@ -1260,6 +1348,102 @@ export default function EditSchedulePage() {
           </button>
         </div>
       </div>
+
+      {/* SoluCast Presentation */}
+      {programSchedule.some(item => item.type === 'song') && (
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-lg font-semibold text-gray-900">SoluCast Presentation</h3>
+            </div>
+            {!event?.setlist_id && (
+              <button
+                onClick={handleGenerateSolucast}
+                disabled={generatingSolucast}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors disabled:opacity-50"
+              >
+                {generatingSolucast ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Monitor className="w-3.5 h-3.5" />
+                )}
+                Generate SoluCast
+              </button>
+            )}
+          </div>
+
+          {event?.setlist_id && linkedSetlist && (
+            <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm font-semibold text-indigo-900">SoluCast Linked</span>
+                  <span className="text-xs text-indigo-600">({linkedSetlist.itemCount} items)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleSyncSolucast}
+                    disabled={syncing}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:opacity-50"
+                    title="Sync setlist with current schedule"
+                  >
+                    {syncing ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3 h-3" />
+                    )}
+                    Sync
+                  </button>
+                  <button
+                    onClick={handleUnlinkSolucast}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
+                    title="Unlink SoluCast setlist"
+                  >
+                    <Unlink className="w-3 h-3" />
+                    Unlink
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-600">Share code:</span>
+                <code className="px-2 py-0.5 bg-white rounded border border-indigo-200 text-sm font-mono font-bold text-indigo-800 tracking-wider">
+                  {linkedSetlist.shareCode}
+                </code>
+                <button
+                  onClick={() => copyShareCode(linkedSetlist.shareCode)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded transition-colors"
+                >
+                  {codeCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {codeCopied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <a
+                href={`https://solucast.app/open/${linkedSetlist.shareCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+              >
+                Open in SoluCast
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              {syncMessage && (
+                <div className="mt-2 text-xs text-green-700 font-medium">{syncMessage}</div>
+              )}
+            </div>
+          )}
+
+          {!event?.setlist_id && !generatingSolucast && (
+            <p className="mt-2 text-sm text-gray-500">Generate a SoluCast setlist to broadcast songs during the event.</p>
+          )}
+
+          {solucastError && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{solucastError}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Post-Event Schedule */}
       <div className="card">

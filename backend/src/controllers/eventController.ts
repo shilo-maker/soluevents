@@ -102,6 +102,19 @@ export const getEvent = async (
           },
         },
         files: true,
+        invitations: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            status: true,
+            roles_summary: true,
+            sent_at: true,
+            responded_at: true,
+            user_id: true,
+            contact_id: true,
+          },
+        },
       },
     })
 
@@ -274,6 +287,19 @@ export const updateEvent = async (
       venue_id, parent_tour_id, tags, program_agenda, rider_details,
       event_teams, flow_service_id,
     } = req.body
+
+    // Validate parent_tour_id if being updated — user must have access to the tour
+    if (parent_tour_id) {
+      const tour = await prisma.tour.findUnique({
+        where: { id: parent_tour_id },
+        select: { director_user_id: true, logistics_user_id: true, comms_user_id: true, media_user_id: true, hospitality_user_id: true },
+      })
+      if (!tour) throw new AppError('Tour not found', 404)
+      const tourUsers = [tour.director_user_id, tour.logistics_user_id, tour.comms_user_id, tour.media_user_id, tour.hospitality_user_id]
+      if (!tourUsers.includes(req.user!.id) && req.user!.org_role !== 'admin') {
+        throw new AppError('Not authorized to link events to this tour', 403)
+      }
+    }
 
     const updateData: Record<string, any> = {}
     if (type !== undefined) updateData.type = type

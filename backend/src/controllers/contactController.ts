@@ -24,7 +24,7 @@ export const getContacts = async (
     const where: Record<string, any> = activeWsId
       ? {
           creator: {
-            workspaceMembers: {
+            workspaceMemberships: {
               some: { workspaceId: activeWsId },
             },
           },

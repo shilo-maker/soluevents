@@ -16,7 +16,13 @@ export const getUsers = async (
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50))
     const skip = (page - 1) * limit
 
-    const where = { isActive: true }
+    const activeWsId = req.user!.activeWorkspaceId
+    const where: Record<string, any> = { isActive: true }
+
+    // Scope to workspace members when user has an active workspace
+    if (activeWsId) {
+      where.workspaceMemberships = { some: { workspaceId: activeWsId } }
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({

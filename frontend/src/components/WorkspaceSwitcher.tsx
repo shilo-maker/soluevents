@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Building2, Check, Plus, ChevronDown, Link, Loader2, Settings } from 'lucide-react'
+import { User, Building2, Check, Plus, ChevronDown, Link, Loader2, Settings, Users } from 'lucide-react'
 import { useWorkspaces, useSwitchWorkspace, useCreateWorkspace, useGenerateInvite } from '@/hooks/useWorkspaces'
 import type { Workspace } from '@/types'
 
@@ -73,6 +73,7 @@ export default function WorkspaceSwitcher() {
     try {
       await switchMutation.mutateAsync(ws.id)
       setOpen(false)
+      navigate('/events')
     } catch {
       // error is available via switchMutation.error — keep dropdown open so user sees it
     }
@@ -166,7 +167,7 @@ export default function WorkspaceSwitcher() {
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {ws.is_active && ws.workspaceType === 'organization' && ws.role === 'admin' && (
+                {ws.is_active && ws.workspaceType === 'organization' && (
                   <span
                     role="button"
                     tabIndex={0}
@@ -183,9 +184,9 @@ export default function WorkspaceSwitcher() {
                       }
                     }}
                     className="p-1 rounded hover:bg-purple-100 text-gray-400 hover:text-purple-600 transition-colors"
-                    title="Workspace settings"
+                    title={ws.role === 'admin' ? 'Workspace settings' : 'Workspace members'}
                   >
-                    <Settings className="w-3.5 h-3.5" />
+                    {ws.role === 'admin' ? <Settings className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                   </span>
                 )}
                 {ws.workspaceType === 'organization' && (ws.role === 'admin' || ws.role === 'planner') && (

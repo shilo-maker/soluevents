@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
-import type { WorkspaceMember, WorkspaceInvitation } from '@/types'
+import type { WorkspaceMember, WorkspaceInvitation, UserSearchResult, WorkspaceMemberInvite } from '@/types'
 
 interface WorkspaceDetailsResponse {
   workspace: { id: string; name: string; slug: string; workspaceType: string }
@@ -83,6 +83,61 @@ export function useRevokeInvitation(wsId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace', wsId, 'invitations'] })
+    },
+  })
+}
+
+// ── Direct Member Invite hooks ──────────────────────────────────────
+
+export function useSearchUserByEmail(wsId: string | undefined, email: string) {
+  return useQuery({
+    queryKey: ['workspace', wsId, 'search-user', email],
+    queryFn: async () => {
+      const res = await api.get<UserSearchResult>(
+        `/workspaces/${wsId}/search-user?email=${encodeURIComponent(email)}`
+      )
+      return res.data
+    },
+    enabled: !!wsId && email.length > 2 && email.includes('@'),
+  })
+}
+
+export function useSendMemberInvite(wsId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      const res = await api.post<WorkspaceMemberInvite>(
+        `/workspaces/${wsId}/member-invites`,
+        { email, role }
+      )
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace', wsId, 'member-invites'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', wsId, 'search-user'] })
+    },
+  })
+}
+
+export function useWorkspaceMemberInvites(wsId: string | undefined) {
+  return useQuery({
+    queryKey: ['workspace', wsId, 'member-invites'],
+    queryFn: async () => {
+      const res = await api.get<WorkspaceMemberInvite[]>(`/workspaces/${wsId}/member-invites`)
+      return res.data
+    },
+    enabled: !!wsId,
+  })
+}
+
+export function useRevokeMemberInvite(wsId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (inviteId: string) => {
+      await api.delete(`/workspaces/${wsId}/member-invites/${inviteId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace', wsId, 'member-invites'] })
     },
   })
 }

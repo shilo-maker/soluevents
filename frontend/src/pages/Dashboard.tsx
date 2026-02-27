@@ -1,7 +1,10 @@
+import { useMemo, useCallback } from 'react'
 import { Calendar, CheckSquare, Bell, Loader2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEvents } from '@/hooks/useEvents'
-import { useTasks, useUpdateTask } from '@/hooks/useTasks'
+import { useTasks } from '@/hooks/useTasks'
 import { useAuthStore } from '@/stores/authStore'
+import api from '@/lib/axios'
 import { isWithinDays } from '@/lib/utils'
 import { isAfter } from 'date-fns'
 import EventCard from '@/components/EventCard'
@@ -13,16 +16,16 @@ export default function Dashboard() {
   const { data: tasks, isLoading: tasksLoading } = useTasks({ assignee: 'me' })
 
   // Filter upcoming events (next 30 days)
-  const upcomingEvents = events?.filter((event) => {
+  const upcomingEvents = useMemo(() => events?.filter((event) => {
     const eventDate = new Date(event.date_start)
     return isAfter(eventDate, new Date()) && isWithinDays(eventDate, 30)
-  })
+  }), [events])
 
   // Filter pending tasks (not done)
-  const pendingTasks = tasks?.filter((task) => task.status !== 'done')
+  const pendingTasks = useMemo(() => tasks?.filter((task) => task.status !== 'done'), [tasks])
 
   // Sort by priority and due date
-  const sortedTasks = pendingTasks?.sort((a, b) => {
+  const sortedTasks = useMemo(() => pendingTasks?.slice().sort((a, b) => {
     const priorityOrder = { critical: 0, high: 1, normal: 2 }
     if (a.priority !== b.priority) {
       return priorityOrder[a.priority] - priorityOrder[b.priority]
@@ -31,17 +34,18 @@ export default function Dashboard() {
       return new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
     }
     return 0
-  })
+  }), [pendingTasks])
 
-  const updateTaskMutation = useUpdateTask('')
+  const queryClient = useQueryClient()
 
-  const handleToggleTask = (_taskId: string, newStatus: 'done' | 'not_started') => {
-    updateTaskMutation.mutate({ status: newStatus }, {
-      onSuccess: () => {
-        // Task will be refetched automatically
-      },
+  const handleToggleTask = useCallback((taskId: string, newStatus: 'done' | 'not_started') => {
+    api.patch(`/tasks/${taskId}`, { status: newStatus }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }).catch(() => {
+      // Refresh to show actual state on failure
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
     })
-  }
+  }, [queryClient])
 
   return (
     <div className="space-y-8">

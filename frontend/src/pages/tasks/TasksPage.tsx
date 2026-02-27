@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Plus, Loader2, Search, LayoutGrid, List as ListIcon } from 'lucide-react'
-import { useTasks, useUpdateTask } from '@/hooks/useTasks'
+import { useQueryClient } from '@tanstack/react-query'
+import { useTasks } from '@/hooks/useTasks'
 import { useAuthStore } from '@/stores/authStore'
+import api from '@/lib/axios'
 import TaskCard from '@/components/TaskCard'
 import TaskKanban from '@/components/TaskKanban'
 import CreateTaskModal from './CreateTaskModal'
@@ -14,32 +16,43 @@ export default function TasksPage() {
   const [view, setView] = useState<View>('list')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [filterAssignee, setFilterAssignee] = useState<string>('me')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const { data: tasks, isLoading } = useTasks(
     filterAssignee === 'all' ? {} : { assignee: filterAssignee }
   )
 
-  const updateTaskMutation = useUpdateTask('')
+  const queryClient = useQueryClient()
 
-  const handleToggleTask = (_taskId: string, newStatus: TaskStatus) => {
-    updateTaskMutation.mutate({ status: newStatus })
-  }
+  const handleToggleTask = useCallback((taskId: string, newStatus: TaskStatus) => {
+    api.patch(`/tasks/${taskId}`, { status: newStatus }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }).catch(() => {
+      // Refresh to show actual state on failure
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    })
+  }, [queryClient])
 
   // Filter tasks
-  const filteredTasks = tasks?.filter((task) => {
+  const filteredTasks = useMemo(() => tasks?.filter((task) => {
     const matchesSearch =
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      task.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      task.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
     const matchesStatus = filterStatus === 'all' || task.status === filterStatus
     const matchesPriority = filterPriority === 'all' || task.priority === filterPriority
     return matchesSearch && matchesStatus && matchesPriority
-  })
+  }), [tasks, debouncedSearch, filterStatus, filterPriority])
 
   // Sort tasks by priority and due date
-  const sortedTasks = filteredTasks?.sort((a, b) => {
+  const sortedTasks = useMemo(() => filteredTasks?.slice().sort((a, b) => {
     const priorityOrder = { critical: 0, high: 1, normal: 2 }
     if (a.priority !== b.priority) {
       return priorityOrder[a.priority] - priorityOrder[b.priority]
@@ -48,7 +61,7 @@ export default function TasksPage() {
       return new Date(a.due_at).getTime() - new Date(b.due_at).getTime()
     }
     return 0
-  })
+  }), [filteredTasks])
 
   return (
     <div className="space-y-6">
@@ -164,11 +177,11 @@ export default function TasksPage() {
         <div className="card text-center py-12">
           <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {searchQuery || filterStatus !== 'all' || filterPriority !== 'all'
+            {debouncedSearch || filterStatus !== 'all' || filterPriority !== 'all'
               ? 'Try adjusting your filters'
               : 'Get started by creating your first task'}
           </p>
-          {!searchQuery && filterStatus === 'all' && filterPriority === 'all' && (
+          {!debouncedSearch && filterStatus === 'all' && filterPriority === 'all' && (
             <button
               onClick={() => setIsCreateModalOpen(true)}
               className="btn-primary"

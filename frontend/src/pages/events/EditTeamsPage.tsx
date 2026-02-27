@@ -327,8 +327,9 @@ export default function EditTeamsPage() {
                           value={member.name}
                           contactId={member.contact_id || undefined}
                           isUser={member.is_user}
+                          freeTextOnly
                           onChange={(name, contactId, isUser) => handleMemberContactChange(teamIndex, memberIndex, name, contactId, isUser)}
-                          placeholder="Search or create..."
+                          placeholder="Search people..."
                           className="input text-sm"
                         />
                       </div>

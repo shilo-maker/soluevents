@@ -7,6 +7,7 @@ import { useContacts } from '@/hooks/useContacts'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
 import { useUpdateVenue } from '@/hooks/useVenues'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
+import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import type { EventType, EventPhase, EventStatus } from '@/types'
 import {
@@ -1212,24 +1213,24 @@ export default function NewEventWizard() {
                     >
                       <tbody>
                         {formData.program_schedule.map((item, index) => {
-                          // Build details text based on type
-                          const getDetailsText = () => {
-                            const details = []
+                          // Build details as JSX with hover cards for person names
+                          const getDetailsElements = () => {
+                            const parts: React.ReactNode[] = []
                             if (item.type === 'song') {
-                              if (item.person) details.push(item.person)
-                              if (item.key) details.push(`Key: ${item.key}`)
-                              if (item.bpm) details.push(`BPM: ${item.bpm}`)
+                              if (item.person) parts.push(<PersonHoverCard key="person" name={item.person} contactId={item.person_id} isUser={item.person_is_user} />)
+                              if (item.key) parts.push(<span key="key">Key: {item.key}</span>)
+                              if (item.bpm) parts.push(<span key="bpm">BPM: {item.bpm}</span>)
                             } else if (item.type === 'share') {
-                              if (item.speaker) details.push(`Speaker: ${item.speaker}`)
-                              if (item.topic) details.push(`Topic: ${item.topic}`)
+                              if (item.speaker) parts.push(<span key="speaker">Speaker: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
+                              if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
                             } else if (item.type === 'prayer') {
-                              if (item.prayer_leader) details.push(`Leader: ${item.prayer_leader}`)
-                              if (item.topic) details.push(`Topic: ${item.topic}`)
+                              if (item.prayer_leader) parts.push(<span key="leader">Leader: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
+                              if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
                             } else if (item.type === 'ministry') {
-                              if (item.facilitator) details.push(`Facilitator: ${item.facilitator}`)
-                              if (item.has_ministry_team) details.push('Ministry Team')
+                              if (item.facilitator) parts.push(<span key="facilitator">Facilitator: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
+                              if (item.has_ministry_team) parts.push(<span key="ministry">Ministry Team</span>)
                             }
-                            return details.join(' • ')
+                            return parts
                           }
 
                           return (
@@ -1318,6 +1319,7 @@ export default function NewEventWizard() {
                                             value={item.person}
                                             contactId={item.person_id}
                                             isUser={item.person_is_user}
+                                            freeTextOnly
                                             onChange={(name, contactId, isUser) => {
                                               const newSchedule = [...formData.program_schedule]
                                               newSchedule[index].person = name
@@ -1363,6 +1365,7 @@ export default function NewEventWizard() {
                                               value={item.speaker}
                                               contactId={item.speaker_id}
                                               isUser={item.speaker_is_user}
+                                              freeTextOnly
                                               onChange={(name, contactId, isUser) => {
                                                 const newSchedule = [...formData.program_schedule]
                                                 newSchedule[index].speaker = name
@@ -1411,6 +1414,7 @@ export default function NewEventWizard() {
                                               value={item.prayer_leader}
                                               contactId={item.prayer_leader_id}
                                               isUser={item.prayer_leader_is_user}
+                                              freeTextOnly
                                               onChange={(name, contactId, isUser) => {
                                                 const newSchedule = [...formData.program_schedule]
                                                 newSchedule[index].prayer_leader = name
@@ -1458,6 +1462,7 @@ export default function NewEventWizard() {
                                             value={item.facilitator}
                                             contactId={item.facilitator_id}
                                             isUser={item.facilitator_is_user}
+                                            freeTextOnly
                                             onChange={(name, contactId, isUser) => {
                                               const newSchedule = [...formData.program_schedule]
                                               newSchedule[index].facilitator = name
@@ -1500,9 +1505,14 @@ export default function NewEventWizard() {
                                     className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
                                   >
                                     <div className="font-semibold">{item.title || 'Click to edit'}</div>
-                                    {getDetailsText() && (
-                                      <div className="text-xs text-gray-600 mt-1">
-                                        {getDetailsText()}
+                                    {getDetailsElements().length > 0 && (
+                                      <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
+                                        {getDetailsElements().map((el, i) => (
+                                          <span key={i} className="inline-flex items-center">
+                                            {i > 0 && <span className="mx-1">•</span>}
+                                            {el}
+                                          </span>
+                                        ))}
                                       </div>
                                     )}
                                   </button>
@@ -1723,6 +1733,7 @@ export default function NewEventWizard() {
                           value={member.person}
                           contactId={member.contact_id}
                           isUser={member.is_user}
+                          freeTextOnly
                           onChange={(name, contactId, isUser) => {
                             const newTeam = [...formData.worship_team]
                             newTeam[memberIndex].person = name
@@ -1888,6 +1899,7 @@ export default function NewEventWizard() {
                     <ContactAutocomplete
                       value={formData.prayer_leader.person}
                       contactId={formData.prayer_leader.user_id}
+                      freeTextOnly
                       onChange={(name, contactId, isUser) => setFormData({
                         ...formData,
                         prayer_leader: { ...formData.prayer_leader, person: name, user_id: contactId, is_user: isUser }
@@ -1940,6 +1952,7 @@ export default function NewEventWizard() {
                         value={formData.production_team.soundman.person}
                         contactId={formData.production_team.soundman.contact_id}
                         isUser={formData.production_team.soundman.is_user}
+                        freeTextOnly
                         onChange={(name, contactId, isUser) => setFormData({
                           ...formData,
                           production_team: {
@@ -1982,6 +1995,7 @@ export default function NewEventWizard() {
                         value={formData.production_team.projection.person}
                         contactId={formData.production_team.projection.contact_id}
                         isUser={formData.production_team.projection.is_user}
+                        freeTextOnly
                         onChange={(name, contactId, isUser) => setFormData({
                           ...formData,
                           production_team: {
@@ -2024,6 +2038,7 @@ export default function NewEventWizard() {
                         value={formData.production_team.host.person}
                         contactId={formData.production_team.host.contact_id}
                         isUser={formData.production_team.host.is_user}
+                        freeTextOnly
                         onChange={(name, contactId, isUser) => setFormData({
                           ...formData,
                           production_team: {

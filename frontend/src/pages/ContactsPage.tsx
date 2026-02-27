@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { UserPlus, Mail, Phone, Briefcase, X, Edit2, Save, Trash2, Loader2, Search, Shield } from 'lucide-react'
 import { useContacts, useCreateContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useUsers } from '@/hooks/useUsers'
@@ -22,6 +22,7 @@ export default function ContactsPage() {
   const [showAddContact, setShowAddContact] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     nickname: '',
@@ -30,6 +31,11 @@ export default function ContactsPage() {
     role: '',
     notes: '',
   })
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const { data: contacts, isLoading: contactsLoading } = useContacts()
   const { data: users, isLoading: usersLoading } = useUsers()
@@ -70,9 +76,9 @@ export default function ContactsPage() {
 
   // Filter contacts based on search query
   const filteredContacts = useMemo(() => {
-    if (!searchQuery.trim()) return allContacts
+    if (!debouncedSearch.trim()) return allContacts
 
-    const query = searchQuery.toLowerCase()
+    const query = debouncedSearch.toLowerCase()
     return allContacts.filter(contact =>
       contact.name.toLowerCase().includes(query) ||
       contact.nickname?.toLowerCase().includes(query) ||
@@ -81,7 +87,7 @@ export default function ContactsPage() {
       contact.role?.toLowerCase().includes(query) ||
       contact.org_role?.toLowerCase().includes(query)
     )
-  }, [allContacts, searchQuery])
+  }, [allContacts, debouncedSearch])
 
   const handleSaveContact = () => {
     if (!formData.name.trim()) return
@@ -368,8 +374,8 @@ export default function ContactsPage() {
           </div>
         ) : (
           <div className="text-center py-12 text-gray-500">
-            {searchQuery ? (
-              <p>No contacts found matching "{searchQuery}"</p>
+            {debouncedSearch ? (
+              <p>No contacts found matching "{debouncedSearch}"</p>
             ) : (
               <p>No contacts yet. Click "Add Contact" to create one.</p>
             )}

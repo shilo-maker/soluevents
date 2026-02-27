@@ -166,6 +166,35 @@ export const getSetlists = async (
   }
 }
 
+export const getSetlist = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params
+    const setlist = await setlistService.getSetlistById(id)
+    if (!setlist) {
+      throw new AppError('Setlist not found', 404)
+    }
+
+    // Authorization: must be the setlist creator or an admin
+    if (setlist.createdById !== req.user!.id && req.user!.org_role !== 'admin') {
+      throw new AppError('Not authorized to view this setlist', 403)
+    }
+
+    const items = Array.isArray(setlist.items) ? setlist.items : []
+    res.json({
+      id: setlist.id,
+      name: setlist.name,
+      shareCode: setlist.shareCode,
+      itemCount: items.length,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 // ── Workspaces ─────────────────────────────────────────────────
 
 export const getWorkspaces = async (
@@ -192,13 +221,21 @@ export const linkEventToService = async (
     const { id } = req.params
     const { flow_service_id, setlist_id, workspace_id } = req.body
 
-    const event = await prisma.event.findUnique({ where: { id } })
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: { id: true, created_by: true, workspace_id: true },
+    })
     if (!event) {
       throw new AppError('Event not found', 404)
     }
 
-    // Authorization: must own the event
-    if (event.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
+    // Authorization: must own the event, be workspace admin/planner, or org admin
+    let canLink = event.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!canLink && event.workspace_id) {
+      const wsRole = await workspaceService.getWorkspaceMemberRole(event.workspace_id, req.user!.id)
+      canLink = wsRole === 'admin' || wsRole === 'planner'
+    }
+    if (!canLink) {
       throw new AppError('Not authorized to link this event', 403)
     }
 
@@ -312,8 +349,13 @@ export const generateSolucast = async (
       throw new AppError('Event not found', 404)
     }
 
-    // Authorization: must own the event or be admin
-    if (event.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
+    // Authorization: must own the event, be workspace admin/planner, or org admin
+    let canGenerate = event.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!canGenerate && event.workspace_id) {
+      const wsRole = await workspaceService.getWorkspaceMemberRole(event.workspace_id, req.user!.id)
+      canGenerate = wsRole === 'admin' || wsRole === 'planner'
+    }
+    if (!canGenerate) {
       throw new AppError('Not authorized to generate SoluCast for this event', 403)
     }
 
@@ -489,16 +531,6 @@ export const generateSolucast = async (
         )
       }
 
-      // Generate unique share code (retry up to 5 times on collision)
-      let shareCode = ''
-      for (let i = 0; i < 5; i++) {
-        shareCode = generateShareCode()
-        const existing = await tx.setlist.findUnique({ where: { shareCode } })
-        if (!existing) break
-        if (i === 4) throw new AppError('Failed to generate unique share code', 500)
-      }
-
-      const shareToken = randomBytes(16).toString('hex')
       const setlistName = event.title.slice(0, 255)
 
       // If event has a linked setlist, try to update; fall back to create if it was deleted
@@ -509,19 +541,28 @@ export const generateSolucast = async (
           select: { id: true },
         })
         if (existingSetlist) {
+          // Update items only — preserve existing shareCode and shareToken
           setlist = await tx.setlist.update({
             where: { id: event.setlist_id },
             data: {
               name: setlistName,
               items: setlistItems,
-              shareCode,
-              shareToken,
             },
           })
         }
       }
 
       if (!setlist) {
+        // New setlist — generate unique share code (retry up to 5 times on collision)
+        let shareCode = ''
+        for (let i = 0; i < 5; i++) {
+          shareCode = generateShareCode()
+          const existing = await tx.setlist.findUnique({ where: { shareCode } })
+          if (!existing) break
+          if (i === 4) throw new AppError('Failed to generate unique share code', 500)
+        }
+        const shareToken = randomBytes(16).toString('hex')
+
         setlist = await tx.setlist.create({
           data: {
             name: setlistName,

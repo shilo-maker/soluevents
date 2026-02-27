@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { CheckCircle2, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save } from 'lucide-react'
 import { formatDate, isWithinDays, isPast } from '@/lib/utils'
 import Badge from './Badge'
@@ -16,7 +16,7 @@ interface TaskCardProps {
   onUpdateTask?: (taskId: string, data: Partial<Task>) => void
 }
 
-export default function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
+function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
   const [isEditingLink, setIsEditingLink] = useState(false)
   const [linkValue, setLinkValue] = useState(task.link || '')
   const [isEditingTask, setIsEditingTask] = useState(false)
@@ -349,3 +349,5 @@ export default function TaskCard({ task, currentUser, users, onToggle, onUpdateL
     </div>
   )
 }
+
+export default memo(TaskCard)

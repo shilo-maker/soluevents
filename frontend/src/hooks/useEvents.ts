@@ -72,6 +72,21 @@ export function useDeleteEvent() {
   })
 }
 
+// SoluCast setlist integration
+export function useSetlist(setlistId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['setlists', setlistId],
+    queryFn: async () => {
+      const res = await api.get<{ id: string; name: string; shareCode: string; itemCount: number }>(
+        `/integration/setlists/${setlistId}`
+      )
+      return res.data
+    },
+    enabled: !!setlistId,
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
 // SoluFlow service integration
 export function useFlowService(serviceId: string | null | undefined) {
   return useQuery({
@@ -81,7 +96,7 @@ export function useFlowService(serviceId: string | null | undefined) {
       return res.data
     },
     enabled: !!serviceId,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

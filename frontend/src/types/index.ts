@@ -1,3 +1,22 @@
+// Invitation types
+export type InvitationStatus = 'pending' | 'confirmed' | 'declined'
+
+export interface EventInvitation {
+  id: string
+  email: string
+  name: string
+  status: InvitationStatus
+  roles_summary: Array<{
+    source: 'team' | 'schedule'
+    team_name?: string
+    role: string
+  }>
+  sent_at: string
+  responded_at?: string
+  user_id?: string | null
+  contact_id?: string | null
+}
+
 // User types
 export type OrgRole = 'admin' | 'manager' | 'member' | 'viewer'
 
@@ -55,6 +74,30 @@ export interface WorkspaceInvitation {
   creator?: { id: string; name?: string; email: string }
 }
 
+export interface WorkspaceMemberInvite {
+  id: string
+  workspace_id: string
+  invited_email: string
+  invited_user_id?: string | null
+  role: WorkspaceMemberRole
+  status: InvitationStatus
+  token: string
+  invited_by_id: string
+  expires_at: string
+  created_at: string
+  responded_at?: string | null
+  invitedUser?: { id: string; name?: string; email: string; avatar_url?: string } | null
+  invitedBy?: { id: string; name?: string; email: string } | null
+  workspace?: { id: string; name: string; slug: string }
+}
+
+export interface UserSearchResult {
+  found: boolean
+  user?: { id: string; email: string; name?: string; username?: string; avatar_url?: string }
+  alreadyMember?: boolean
+  alreadyInvited?: boolean
+}
+
 // Event types
 export type EventType = 'worship' | 'in_house' | 'film' | 'tour_child'
 export type EventPhase = 'concept' | 'prep' | 'execution' | 'follow_up'
@@ -77,6 +120,7 @@ export interface Event {
   parent_tour_id?: string
   tags: string[]
   flow_service_id: string | null
+  setlist_id?: string | null
   program_agenda?: {
     pre_event_schedule?: Array<{
       item: string
@@ -94,10 +138,16 @@ export interface Event {
       bpm?: string
       soluflow_song_id?: string
       speaker?: string
+      speaker_id?: string
+      speaker_is_user?: boolean
       topic?: string
       points?: string
       prayer_leader?: string
+      prayer_leader_id?: string
+      prayer_leader_is_user?: boolean
       facilitator?: string
+      facilitator_id?: string
+      facilitator_is_user?: boolean
       has_ministry_team?: boolean
     }>
     has_post_event_schedule?: boolean
@@ -147,6 +197,7 @@ export interface Event {
     projection_needed?: boolean
     special_requirements?: string
   }
+  invitations?: EventInvitation[]
   created_by: string
   created_at: string
   updated_at: string
@@ -257,11 +308,24 @@ export interface Template {
 }
 
 // Notification
+export interface NotificationPayload {
+  invite_id?: string
+  token?: string
+  workspace_id?: string
+  workspace_name?: string
+  role?: string
+  invited_by_name?: string
+  message?: string
+  responded?: boolean
+  response_action?: 'accept' | 'decline'
+  [key: string]: unknown
+}
+
 export interface Notification {
   id: string
   user_id: string
   type: string
-  payload: any
+  payload: NotificationPayload
   read_at?: string
   created_at: string
 }

@@ -189,6 +189,7 @@ export default function EditRiderPage() {
                     value={member.person}
                     contactId={member.contact_id}
                     isUser={member.is_user}
+                    freeTextOnly
                     onChange={(name, contactId, isUser) => {
                       const updated = [...worshipTeam]
                       updated[memberIndex].person = name

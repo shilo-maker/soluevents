@@ -15,6 +15,9 @@ import contactRoutes from './routes/contactRoutes'
 import venueRoutes from './routes/venueRoutes'
 import integrationRoutes from './routes/integration'
 import workspaceRoutes from './routes/workspaces'
+import invitationRoutes from './routes/invitations'
+import userSettingsRoutes from './routes/userSettings'
+import notificationRoutes from './routes/notifications'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
 
@@ -36,7 +39,7 @@ app.set('trust proxy', 1)
 
 // Security middleware
 app.use(helmet())
-app.use(compression())
+app.use(compression({ threshold: 1024 }))
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
@@ -71,6 +74,9 @@ app.use('/api/contacts', contactRoutes)
 app.use('/api/venues', venueRoutes)
 app.use('/api/integration', integrationRoutes)
 app.use('/api/workspaces', workspaceRoutes)
+app.use('/api/invitations', invitationRoutes)
+app.use('/api/user', userSettingsRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

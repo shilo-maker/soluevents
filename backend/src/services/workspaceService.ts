@@ -263,7 +263,19 @@ export async function deleteWorkspace(id: string) {
     // Null out Event.workspace_id (soft FK)
     await tx.event.updateMany({ where: { workspace_id: id }, data: { workspace_id: null } })
 
+    // Delete notifications tied to this workspace (JSON payload filtering)
+    await tx.notification.deleteMany({
+      where: {
+        type: 'workspace_invite',
+        payload: {
+          path: ['workspace_id'],
+          equals: id,
+        },
+      },
+    })
+
     // Delete invitations
+    await tx.workspaceMemberInvite.deleteMany({ where: { workspace_id: id } })
     await tx.workspaceInvitation.deleteMany({ where: { workspaceId: id } })
 
     // Save member userIds, then delete members

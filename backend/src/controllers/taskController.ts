@@ -213,6 +213,21 @@ export const createTask = async (
       }
     }
 
+    // Validate parent_task_id: must exist and belong to the same event/tour
+    if (parent_task_id) {
+      const parentTask = await prisma.task.findUnique({
+        where: { id: parent_task_id },
+        select: { id: true, event_id: true, tour_id: true },
+      })
+      if (!parentTask) throw new AppError('Parent task not found', 404)
+      if (event_id && parentTask.event_id !== event_id) {
+        throw new AppError('Parent task does not belong to the same event', 400)
+      }
+      if (tour_id && parentTask.tour_id !== tour_id) {
+        throw new AppError('Parent task does not belong to the same tour', 400)
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         title,

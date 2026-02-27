@@ -82,6 +82,12 @@ enum RoleScope {
   tour_day
 }
 
+enum InvitationStatus {
+  pending
+  confirmed
+  declined
+}
+
 enum EntityType {
   event
   task
@@ -221,6 +227,14 @@ model User {
   avatar_url String?
   phone      String?
 
+  // Email / SMTP settings (per-user)
+  smtp_host     String?   @db.VarChar(255)
+  smtp_port     Int?
+  smtp_secure   Boolean   @default(false)
+  smtp_user     String?   @db.VarChar(255)
+  smtp_pass     String?   @db.VarChar(500)
+  email_from    String?   @db.VarChar(255)
+
   // --- SoluPlan relations (Group B) ---
   created_events      Event[]           @relation("CreatedEvents")
   assigned_tasks      Task[]            @relation("AssignedTasks")
@@ -237,6 +251,9 @@ model User {
   devotional_tourdays TourDay[]
   created_contacts    Contact[]         @relation("CreatedContacts")
   created_venues      Venue[]           @relation("CreatedVenues")
+  event_invitations   EventInvitation[] @relation("EventInvitations")
+  memberInvitesReceived WorkspaceMemberInvite[] @relation("MemberInviteRecipient")
+  memberInvitesSent     WorkspaceMemberInvite[] @relation("MemberInviteSender")
 
   // --- SoluCast relations (Group A) ---
   operatedRooms              Room[]
@@ -586,6 +603,7 @@ model Workspace {
   songs          Song[]
   flowServices   FlowService[]
   invitations    WorkspaceInvitation[]
+  memberInvites  WorkspaceMemberInvite[]
   songWorkspaces SongWorkspace[]
 
   @@index([createdById], map: "workspaces_created_by_id")
@@ -607,6 +625,7 @@ model WorkspaceMember {
   @@unique([workspaceId, userId], map: "workspace_members_workspace_id_user_id")
   @@index([userId], map: "workspace_members_user_id")
   @@index([workspaceId], map: "workspace_members_workspace_id")
+  @@index([workspaceId, role])
   @@map("workspace_members")
 }
 
@@ -869,6 +888,7 @@ model Event {
   tasks            Task[]
   files            SoluplanFile[]
   linked_tour_days TourDay[]
+  invitations      EventInvitation[]
 
   @@index([created_by])
   @@index([venue_id])
@@ -876,6 +896,8 @@ model Event {
   @@index([status])
   @@index([date_start])
   @@index([workspace_id])
+  @@index([workspace_id, status, date_start])
+  @@index([workspace_id, created_by])
   @@map("events")
 }
 
@@ -989,6 +1011,8 @@ model Task {
   @@index([tour_id])
   @@index([status])
   @@index([due_at])
+  @@index([event_id, status, due_at])
+  @@index([assignee_id, status, due_at])
   @@map("tasks")
 }
 
@@ -1057,6 +1081,7 @@ model Notification {
 
   @@index([user_id])
   @@index([read_at])
+  @@index([user_id, read_at])
   @@map("notifications")
 }
 
@@ -1079,6 +1104,31 @@ model Contact {
   @@map("contacts")
 }
 
+model EventInvitation {
+  id            String           @id @default(uuid()) @db.Uuid
+  event_id      String           @db.Uuid
+  email         String           @db.VarChar(255)
+  name          String           @db.VarChar(200)
+  token         String           @unique @db.VarChar(48)
+  status        InvitationStatus @default(pending)
+  roles_summary Json
+  user_id       String?          @db.Uuid
+  contact_id    String?          @db.Uuid
+  sent_at       DateTime         @default(now())
+  responded_at  DateTime?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+
+  // Relations
+  event Event @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user  User? @relation("EventInvitations", fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@unique([event_id, email])
+  @@index([event_id])
+  @@index([token])
+  @@map("event_invitations")
+}
+
 model Venue {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
@@ -1094,4 +1144,29 @@ model Venue {
   @@index([created_by])
   @@index([name])
   @@map("venues")
+}
+
+model WorkspaceMemberInvite {
+  id              String              @id @default(uuid()) @db.Uuid
+  workspace_id    String              @db.Uuid
+  invited_email   String              @db.VarChar(255)
+  invited_user_id String?             @db.Uuid
+  role            WorkspaceMemberRole @default(member)
+  status          InvitationStatus    @default(pending)
+  token           String              @unique @db.VarChar(128)
+  invited_by_id   String              @db.Uuid
+  expires_at      DateTime            @db.Timestamptz(6)
+  created_at      DateTime            @default(now())
+  responded_at    DateTime?
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  invitedUser User?     @relation("MemberInviteRecipient", fields: [invited_user_id], references: [id], onDelete: SetNull)
+  invitedBy   User      @relation("MemberInviteSender", fields: [invited_by_id], references: [id])
+
+  @@unique([workspace_id, invited_email])
+  @@index([workspace_id])
+  @@index([invited_by_id])
+  @@index([token])
+  @@map("workspace_member_invites")
 }

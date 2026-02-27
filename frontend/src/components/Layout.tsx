@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
+import NotificationBell from './NotificationBell'
 import {
   Home,
   Calendar,
@@ -8,9 +9,9 @@ import {
   CheckSquare,
   Users,
   UserCog,
-  Bell,
   User,
   LogOut,
+  Settings,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -82,13 +83,22 @@ export default function Layout({ children }: LayoutProps) {
                   <p className="text-xs text-white/70 capitalize">{user?.org_role}</p>
                 </div>
               </div>
-              <button
-                onClick={() => clearAuth()}
-                className="p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <Link
+                  to="/user/settings"
+                  className="p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  title="User Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </Link>
+                <button
+                  onClick={() => clearAuth()}
+                  className="p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -100,10 +110,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="sticky top-0 z-10 flex items-center h-16 px-8 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
           <WorkspaceSwitcher />
           <div className="flex-1"></div>
-          <button className="relative p-3 text-gray-600 hover:text-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full animate-pulse"></span>
-          </button>
+          <NotificationBell />
         </div>
 
         {/* Page content */}

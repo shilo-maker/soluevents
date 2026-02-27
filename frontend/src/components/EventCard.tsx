@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, MapPin, Users, MoreVertical, Pencil, Trash2, Copy } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { useDeleteEvent } from '@/hooks/useEvents'
 import Badge from './Badge'
@@ -8,9 +8,10 @@ import type { Event } from '@/types'
 
 interface EventCardProps {
   event: Event
+  onDuplicate?: (event: Event) => void
 }
 
-export default function EventCard({ event }: EventCardProps) {
+function EventCard({ event, onDuplicate }: EventCardProps) {
   const navigate = useNavigate()
   const deleteEvent = useDeleteEvent()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -89,6 +90,20 @@ export default function EventCard({ event }: EventCardProps) {
                 <Pencil className="w-3.5 h-3.5" />
                 Edit
               </button>
+              {onDuplicate && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setMenuOpen(false)
+                    onDuplicate(event)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Duplicate
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -182,3 +197,5 @@ export default function EventCard({ event }: EventCardProps) {
     </>
   )
 }
+
+export default memo(EventCard)

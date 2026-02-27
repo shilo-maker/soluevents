@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useCreateEvent } from '@/hooks/useEvents'
@@ -6,9 +6,23 @@ import { useUpdateVenue } from '@/hooks/useVenues'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
 import type { EventType, EventPhase, EventStatus } from '@/types'
 
+interface InitialEventData {
+  type: EventType
+  title: string
+  location_name: string
+  address: string
+  venue_id: string
+  description: string
+  tags: string
+  est_attendance: string
+  event_time: string
+  program_agenda?: object
+}
+
 interface CreateEventDialogProps {
   isOpen: boolean
   onClose: () => void
+  initialData?: InitialEventData
 }
 
 const eventTypes = [
@@ -18,10 +32,13 @@ const eventTypes = [
   { value: 'tour_child', label: 'Tour Event', icon: '🚌', description: 'Part of a multi-city tour' },
 ]
 
-export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialogProps) {
+export default function CreateEventDialog({ isOpen, onClose, initialData }: CreateEventDialogProps) {
   const navigate = useNavigate()
   const createEvent = useCreateEvent()
   const updateVenue = useUpdateVenue()
+  const programAgendaRef = useRef<object | undefined>(undefined)
+
+  const isDuplicate = !!initialData
 
   const [formData, setFormData] = useState({
     type: 'worship' as EventType,
@@ -38,12 +55,34 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
 
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setFormData({
+        type: initialData.type,
+        event_date: '',
+        event_time: initialData.event_time,
+        location_name: initialData.location_name,
+        address: initialData.address,
+        venue_id: initialData.venue_id,
+        title: initialData.title,
+        description: initialData.description,
+        tags: initialData.tags,
+        est_attendance: initialData.est_attendance,
+      })
+      programAgendaRef.current = initialData.program_agenda
+    }
+  }, [isOpen, initialData])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     if (!formData.event_date) {
       setError('Event date is required')
+      return
+    }
+    if (!formData.event_time) {
+      setError('Event start time is required')
       return
     }
     if (!formData.location_name.trim()) {
@@ -53,14 +92,13 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
 
     try {
       const [hours, minutes] = formData.event_time.split(':').map(Number)
-      const eventDate = new Date(formData.event_date)
-      const startDate = new Date(eventDate)
-      startDate.setHours(hours, minutes, 0, 0)
+      const [year, month, day] = formData.event_date.split('-').map(Number)
+      const startDate = new Date(year, month - 1, day, hours, minutes, 0, 0)
 
       const endDate = new Date(startDate)
       endDate.setHours(startDate.getHours() + 8)
 
-      const event = await createEvent.mutateAsync({
+      const payload: Record<string, any> = {
         type: formData.type,
         title: formData.title || `${eventTypes.find(t => t.value === formData.type)?.label || 'Event'} — ${formData.event_date}`,
         description: formData.description || undefined,
@@ -73,8 +111,15 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
         phase: 'concept' as EventPhase,
         status: 'planned' as EventStatus,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      })
+      }
 
+      if (programAgendaRef.current) {
+        payload.program_agenda = programAgendaRef.current
+      }
+
+      const event = await createEvent.mutateAsync(payload)
+
+      resetForm()
       onClose()
       navigate(`/events/${event.id}`)
     } catch (err: any) {
@@ -95,6 +140,7 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
       tags: '',
       est_attendance: '',
     })
+    programAgendaRef.current = undefined
     setError('')
   }
 
@@ -109,7 +155,7 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Event</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{isDuplicate ? 'Duplicate Event' : 'Create New Event'}</h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -261,7 +307,7 @@ export default function CreateEventDialog({ isOpen, onClose }: CreateEventDialog
               disabled={createEvent.isPending}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createEvent.isPending ? 'Creating...' : 'Create Event'}
+              {createEvent.isPending ? 'Creating...' : isDuplicate ? 'Create Copy' : 'Create Event'}
             </button>
           </div>
         </form>

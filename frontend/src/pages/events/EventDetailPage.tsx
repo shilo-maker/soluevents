@@ -21,18 +21,22 @@ import {
   Monitor,
   Copy,
   Check,
+  Mail,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import { createSoluFlowService } from '@/lib/soluflowApi'
 import { buildMergedSchedule, hasSetlistChanged } from '@/lib/scheduleSync'
-import { useEvent, useUpdateEvent, useDeleteEvent, useFlowService } from '@/hooks/useEvents'
+import { useEvent, useUpdateEvent, useDeleteEvent, useFlowService, useSetlist } from '@/hooks/useEvents'
 import { useTasks, useUpdateTask } from '@/hooks/useTasks'
+import { useSendInvitations } from '@/hooks/useInvitations'
+import InvitationStatusBadge from '@/components/InvitationStatusBadge'
 import { useRoleAssignments, useCreateRoleAssignment, useDeleteRoleAssignment } from '@/hooks/useRoleAssignments'
 import { useUsers } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDateTime } from '@/lib/utils'
 import Badge from '@/components/Badge'
+import PersonHoverCard from '@/components/PersonHoverCard'
 import TaskCard from '@/components/TaskCard'
 import type { Task } from '@/types'
 
@@ -82,11 +86,11 @@ export default function EventDetailPage() {
   const [showTeams, setShowTeams] = useState(false)
   const [soluflowServiceUrl] = useState<string | null>(null)
   const [serviceError] = useState<string | null>(null)
-  const [solucastResult, setSolucastResult] = useState<{ shareCode: string; shareUrl: string; itemCount: number } | null>(null)
-  const [generatingSolucast, setGeneratingSolucast] = useState(false)
-  const [solucastError, setSolucastError] = useState<string | null>(null)
-  const [codeCopied, setCodeCopied] = useState(false)
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [solucastCopied, setSolucastCopied] = useState(false)
+  const [showSendInvitations, setShowSendInvitations] = useState(false)
+  const [invitationResult, setInvitationResult] = useState<{ sent: number; skipped: number; skippedNames: string[]; alreadyResponded: number; errors: string[] } | null>(null)
+  const [invitationError, setInvitationError] = useState<string | null>(null)
+  const sendInvitations = useSendInvitations()
 
   const queryClient = useQueryClient()
   const { data: event, isLoading } = useEvent(id!)
@@ -97,6 +101,7 @@ export default function EventDetailPage() {
   const deleteRoleAssignment = useDeleteRoleAssignment()
   const deleteEvent = useDeleteEvent()
   const { data: linkedService } = useFlowService(event?.flow_service_id)
+  const { data: linkedSetlist } = useSetlist(event?.setlist_id)
   const updateEvent = useUpdateEvent()
   const syncedRef = useRef(false)
 
@@ -116,6 +121,15 @@ export default function EventDetailPage() {
         },
         flow_service_id: event.flow_service_id,
       } as any,
+    }, {
+      onSuccess: () => {
+        api.post(`/integration/events/${event.id}/generate-solucast`)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['setlists'] })
+            queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+          })
+          .catch(() => {})
+      },
     })
   }, [linkedService, event]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -141,6 +155,29 @@ export default function EventDetailPage() {
     }
     return map
   }, [linkedService])
+
+  // Auto-dismiss invitation result banner
+  useEffect(() => {
+    if (!invitationResult) return
+    const timer = setTimeout(() => setInvitationResult(null), 8000)
+    return () => clearTimeout(timer)
+  }, [invitationResult])
+
+  // Build invitation status maps keyed by email, name, and contact/user ID
+  const invitationStatusMap = useMemo(() => {
+    const byEmail = new Map<string, 'pending' | 'confirmed' | 'declined'>()
+    const byName = new Map<string, 'pending' | 'confirmed' | 'declined'>()
+    const byId = new Map<string, 'pending' | 'confirmed' | 'declined'>()
+    if (event?.invitations) {
+      for (const inv of event.invitations) {
+        byEmail.set(inv.email.toLowerCase(), inv.status)
+        byName.set(inv.name.toLowerCase(), inv.status)
+        if (inv.user_id) byId.set(inv.user_id, inv.status)
+        if (inv.contact_id) byId.set(inv.contact_id, inv.status)
+      }
+    }
+    return { byEmail, byName, byId }
+  }, [event?.invitations])
 
   if (isLoading) {
     return (
@@ -206,41 +243,6 @@ export default function EventDetailPage() {
   // const handleCreateSoluFlowService = async () => { ... }
   void createSoluFlowService
 
-  const handleGenerateSolucast = async () => {
-    if (!event || generatingSolucast) return
-    setGeneratingSolucast(true)
-    setSolucastError(null)
-    setSolucastResult(null)
-
-    try {
-      const { data } = await api.post(`/integration/events/${event.id}/generate-solucast`)
-      setSolucastResult({
-        shareCode: data.shareCode,
-        shareUrl: data.shareUrl,
-        itemCount: data.itemCount,
-      })
-      // Refresh event data so setlist_id is up to date
-      queryClient.invalidateQueries({ queryKey: ['events', id] })
-    } catch (error: any) {
-      const msg = error.response?.data?.message || 'Failed to generate SoluCast setlist.'
-      setSolucastError(msg)
-    } finally {
-      setGeneratingSolucast(false)
-    }
-  }
-
-  const copyShareCode = async () => {
-    if (!solucastResult) return
-    try {
-      await navigator.clipboard.writeText(solucastResult.shareCode)
-      setCodeCopied(true)
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCodeCopied(false), 2000)
-    } catch {
-      // Clipboard API unavailable (non-HTTPS context)
-    }
-  }
-
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'tasks', label: 'Tasks', count: tasks?.length },
@@ -290,6 +292,16 @@ export default function EventDetailPage() {
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
           </button>
+          {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
+            <button
+              onClick={() => setShowSendInvitations(true)}
+              disabled={sendInvitations.isPending}
+              className="btn-secondary text-purple-600 hover:bg-purple-50 hover:border-purple-300"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              {sendInvitations.isPending ? 'Sending...' : 'Send Invitations'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -324,38 +336,24 @@ export default function EventDetailPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Event Details
               </h3>
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Date & Time</p>
-                    <p className="text-sm text-gray-600">
-                      {formatDateTime(event.date_start)}
-                    </p>
-                  </div>
-                </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  {formatDateTime(event.date_start)}
+                </span>
 
                 {event.location_name && (
-                  <div className="flex items-start">
-                    <MapPin className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Location</p>
-                      <p className="text-sm text-gray-600">{event.location_name}</p>
-                      {event.address && (
-                        <p className="text-sm text-gray-500">{event.address}</p>
-                      )}
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    {event.location_name}{event.address ? `, ${event.address}` : ''}
+                  </span>
                 )}
 
                 {event.est_attendance && (
-                  <div className="flex items-start">
-                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Expected Attendance</p>
-                      <p className="text-sm text-gray-600">{event.est_attendance} people</p>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                    <Users className="w-4 h-4 text-gray-400" />
+                    {event.est_attendance} people
+                  </span>
                 )}
               </div>
             </div>
@@ -373,6 +371,24 @@ export default function EventDetailPage() {
             {/* Action Cards — shown when data is missing */}
             {(!event.program_agenda || !event.rider_details || !event.event_teams) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {!event.event_teams && (
+                  <Link
+                    to={`/events/${id}/teams`}
+                    className="group card flex items-center gap-4 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
+                      <Users className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
+                        Create Teams
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Build worship, production, and logistics teams with members
+                      </p>
+                    </div>
+                  </Link>
+                )}
                 {!event.program_agenda && (
                   <Link
                     to={`/events/${id}/schedule`}
@@ -428,24 +444,6 @@ export default function EventDetailPage() {
                     </div>
                   )
                 })()}
-                {!event.event_teams && (
-                  <Link
-                    to={`/events/${id}/teams`}
-                    className="group card flex items-center gap-4 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
-                      <Users className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                        Create Teams
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        Build worship, production, and logistics teams with members
-                      </p>
-                    </div>
-                  </Link>
-                )}
               </div>
             )}
 
@@ -461,12 +459,6 @@ export default function EventDetailPage() {
                     <h3 className="text-lg font-semibold text-gray-900">
                       Event Schedule
                     </h3>
-                    {event.flow_service_id && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                        <Music className="w-3 h-3" />
-                        SoluFlow
-                      </span>
-                    )}
                     {!showSchedule && (
                       <span className="text-xs text-gray-500 font-normal">
                         {[
@@ -526,59 +518,7 @@ export default function EventDetailPage() {
                 {/* Program Schedule */}
                 {event.program_agenda.program_schedule && event.program_agenda.program_schedule.length > 0 && (
                   <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700">Program Schedule</h4>
-                      <button
-                        onClick={handleGenerateSolucast}
-                        disabled={generatingSolucast}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors disabled:opacity-50"
-                      >
-                        {generatingSolucast ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Monitor className="w-3.5 h-3.5" />
-                        )}
-                        Generate SoluCast
-                      </button>
-                    </div>
-
-                    {/* SoluCast result */}
-                    {solucastResult && (
-                      <div className="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                        <p className="text-sm font-semibold text-indigo-900 mb-2">
-                          SoluCast setlist created ({solucastResult.itemCount} items)
-                        </p>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-gray-600">Share code:</span>
-                          <code className="px-2 py-0.5 bg-white rounded border border-indigo-200 text-sm font-mono font-bold text-indigo-800 tracking-wider">
-                            {solucastResult.shareCode}
-                          </code>
-                          <button
-                            onClick={copyShareCode}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded transition-colors"
-                          >
-                            {codeCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            {codeCopied ? 'Copied' : 'Copy'}
-                          </button>
-                        </div>
-                        <a
-                          href={solucastResult.shareUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-                        >
-                          Open in SoluCast
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    )}
-
-                    {/* SoluCast error */}
-                    {solucastError && (
-                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-800">{solucastError}</p>
-                      </div>
-                    )}
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Program Schedule</h4>
 
                     {/* SoluFlow Success message */}
                     {soluflowServiceUrl && (
@@ -617,28 +557,39 @@ export default function EventDetailPage() {
                             const hasTime = item.offset_minutes != null
                             const itemTime = hasTime ? new Date(eventTime.getTime() + item.offset_minutes * 60000) : null
 
-                            // Build details text based on type
-                            const getDetailsText = () => {
-                              const details = []
+                            // Build details as JSX with hover cards for person names
+                            const personWithBadge = (name: string, contactId?: string, isUser?: boolean) => {
+                              const status = (contactId && invitationStatusMap.byId.get(contactId))
+                                || invitationStatusMap.byName.get(name.toLowerCase())
+                              return (
+                                <span className="inline-flex items-center gap-1">
+                                  <PersonHoverCard name={name} contactId={contactId} isUser={isUser} />
+                                  {status && <InvitationStatusBadge status={status} />}
+                                </span>
+                              )
+                            }
+
+                            const getDetailsElements = () => {
+                              const parts: React.ReactNode[] = []
                               if (item.type === 'song') {
-                                if (item.person) details.push(item.person)
+                                if (item.person) parts.push(<span key="person">{personWithBadge(item.person, item.person_id, item.person_is_user)}</span>)
                                 const liveKey = item.soluflow_song_id ? liveKeyMap.get(item.soluflow_song_id) : null
                                 const displayKey = liveKey || item.key
-                                if (displayKey) details.push(`Key: ${displayKey}`)
-                                if (item.bpm) details.push(`BPM: ${item.bpm}`)
+                                if (displayKey) parts.push(<span key="key">Key: {displayKey}</span>)
+                                if (item.bpm) parts.push(<span key="bpm">BPM: {item.bpm}</span>)
                               } else if (item.type === 'share') {
-                                if (item.speaker) details.push(`Speaker: ${item.speaker}`)
-                                if (item.topic) details.push(`Topic: ${item.topic}`)
+                                if (item.speaker) parts.push(<span key="speaker">Speaker: {personWithBadge(item.speaker, item.speaker_id, item.speaker_is_user)}</span>)
+                                if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
                               } else if (item.type === 'prayer') {
-                                if (item.prayer_leader) details.push(`Leader: ${item.prayer_leader}`)
-                                if (item.topic) details.push(`Topic: ${item.topic}`)
+                                if (item.prayer_leader) parts.push(<span key="leader">Leader: {personWithBadge(item.prayer_leader, item.prayer_leader_id, item.prayer_leader_is_user)}</span>)
+                                if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
                               } else if (item.type === 'ministry') {
-                                if (item.facilitator) details.push(`Facilitator: ${item.facilitator}`)
-                                if (item.has_ministry_team) details.push('Ministry Team')
+                                if (item.facilitator) parts.push(<span key="facilitator">Facilitator: {personWithBadge(item.facilitator, item.facilitator_id, item.facilitator_is_user)}</span>)
+                                if (item.has_ministry_team) parts.push(<span key="ministry">Ministry Team</span>)
                               } else if (item.person) {
-                                details.push(item.person)
+                                parts.push(<span key="person">{personWithBadge(item.person, item.person_id, item.person_is_user)}</span>)
                               }
-                              return details.join(' • ')
+                              return parts
                             }
 
                             return (
@@ -648,11 +599,16 @@ export default function EventDetailPage() {
                                 </td>
                                 <td className="py-2 px-3">
                                   <div className="font-semibold text-sm text-gray-900">{item.title || 'Untitled'}</div>
-                                  {getDetailsText() && (
-                                    <div className="text-xs text-gray-600 mt-1">
-                                      {getDetailsText()}
+                                  {(() => { const details = getDetailsElements(); return details.length > 0 && (
+                                    <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
+                                      {details.map((el, i) => (
+                                        <span key={i} className="inline-flex items-center">
+                                          {i > 0 && <span className="mx-1">•</span>}
+                                          {el}
+                                        </span>
+                                      ))}
                                     </div>
-                                  )}
+                                  ) })()}
                                 </td>
                               </tr>
                             )
@@ -714,6 +670,86 @@ export default function EventDetailPage() {
               </div>
             )}
 
+            {/* Event Resources */}
+            {(event.flow_service_id || event.setlist_id) && (
+              <div className="card">
+                <div className="flex items-center gap-3">
+                  <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {(event.flow_service_id && linkedService?.code ? 1 : 0) + (event.setlist_id && linkedSetlist?.shareCode ? 1 : 0)}
+                  </span>
+                  <h3 className="text-lg font-semibold text-gray-900">Event Resources</h3>
+                  <div className="flex flex-wrap gap-2 ml-auto">
+                    {event.flow_service_id && linkedService?.code && (
+                      <a
+                        href={`https://soluflow.app/service/code/${linkedService.code}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                      >
+                        <Music className="w-4 h-4" />
+                        SoluFlow
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                    {event.setlist_id && linkedSetlist?.shareCode && (
+                      <div className="relative group">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-lg border border-indigo-200 cursor-default">
+                          <Monitor className="w-4 h-4" />
+                          SoluCast
+                        </div>
+                        <div className="absolute right-0 bottom-full pb-1 hidden group-hover:flex flex-col z-10 min-w-[140px]"><div className="bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                          <a
+                            href={`https://solucast.app/open/${linkedSetlist.shareCode}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Open
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`https://solucast.app/open/${linkedSetlist.shareCode}`)
+                              setSolucastCopied(true)
+                              setTimeout(() => setSolucastCopied(false), 2000)
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors w-full text-left"
+                          >
+                            {solucastCopied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                            {solucastCopied ? 'Copied!' : 'Copy link'}
+                          </button>
+                          <a
+                            href={`https://wa.me/?text=${encodeURIComponent(
+                              [
+                                `*${event.title}*`,
+                                formatDateTime(event.date_start),
+                                event.location_name || '',
+                                '',
+                                ...(event.program_agenda?.program_schedule?.length ? [
+                                  '*תכנית:*',
+                                  ...event.program_agenda.program_schedule.map((item: any) =>
+                                    `- ${item.title}${item.person ? ` — ${item.person}` : ''}`
+                                  ),
+                                  '',
+                                ] : []),
+                                `https://solucast.app/open/${linkedSetlist.shareCode}`,
+                              ].filter(Boolean).join('\n')
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            WhatsApp
+                          </a>
+                        </div></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Event Teams */}
             {event.event_teams && Array.isArray(event.event_teams) && event.event_teams.length > 0 && (
               <div className="card">
@@ -765,20 +801,13 @@ export default function EventDetailPage() {
                               <div className="flex-1">
                                 <span className="text-sm font-bold text-gray-900">{member.role || 'No role'}</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-700">{member.name}</span>
-                                {member.contact_id && (
-                                  <span className="inline-flex items-center" title={member.is_user ? 'Registered User' : 'Contact'}>
-                                    {member.is_user ? (
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    ) : (
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                      </svg>
-                                    )}
-                                  </span>
-                                )}
-                              </div>
+                              <PersonHoverCard name={member.name} contactId={member.contact_id} isUser={member.is_user} className="text-sm text-gray-700" />
+                              {(() => {
+                                const status = (member.email && invitationStatusMap.byEmail.get(member.email.toLowerCase()))
+                                  || (member.contact_id && invitationStatusMap.byId.get(member.contact_id))
+                                  || invitationStatusMap.byName.get(member.name?.toLowerCase())
+                                return status ? <InvitationStatusBadge status={status} /> : null
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -840,15 +869,10 @@ export default function EventDetailPage() {
                             </div>
                             <div>
                               <p className="text-xs font-semibold text-gray-500 uppercase">Person</p>
-                              <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                {member.person || '-'}
-                                {member.user_id && (
-                                  <span className="inline-flex items-center" title="Registered User">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
+                              <p className="text-sm font-bold text-gray-900">
+                                {member.person ? (
+                                  <PersonHoverCard name={member.person} contactId={member.contact_id || member.user_id} isUser={member.is_user} />
+                                ) : '-'}
                               </p>
                             </div>
                           </div>
@@ -895,15 +919,10 @@ export default function EventDetailPage() {
                             </div>
                             <div>
                               <p className="text-xs font-semibold text-gray-500 uppercase">Person</p>
-                              <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                {event.rider_details.production_team.soundman.person || '-'}
-                                {event.rider_details.production_team.soundman.user_id && (
-                                  <span className="inline-flex items-center" title="Registered User">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
+                              <p className="text-sm font-bold text-gray-900">
+                                {event.rider_details.production_team.soundman.person ? (
+                                  <PersonHoverCard name={event.rider_details.production_team.soundman.person} contactId={event.rider_details.production_team.soundman.contact_id || event.rider_details.production_team.soundman.user_id} isUser={event.rider_details.production_team.soundman.is_user} />
+                                ) : '-'}
                               </p>
                             </div>
                           </div>
@@ -926,15 +945,10 @@ export default function EventDetailPage() {
                             </div>
                             <div>
                               <p className="text-xs font-semibold text-gray-500 uppercase">Person</p>
-                              <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                {event.rider_details.production_team.projection.person || '-'}
-                                {event.rider_details.production_team.projection.user_id && (
-                                  <span className="inline-flex items-center" title="Registered User">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
+                              <p className="text-sm font-bold text-gray-900">
+                                {event.rider_details.production_team.projection.person ? (
+                                  <PersonHoverCard name={event.rider_details.production_team.projection.person} contactId={event.rider_details.production_team.projection.contact_id || event.rider_details.production_team.projection.user_id} isUser={event.rider_details.production_team.projection.is_user} />
+                                ) : '-'}
                               </p>
                             </div>
                           </div>
@@ -957,15 +971,10 @@ export default function EventDetailPage() {
                             </div>
                             <div>
                               <p className="text-xs font-semibold text-gray-500 uppercase">Person</p>
-                              <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                {event.rider_details.production_team.host.person || '-'}
-                                {event.rider_details.production_team.host.user_id && (
-                                  <span className="inline-flex items-center" title="Registered User">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                    </svg>
-                                  </span>
-                                )}
+                              <p className="text-sm font-bold text-gray-900">
+                                {event.rider_details.production_team.host.person ? (
+                                  <PersonHoverCard name={event.rider_details.production_team.host.person} contactId={event.rider_details.production_team.host.contact_id || event.rider_details.production_team.host.user_id} isUser={event.rider_details.production_team.host.is_user} />
+                                ) : '-'}
                               </p>
                             </div>
                           </div>
@@ -1091,6 +1100,109 @@ export default function EventDetailPage() {
                 {deleteEvent.isPending ? 'Deleting...' : 'Delete Event'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Invitations Modal */}
+      {showSendInvitations && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <Mail className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Send Invitations</h3>
+                <p className="text-sm text-gray-500">Notify team members via email</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              This will send an email to every person assigned in the event teams and program schedule who has an email address.
+            </p>
+            {event.invitations && event.invitations.length > 0 && (() => {
+              const respondedCount = event.invitations.filter((i: any) => i.status !== 'pending').length
+              return respondedCount > 0 ? (
+                <p className="text-xs text-gray-500 mb-4">
+                  {respondedCount} already responded (will be kept). Only new/pending invitations will be sent.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 mb-4">
+                  {event.invitations.length} invitation(s) were previously sent.
+                </p>
+              )
+            })()}
+            {invitationError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                {invitationError}
+              </p>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => { setShowSendInvitations(false); setInvitationError(null) }}
+                className="flex-1 btn-secondary"
+                disabled={sendInvitations.isPending}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setInvitationError(null)
+                  try {
+                    const result = await sendInvitations.mutateAsync(event.id)
+                    setInvitationResult(result)
+                    setShowSendInvitations(false)
+                  } catch (err: any) {
+                    setInvitationError(err?.response?.data?.message || err?.message || 'Failed to send invitations. Please try again.')
+                  }
+                }}
+                disabled={sendInvitations.isPending}
+                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {sendInvitations.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Sending...</>
+                ) : (
+                  'Send Invitations'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invitation Result Banner */}
+      {invitationResult && (
+        <div className="fixed top-4 right-4 z-50 bg-white rounded-xl shadow-lg border border-gray-200 p-4 max-w-sm animate-in">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <Mail className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">
+                {invitationResult.sent} invitation{invitationResult.sent !== 1 ? 's' : ''} sent
+              </p>
+              {invitationResult.alreadyResponded > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {invitationResult.alreadyResponded} already responded (kept)
+                </p>
+              )}
+              {invitationResult.skipped > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {invitationResult.skipped} skipped (no email): {invitationResult.skippedNames.join(', ')}
+                </p>
+              )}
+              {invitationResult.errors.length > 0 && (
+                <div className="mt-1">
+                  <p className="text-xs text-red-600 font-medium">{invitationResult.errors.length} failed:</p>
+                  {invitationResult.errors.map((e, i) => (
+                    <p key={i} className="text-xs text-red-500">{e}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => setInvitationResult(null)} className="text-gray-400 hover:text-gray-600">
+              &times;
+            </button>
           </div>
         </div>
       )}

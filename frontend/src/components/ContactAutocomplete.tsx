@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts, useCreateContact, useUpdateContactById } from '@/hooks/useContacts'
 import { Shield, Plus, Check, X, Pencil } from 'lucide-react'
@@ -10,6 +10,7 @@ interface ContactAutocompleteProps {
   isUser?: boolean
   placeholder?: string
   className?: string
+  freeTextOnly?: boolean
 }
 
 type ContactSuggestion = {
@@ -28,16 +29,22 @@ export default function ContactAutocomplete({
   isUser = false,
   placeholder = 'Enter name...',
   className = 'input',
+  freeTextOnly = false,
 }: ContactAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
+  const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [showHoverCard, setShowHoverCard] = useState(false)
+  const [hoverPos, setHoverPos] = useState<{ flipY: boolean } | null>(null)
+  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoverRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const { data: users } = useUsers()
   const { data: contacts } = useContacts()
@@ -76,7 +83,8 @@ export default function ContactAutocomplete({
 
   // Filter contacts based on input
   const filteredContacts = useMemo(() => {
-    if (!inputValue.trim() || allContacts.length === 0) return []
+    if (allContacts.length === 0) return []
+    if (!inputValue.trim()) return allContacts
     return allContacts.filter(contact =>
       contact.name.toLowerCase().includes(inputValue.toLowerCase()) ||
       contact.email?.toLowerCase().includes(inputValue.toLowerCase()) ||
@@ -87,8 +95,9 @@ export default function ContactAutocomplete({
   const exactMatch = filteredContacts.some(
     c => c.name.toLowerCase() === inputValue.trim().toLowerCase()
   )
-  const showCreateOption = !exactMatch && inputValue.trim().length > 0
-  const totalItems = filteredContacts.length + (showCreateOption ? 1 : 0)
+  const showCreateOption = !freeTextOnly && !exactMatch && inputValue.trim().length > 0
+  const showAddContactOption = freeTextOnly && !exactMatch && inputValue.trim().length > 0
+  const totalItems = filteredContacts.length + (showCreateOption || showAddContactOption ? 1 : 0)
 
   useEffect(() => {
     setInputValue(value)
@@ -106,10 +115,21 @@ export default function ContactAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useLayoutEffect(() => {
+    if (!showHoverCard || !hoverRef.current) return
+    const parent = hoverRef.current.parentElement
+    if (!parent) return
+    const parentRect = parent.getBoundingClientRect()
+    const hoverRect = hoverRef.current.getBoundingClientRect()
+    setHoverPos({
+      flipY: parentRect.bottom + hoverRect.height + 4 > window.innerHeight,
+    })
+  }, [showHoverCard])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setInputValue(newValue)
-    setShowSuggestions(newValue.trim().length > 0)
+    setShowSuggestions(true)
     setSelectedIndex(-1)
     setShowCreateForm(false)
     setShowEditForm(false)
@@ -126,6 +146,7 @@ export default function ContactAutocomplete({
 
   const handleOpenCreateForm = () => {
     setShowCreateForm(true)
+    setNewName(inputValue.trim())
     setNewEmail('')
     setNewPhone('')
   }
@@ -135,12 +156,14 @@ export default function ContactAutocomplete({
   }
 
   const handleConfirmCreate = async () => {
-    if (!inputValue.trim()) return
+    const contactName = freeTextOnly ? newName.trim() : inputValue.trim()
+    if (!contactName) return
     try {
-      const data: { name: string; email?: string; phone?: string } = { name: inputValue.trim() }
+      const data: { name: string; email?: string; phone?: string } = { name: contactName }
       if (newEmail.trim()) data.email = newEmail.trim()
       if (newPhone.trim()) data.phone = newPhone.trim()
       const newContact = await createContact.mutateAsync(data)
+      setInputValue(newContact.name)
       setShowSuggestions(false)
       setShowCreateForm(false)
       setSelectedIndex(-1)
@@ -195,8 +218,11 @@ export default function ContactAutocomplete({
         e.preventDefault()
         if (selectedIndex >= 0 && selectedIndex < filteredContacts.length) {
           handleSelectContact(filteredContacts[selectedIndex])
-        } else if (selectedIndex === filteredContacts.length && showCreateOption) {
+        } else if (selectedIndex === filteredContacts.length && (showCreateOption || showAddContactOption)) {
           handleOpenCreateForm()
+        } else {
+          setShowSuggestions(false)
+          setSelectedIndex(-1)
         }
         break
       case 'Escape':
@@ -208,21 +234,34 @@ export default function ContactAutocomplete({
 
   return (
     <div ref={wrapperRef} className="relative">
-      <div className="relative">
+      <div
+        className="relative"
+        onMouseEnter={() => {
+          if (linkedContact && !showSuggestions && !showEditForm && !showCreateForm) {
+            hoverTimeout.current = setTimeout(() => { setHoverPos(null); setShowHoverCard(true) }, 400)
+          }
+        }}
+        onMouseLeave={() => {
+          if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+          setShowHoverCard(false)
+        }}
+      >
         <input
           type="text"
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            if (inputValue.trim() && !showEditForm) setShowSuggestions(true)
+            if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
+            setShowHoverCard(false)
+            if (!showEditForm) setShowSuggestions(true)
           }}
           placeholder={placeholder}
           className={`${className} ${contactId ? 'pr-14' : ''}`}
         />
         {contactId && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {!isUser && (
+            {!isUser && !freeTextOnly && (
               <button
                 type="button"
                 onClick={handleOpenEditForm}
@@ -241,6 +280,35 @@ export default function ContactAutocomplete({
                 </svg>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Hover info card */}
+        {showHoverCard && linkedContact && (
+          <div
+            ref={hoverRef}
+            className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-3 pointer-events-none ${hoverPos ? '' : 'invisible'} ${hoverPos?.flipY ? 'bottom-full mb-1' : 'mt-1'}`}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              {linkedContact.isUser ? (
+                <Shield className="h-4 w-4 text-purple-600 flex-shrink-0" />
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              )}
+              <span className="font-semibold text-sm text-gray-900">{linkedContact.name}</span>
+              <span className="text-xs text-gray-400">{linkedContact.isUser ? 'Member' : 'Contact'}</span>
+            </div>
+            {linkedContact.email && (
+              <div className="text-xs text-gray-600 ml-6">{linkedContact.email}</div>
+            )}
+            {linkedContact.phone && (
+              <div className="text-xs text-gray-600 ml-6">{linkedContact.phone}</div>
+            )}
+            {linkedContact.role && (
+              <div className="text-xs text-gray-500 ml-6 capitalize">{linkedContact.role}</div>
+            )}
           </div>
         )}
       </div>
@@ -354,12 +422,48 @@ export default function ContactAutocomplete({
             </button>
           )}
 
+          {showAddContactOption && !showCreateForm && (
+            <button
+              type="button"
+              onClick={handleOpenCreateForm}
+              className={`w-full text-left px-4 py-2 hover:bg-green-50 transition-colors ${filteredContacts.length > 0 ? 'border-t' : ''} ${
+                selectedIndex === filteredContacts.length ? 'bg-green-50' : ''
+              }`}
+            >
+              <div className="flex items-center gap-2 text-green-700">
+                <Plus className="h-4 w-4" />
+                <span className="text-sm font-medium">Add Contact</span>
+              </div>
+            </button>
+          )}
+
           {showCreateForm && (
             <div className="p-3 border-t">
-              <div className="text-sm font-semibold text-gray-900 mb-3">
-                New contact: {inputValue.trim()}
-              </div>
+              {freeTextOnly ? (
+                <div className="text-sm font-semibold text-gray-900 mb-3">New Contact</div>
+              ) : (
+                <div className="text-sm font-semibold text-gray-900 mb-3">
+                  New contact: {inputValue.trim()}
+                </div>
+              )}
               <div className="space-y-2">
+                {freeTextOnly && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="input text-sm"
+                      placeholder="Full name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreate() }
+                        else if (e.key === 'Escape') handleCancelCreate()
+                      }}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
                   <input
@@ -368,7 +472,7 @@ export default function ContactAutocomplete({
                     onChange={(e) => setNewEmail(e.target.value)}
                     className="input text-sm"
                     placeholder="email@example.com"
-                    autoFocus
+                    autoFocus={!freeTextOnly}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreate() }
                       else if (e.key === 'Escape') handleCancelCreate()
@@ -397,7 +501,7 @@ export default function ContactAutocomplete({
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
                     <Check className="h-3.5 w-3.5" />
-                    {createContact.isPending ? 'Creating...' : 'Create'}
+                    {createContact.isPending ? 'Creating...' : 'Add'}
                   </button>
                   <button
                     type="button"

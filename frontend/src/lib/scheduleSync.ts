@@ -26,9 +26,16 @@ export function buildMergedSchedule(
   const opening = currentSchedule[0]
   const closing = currentSchedule[currentSchedule.length - 1]
 
-  const manualNonSongItems = currentSchedule
-    .slice(1, -1)
-    .filter((item: any) => item.type !== 'song')
+  // Record non-song items with their relative position (how many songs appeared before them)
+  const nonSongPositions: { item: any; afterSongIndex: number }[] = []
+  let songCount = 0
+  for (const item of currentSchedule.slice(1, -1)) {
+    if (item.type === 'song') {
+      songCount++
+    } else {
+      nonSongPositions.push({ item, afterSongIndex: songCount })
+    }
+  }
 
   // Build a map of existing songs by soluflow_song_id to preserve manual edits
   const existingSongMap = new Map<string, any>()
@@ -58,8 +65,14 @@ export function buildMergedSchedule(
     }
   })
 
-  // Non-song items first (they have times), then songs in setlist order
-  const middleItems = [...manualNonSongItems, ...songItems]
+  // Re-insert non-song items at their original relative positions
+  const middleItems = [...songItems]
+  let insertionOffset = 0
+  for (const { item, afterSongIndex } of nonSongPositions) {
+    const pos = Math.min(afterSongIndex, middleItems.length) + insertionOffset
+    middleItems.splice(pos, 0, item)
+    insertionOffset++
+  }
 
   return [opening, ...middleItems, closing]
 }

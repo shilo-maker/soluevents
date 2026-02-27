@@ -27,7 +27,8 @@ export default function VenueAutocomplete({
 
   // Filter venues based on input
   const filtered = useMemo(() => {
-    if (!inputValue.trim() || !venues) return []
+    if (!venues) return []
+    if (!inputValue.trim()) return venues
     return venues.filter(v =>
       v.name.toLowerCase().includes(inputValue.toLowerCase()) ||
       v.address?.toLowerCase().includes(inputValue.toLowerCase())
@@ -121,9 +122,7 @@ export default function VenueAutocomplete({
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => {
-            if (inputValue.trim()) setShowDropdown(true)
-          }}
+          onFocus={() => setShowDropdown(true)}
           placeholder={placeholder}
           className={`${className} ${venueId ? 'pr-8' : ''}`}
         />
@@ -145,10 +144,13 @@ export default function VenueAutocomplete({
                 index === selectedIndex ? 'bg-purple-50' : ''
               }`}
             >
-              <span className="font-semibold text-sm text-gray-900">{venue.name}</span>
-              {venue.address && (
-                <div className="text-xs text-gray-500 truncate">{venue.address}</div>
-              )}
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <span className="font-semibold text-sm text-gray-900">{venue.name}</span>
+              </div>
+              <div className="text-xs text-gray-500 truncate ml-5.5">
+                {venue.address || 'No address'}
+              </div>
             </button>
           ))}
 

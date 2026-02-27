@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express'
 import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
-import { checkWorkspaceMembership } from '../services/workspaceService'
+import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
 
 export const getRoleAssignments = async (
   req: AuthRequest,
@@ -79,13 +79,19 @@ export const createRoleAssignment = async (
       throw new AppError('event_id or tour_id is required', 400)
     }
 
-    // Authorization: must own the event/tour or be workspace admin/planner
+    // Authorization: must own the event/tour, be workspace admin/planner, or org admin
     if (event_id) {
-      const event = await prisma.event.findUnique({ where: { id: event_id } })
+      const event = await prisma.event.findUnique({
+        where: { id: event_id },
+        select: { created_by: true, workspace_id: true },
+      })
       if (!event) throw new AppError('Event not found', 404)
-      if (event.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
-        throw new AppError('Not authorized to assign roles on this event', 403)
+      let canAssign = event.created_by === req.user!.id || req.user!.org_role === 'admin'
+      if (!canAssign && event.workspace_id) {
+        const wsRole = await getWorkspaceMemberRole(event.workspace_id, req.user!.id)
+        canAssign = wsRole === 'admin' || wsRole === 'planner'
       }
+      if (!canAssign) throw new AppError('Not authorized to assign roles on this event', 403)
     }
     if (tour_id) {
       const tour = await prisma.tour.findUnique({ where: { id: tour_id } })
@@ -149,18 +155,25 @@ export const deleteRoleAssignment = async (
       throw new AppError('Role assignment not found', 404)
     }
 
-    // Authorization: must own the parent event/tour
-    if (assignment.event_id) {
-      const event = await prisma.event.findUnique({ where: { id: assignment.event_id } })
-      if (event?.created_by !== req.user!.id && req.user!.org_role !== 'admin') {
-        throw new AppError('Not authorized to remove this role', 403)
+    // Authorization: must own the parent event/tour, be workspace admin/planner, or org admin
+    let canRemove = req.user!.org_role === 'admin'
+    if (!canRemove && assignment.event_id) {
+      const event = await prisma.event.findUnique({
+        where: { id: assignment.event_id },
+        select: { created_by: true, workspace_id: true },
+      })
+      canRemove = event?.created_by === req.user!.id
+      if (!canRemove && event?.workspace_id) {
+        const wsRole = await getWorkspaceMemberRole(event.workspace_id, req.user!.id)
+        canRemove = wsRole === 'admin' || wsRole === 'planner'
       }
     }
-    if (assignment.tour_id) {
+    if (!canRemove && assignment.tour_id) {
       const tour = await prisma.tour.findUnique({ where: { id: assignment.tour_id } })
-      if (tour?.director_user_id !== req.user!.id && req.user!.org_role !== 'admin') {
-        throw new AppError('Not authorized to remove this role', 403)
-      }
+      canRemove = tour?.director_user_id === req.user!.id
+    }
+    if (!canRemove) {
+      throw new AppError('Not authorized to remove this role', 403)
     }
 
     await prisma.roleAssignment.delete({ where: { id } })

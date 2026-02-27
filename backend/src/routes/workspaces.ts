@@ -15,6 +15,12 @@ import {
   removeMemberHandler,
   listInvitationsHandler,
   revokeInvitationHandler,
+  searchUserByEmail,
+  sendMemberInvite,
+  listMemberInvites,
+  revokeMemberInvite,
+  getMemberInviteByToken,
+  respondToMemberInvite,
 } from '../controllers/workspaceController'
 
 const router = Router()
@@ -42,8 +48,10 @@ const inviteLimiter = rateLimit({
 router.get('/', listWorkspaces)
 router.post('/', createWorkspace)
 
-// /join/:token BEFORE /:id routes to prevent "join" matching as :id
+// Token-based routes BEFORE /:id routes to prevent matching as :id
 router.post('/join/:token', inviteLimiter, acceptInvite)
+router.get('/member-invite/:token', getMemberInviteByToken)
+router.post('/member-invite/:token/respond', inviteLimiter, respondToMemberInvite)
 
 router.patch('/:id/switch', switchWorkspace)
 router.post('/:id/invite', inviteLimiter, generateInvite)
@@ -70,5 +78,11 @@ router.patch('/:id/members/:userId', updateMemberRoleHandler)
 router.delete('/:id/members/:userId', removeMemberHandler)
 router.get('/:id/invitations', listInvitationsHandler)
 router.delete('/:id/invitations/:inviteId', revokeInvitationHandler)
+
+// Direct member invite routes
+router.get('/:id/search-user', searchUserByEmail)
+router.post('/:id/member-invites', inviteLimiter, sendMemberInvite)
+router.get('/:id/member-invites', listMemberInvites)
+router.delete('/:id/member-invites/:inviteId', revokeMemberInvite)
 
 export default router

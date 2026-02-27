@@ -10,6 +10,7 @@ import {
   getServiceByCode,
   createService,
   getSetlists,
+  getSetlist,
   getWorkspaces,
   linkEventToService,
   generateSolucast,
@@ -31,6 +32,7 @@ router.post('/services', validate(createFlowServiceSchema), createService)
 
 // Setlists
 router.get('/setlists', getSetlists)
+router.get('/setlists/:id', getSetlist)
 
 // Workspaces
 router.get('/workspaces', getWorkspaces)

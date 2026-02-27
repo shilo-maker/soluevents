@@ -1,14 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import type { User } from '@/types'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 
 export function useUsers() {
+  const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspace?.id)
+
   return useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', 'list', activeWorkspaceId],
     queryFn: async () => {
       const response = await api.get<{ data: User[]; pagination: any }>('/users')
       return response.data.data
     },
+    enabled: !!activeWorkspaceId,
   })
 }
 
