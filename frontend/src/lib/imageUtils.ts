@@ -1,21 +1,19 @@
 /**
- * Compress an image file to a small JPEG data URL using Canvas API.
+ * Compress an image to a small JPEG data URL using Canvas API.
+ * Accepts a data URL or blob URL as the image source.
  * If `cropArea` is provided, uses those pixel coordinates; otherwise center-crops to square.
  * Resizes to `size`x`size`, returns base64 data URL.
  */
 export function compressAvatar(
-  file: File,
+  imageSrc: string,
   size = 128,
   quality = 0.6,
   cropArea?: { x: number; y: number; width: number; height: number }
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    const url = URL.createObjectURL(file)
 
     img.onload = () => {
-      URL.revokeObjectURL(url)
-
       let sx: number, sy: number, sWidth: number, sHeight: number
 
       if (cropArea) {
@@ -43,11 +41,10 @@ export function compressAvatar(
     }
 
     img.onerror = () => {
-      URL.revokeObjectURL(url)
       reject(new Error('Failed to load image'))
     }
 
-    img.src = url
+    img.src = imageSrc
   })
 }
 

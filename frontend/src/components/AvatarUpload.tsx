@@ -18,7 +18,6 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const [compressing, setCompressing] = useState(false)
-  const [cropFile, setCropFile] = useState<File | null>(null)
   const [cropImageUrl, setCropImageUrl] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,32 +32,30 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
     // Read as data URL (more reliable than blob URLs for react-easy-crop)
     const reader = new FileReader()
     reader.onload = () => {
-      setCropFile(file)
       setCropImageUrl(reader.result as string)
     }
     reader.readAsDataURL(file)
   }
 
   const handleCropConfirm = async (croppedAreaPixels: Area) => {
-    if (!cropFile) return
+    if (!cropImageUrl) return
 
+    const imageSrc = cropImageUrl
     setCropImageUrl(null)
 
     setCompressing(true)
     try {
-      const base64 = await compressAvatar(cropFile, 128, 0.6, croppedAreaPixels)
+      const base64 = await compressAvatar(imageSrc, 128, 0.6, croppedAreaPixels)
       onUpload(base64)
     } catch (err) {
       console.error('Failed to compress image:', err)
     } finally {
       setCompressing(false)
-      setCropFile(null)
     }
   }
 
   const handleCropCancel = () => {
     setCropImageUrl(null)
-    setCropFile(null)
   }
 
   const busy = loading || compressing
