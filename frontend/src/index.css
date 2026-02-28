@@ -68,8 +68,8 @@
   }
 
   .gradient-animate {
-    background-size: 200% 200%;
-    animation: gradient-shift 6s ease infinite;
+    background-size: 300% 300%;
+    animation: gradient-shift 8s ease infinite;
   }
 }
 

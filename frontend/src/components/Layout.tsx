@@ -61,7 +61,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 start-0 w-64 bg-gradient-to-br from-teal-800 via-teal-600 to-cyan-500 gradient-animate shadow-2xl z-50 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : 'max-md:ltr:-translate-x-full max-md:rtl:translate-x-full'}`}>
+      <div className={`fixed inset-y-0 start-0 w-64 bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-2xl z-50 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : 'max-md:ltr:-translate-x-full max-md:rtl:translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-white/20">

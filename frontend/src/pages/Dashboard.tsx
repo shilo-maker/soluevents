@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-5 sm:p-8 shadow-2xl text-white">
+      <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-emerald-600 gradient-animate rounded-3xl p-5 sm:p-8 shadow-2xl text-white">
         <h1 className="text-2xl sm:text-4xl font-bold mb-2">{t('dashboard.welcomeBack', { name: user?.name })} 👋</h1>
         <p className="text-lg text-white/90">
           {t('dashboard.subtitle')}
