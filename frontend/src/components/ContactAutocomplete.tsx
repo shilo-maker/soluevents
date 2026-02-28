@@ -28,11 +28,12 @@ export default function ContactAutocomplete({
   onChange,
   contactId,
   isUser = false,
-  placeholder = 'Enter name...',
+  placeholder,
   className = 'input',
   freeTextOnly = false,
 }: ContactAutocompleteProps) {
   const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('contactAutocomplete.enterName')
   const [inputValue, setInputValue] = useState(value)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -258,7 +259,7 @@ export default function ContactAutocomplete({
             setShowHoverCard(false)
             if (!showEditForm) setShowSuggestions(true)
           }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className={`${className} ${contactId ? 'pr-14' : ''}`}
         />
         {contactId && (

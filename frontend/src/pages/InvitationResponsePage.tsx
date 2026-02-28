@@ -4,6 +4,7 @@ import { Check, X, Loader2, Calendar, MapPin, RefreshCw } from 'lucide-react'
 import axios from 'axios'
 import logoSm from '@/assets/logo-sm.png'
 import { useTranslation } from 'react-i18next'
+import { getCurrentLanguage } from '@/i18n'
 
 interface InvitationData {
   id: string
@@ -106,8 +107,9 @@ export default function InvitationResponsePage() {
 
   const eventDate = new Date(invitation.event.date_start)
   const tz = invitation.event.timezone || undefined
-  const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz })
-  const timeStr = eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz })
+  const locale = getCurrentLanguage() === 'he' ? 'he-IL' : 'en-US'
+  const dateStr = eventDate.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz })
+  const timeStr = eventDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: tz })
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

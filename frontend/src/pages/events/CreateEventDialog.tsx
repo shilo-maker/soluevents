@@ -102,7 +102,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
 
       const payload: Record<string, any> = {
         type: formData.type,
-        title: formData.title || `${eventTypes.find(t => t.value === formData.type)?.label || 'Event'} — ${formData.event_date}`,
+        title: formData.title || `${eventTypes.find(t => t.value === formData.type)?.label || t('common.untitled')} — ${formData.event_date}`,
         description: formData.description || undefined,
         date_start: startDate.toISOString(),
         date_end: endDate.toISOString(),

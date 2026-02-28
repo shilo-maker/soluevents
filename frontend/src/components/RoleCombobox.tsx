@@ -2,42 +2,49 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 
-const ROLES_BY_CATEGORY: Record<string, string[]> = {
+const ROLE_KEYS_BY_CATEGORY: Record<string, string[]> = {
   worship: [
-    'Acoustic Guitar',
-    'Electric Guitar',
-    'Keys',
-    'Keys#2',
-    'Drums',
-    'Bass',
-    'Vocals',
-    'Percussion',
-    'Violin',
-    'Cello',
+    'roles.acousticGuitar',
+    'roles.electricGuitar',
+    'roles.keys',
+    'roles.keys',
+    'roles.drums',
+    'roles.bass',
+    'roles.vocals',
+    'roles.percussion',
+    'roles.violin',
+    'roles.cello',
   ],
   production: [
-    'Sound Technician',
-    'Projection',
-    'Host',
-    'Lighting',
-    'Camera',
-    'Live Stream',
+    'roles.soundTechnician',
+    'roles.projection',
+    'roles.host',
+    'roles.lighting',
+    'roles.camera',
+    'roles.liveStream',
   ],
   logistics: [
-    'Event Lead',
-    'Venue Liaison',
-    'Registration',
-    'Hospitality',
+    'roles.eventLead',
+    'roles.venueLiaison',
+    'roles.registration',
+    'roles.hospitality',
   ],
 }
 
-function getRolesForTeam(teamName: string): string[] {
+function getRolesForTeam(teamName: string, t: (key: string) => string): string[] {
   const name = teamName.toLowerCase()
-  if (name.includes('worship')) return ROLES_BY_CATEGORY.worship
-  if (name.includes('production')) return ROLES_BY_CATEGORY.production
-  if (name.includes('logistics')) return ROLES_BY_CATEGORY.logistics
-  // Unknown team — show all roles
-  return [...ROLES_BY_CATEGORY.worship, ...ROLES_BY_CATEGORY.production, ...ROLES_BY_CATEGORY.logistics]
+  const worshipName = t('teams.worshipTeam').toLowerCase()
+  const productionName = t('teams.productionTeam').toLowerCase()
+  const logisticsName = t('teams.logisticsTeam').toLowerCase()
+
+  let keys: string[]
+  if (name.includes('worship') || name.includes(worshipName)) keys = ROLE_KEYS_BY_CATEGORY.worship
+  else if (name.includes('production') || name.includes(productionName)) keys = ROLE_KEYS_BY_CATEGORY.production
+  else if (name.includes('logistics') || name.includes(logisticsName)) keys = ROLE_KEYS_BY_CATEGORY.logistics
+  else keys = [...ROLE_KEYS_BY_CATEGORY.worship, ...ROLE_KEYS_BY_CATEGORY.production, ...ROLE_KEYS_BY_CATEGORY.logistics]
+
+  // Deduplicate (Keys#2 maps to same key as Keys)
+  return [...new Set(keys.map(k => t(k)))]
 }
 
 interface RoleComboboxProps {
@@ -66,11 +73,11 @@ export default function RoleCombobox({
 
   // Build suggestions: category-filtered presets + any custom roles already used in this team
   const allRoles = useMemo(() => {
-    const presets = getRolesForTeam(teamName)
+    const presets = getRolesForTeam(teamName, t)
     const set = new Set(presets)
     existingRoles.forEach(r => { if (r.trim()) set.add(r.trim()) })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [teamName, existingRoles])
+  }, [teamName, existingRoles, t])
 
   const filtered = useMemo(() => {
     if (!inputValue.trim()) return allRoles

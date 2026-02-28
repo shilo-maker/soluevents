@@ -165,62 +165,62 @@ export default function NewEventWizard() {
         if (!parsed.worship_team) {
           parsed.worship_team = [
             {
-              role: 'Guitar + Vocals',
+              role: t('roles.guitarVocals'),
               person: 'Shilo Ben Hod',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Connected DI box', 'Mic + Stand + 2 XLRs (additional for TalkBack)', 'Guitar Stand']
+              needs: [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')]
             },
             {
-              role: 'Keys + Vocals',
+              role: t('roles.keysVocals'),
               person: 'Levi Davis',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs (ST Keys, ST Tracks and M guide)', 'Computer Stand']
+              needs: [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')]
             },
             {
-              role: 'Drums',
+              role: t('roles.drums'),
               person: 'Boris Shumsky',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Mic\'d Drum Set + chair'],
+              needs: [t('rider.defaults.micdDrumSet')],
               eDrums: false,
-              eDrumsNeeds: ['Connected ST DI box', 'Drums Chair']
+              eDrumsNeeds: [t('rider.defaults.connectedSTDI'), t('rider.defaults.drumsChair')]
             },
             {
-              role: 'Bass',
+              role: t('roles.bass'),
               person: 'Vadym Sokolyk',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Connected DI box', 'Guitar Stand']
+              needs: [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')]
             },
             {
-              role: 'E.Guitar',
+              role: t('roles.electricGuitar'),
               person: 'Yedidyah Ben Hod',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Connected ST DI box', 'Guitar Stand']
+              needs: [t('rider.defaults.connectedSTDI'), t('rider.defaults.guitarStand')]
             },
             {
-              role: 'Vocals 3',
+              role: t('roles.vocals'),
               person: 'Sarah Ben Hod',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Mic + Stand + XLR']
+              needs: [t('rider.defaults.micStandXLR')]
             },
             {
-              role: 'Vocals 4',
+              role: t('roles.vocals'),
               person: 'Rebekah Davis',
               contact_id: '',
               is_user: false,
               user_id: '',
-              needs: ['Mic + Stand + XLR']
+              needs: [t('rider.defaults.micStandXLR')]
             },
           ]
         } else {
@@ -283,8 +283,8 @@ export default function NewEventWizard() {
         }
         if (!parsed.post_event_schedule) {
           parsed.post_event_schedule = [
-            { item: 'Tear Down', offset_minutes: 105, notes: '' },
-            { item: 'Drive Home', offset_minutes: 130, notes: '' },
+            { item: t('schedule.defaults.tearDown'), offset_minutes: 105, notes: '' },
+            { item: t('schedule.defaults.driveHome'), offset_minutes: 130, notes: '' },
           ]
         }
         // Ensure pre_event_schedule items have notes field
@@ -345,94 +345,94 @@ export default function NewEventWizard() {
     tags: '',
     // Pre-Event Schedule (time offset in minutes from event start, negative = before)
     pre_event_schedule: [
-      { item: 'Arrival', offset_minutes: -135, notes: '' },
-      { item: 'Soundcheck', offset_minutes: -120, notes: '' },
-      { item: 'Break', offset_minutes: -60, notes: '' },
-      { item: 'Pre-Service Prayer Time', offset_minutes: -20, notes: '' },
+      { item: t('schedule.defaults.arrival'), offset_minutes: -135, notes: '' },
+      { item: t('schedule.defaults.soundcheck'), offset_minutes: -120, notes: '' },
+      { item: t('schedule.defaults.break'), offset_minutes: -60, notes: '' },
+      { item: t('schedule.defaults.preServicePrayer'), offset_minutes: -20, notes: '' },
     ],
     // Program Schedule (time offset in minutes from event start)
     // Songs are 6 minutes each
     program_schedule: [
-      { offset_minutes: 0, title: 'Opening', type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 5, title: 'Song 1', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 11, title: 'Song 2', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 17, title: 'Song 3', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 23, title: 'Song 4', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 29, title: 'Song 5', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 35, title: 'Song 6', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 41, title: 'Prayer Time', type: 'prayer', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 51, title: 'Song 7', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 57, title: 'Song 8', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 63, title: 'Song 9', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 69, title: 'Song 10', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 75, title: 'Song 11', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-      { offset_minutes: 90, title: 'Closing', type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 0, title: t('schedule.defaults.opening'), type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 5, title: t('schedule.defaults.song', { number: 1 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 11, title: t('schedule.defaults.song', { number: 2 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 17, title: t('schedule.defaults.song', { number: 3 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 23, title: t('schedule.defaults.song', { number: 4 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 29, title: t('schedule.defaults.song', { number: 5 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 35, title: t('schedule.defaults.song', { number: 6 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 41, title: t('schedule.defaults.prayerTime'), type: 'prayer', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 51, title: t('schedule.defaults.song', { number: 7 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 57, title: t('schedule.defaults.song', { number: 8 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 63, title: t('schedule.defaults.song', { number: 9 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 69, title: t('schedule.defaults.song', { number: 10 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 75, title: t('schedule.defaults.song', { number: 11 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+      { offset_minutes: 90, title: t('schedule.defaults.closing'), type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
     ],
     // Post-Event Schedule (time offset in minutes from event start, positive = after)
     has_post_event_schedule: false,
     post_event_schedule: [
-      { item: 'Tear Down', offset_minutes: 105, notes: '' },
-      { item: 'Drive Home', offset_minutes: 130, notes: '' },
+      { item: t('schedule.defaults.tearDown'), offset_minutes: 105, notes: '' },
+      { item: t('schedule.defaults.driveHome'), offset_minutes: 130, notes: '' },
     ],
     // Rider Details - Worship Team
     worship_team: [
       {
-        role: 'Guitar + Vocals',
+        role: t('roles.guitarVocals'),
         person: 'Shilo Ben Hod',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Connected DI box', 'Mic + Stand + 2 XLRs (additional for TalkBack)', 'Guitar Stand']
+        needs: [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')]
       },
       {
-        role: 'Keys + Vocals',
+        role: t('roles.keysVocals'),
         person: 'Levi Davis',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs (ST Keys, ST Tracks and M guide)', 'Computer Stand']
+        needs: [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')]
       },
       {
-        role: 'Drums',
+        role: t('roles.drums'),
         person: 'Boris Shumsky',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Mic\'d Drum Set + chair'],
+        needs: [t('rider.defaults.micdDrumSet')],
         eDrums: false,
-        eDrumsNeeds: ['Connected ST DI box', 'Drums Chair']
+        eDrumsNeeds: [t('rider.defaults.connectedSTDI'), t('rider.defaults.drumsChair')]
       },
       {
-        role: 'Bass',
+        role: t('roles.bass'),
         person: 'Vadym Sokolyk',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Connected DI box', 'Guitar Stand']
+        needs: [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')]
       },
       {
-        role: 'E.Guitar',
+        role: t('roles.electricGuitar'),
         person: 'Yedidyah Ben Hod',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Connected ST DI box', 'Guitar Stand']
+        needs: [t('rider.defaults.connectedSTDI'), t('rider.defaults.guitarStand')]
       },
       {
-        role: 'Vocals 3',
+        role: t('roles.vocals'),
         person: 'Sarah Ben Hod',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Mic + Stand + XLR']
+        needs: [t('rider.defaults.micStandXLR')]
       },
       {
-        role: 'Vocals 4',
+        role: t('roles.vocals'),
         person: 'Rebekah Davis',
         contact_id: '',
         is_user: false,
         user_id: '',
-        needs: ['Mic + Stand + XLR']
+        needs: [t('rider.defaults.micStandXLR')]
       },
     ],
     // Prayer Leader
@@ -456,6 +456,8 @@ export default function NewEventWizard() {
     special_requirements: '',
     }
   }
+
+  const isDrumsRole = (role: string) => role === 'Drums' || role === t('roles.drums')
 
   const [formData, setFormData] = useState(getInitialFormData())
 
@@ -531,87 +533,87 @@ export default function NewEventWizard() {
 
       // Default schedules if none exist
       const defaultPreEventSchedule = [
-        { item: 'Arrival', offset_minutes: -135 },
-        { item: 'Soundcheck', offset_minutes: -120 },
-        { item: 'Break', offset_minutes: -60 },
-        { item: 'Pre-Service Prayer Time', offset_minutes: -20 },
+        { item: t('schedule.defaults.arrival'), offset_minutes: -135 },
+        { item: t('schedule.defaults.soundcheck'), offset_minutes: -120 },
+        { item: t('schedule.defaults.break'), offset_minutes: -60 },
+        { item: t('schedule.defaults.preServicePrayer'), offset_minutes: -20 },
       ]
 
       const defaultProgramSchedule = [
-        { offset_minutes: 0, title: 'Opening', person: '' },
-        { offset_minutes: 5, title: 'Song 1', person: '' },
-        { offset_minutes: 11, title: 'Song 2', person: '' },
-        { offset_minutes: 17, title: 'Song 3', person: '' },
-        { offset_minutes: 23, title: 'Song 4', person: '' },
-        { offset_minutes: 29, title: 'Song 5', person: '' },
-        { offset_minutes: 35, title: 'Song 6', person: '' },
-        { offset_minutes: 41, title: 'Prayer Time', person: '' },
-        { offset_minutes: 51, title: 'Song 7', person: '' },
-        { offset_minutes: 57, title: 'Song 8', person: '' },
-        { offset_minutes: 63, title: 'Song 9', person: '' },
-        { offset_minutes: 69, title: 'Song 10', person: '' },
-        { offset_minutes: 75, title: 'Song 11', person: '' },
-        { offset_minutes: 90, title: 'Closing', person: '' },
+        { offset_minutes: 0, title: t('schedule.defaults.opening'), person: '' },
+        { offset_minutes: 5, title: t('schedule.defaults.song', { number: 1 }), person: '' },
+        { offset_minutes: 11, title: t('schedule.defaults.song', { number: 2 }), person: '' },
+        { offset_minutes: 17, title: t('schedule.defaults.song', { number: 3 }), person: '' },
+        { offset_minutes: 23, title: t('schedule.defaults.song', { number: 4 }), person: '' },
+        { offset_minutes: 29, title: t('schedule.defaults.song', { number: 5 }), person: '' },
+        { offset_minutes: 35, title: t('schedule.defaults.song', { number: 6 }), person: '' },
+        { offset_minutes: 41, title: t('schedule.defaults.prayerTime'), person: '' },
+        { offset_minutes: 51, title: t('schedule.defaults.song', { number: 7 }), person: '' },
+        { offset_minutes: 57, title: t('schedule.defaults.song', { number: 8 }), person: '' },
+        { offset_minutes: 63, title: t('schedule.defaults.song', { number: 9 }), person: '' },
+        { offset_minutes: 69, title: t('schedule.defaults.song', { number: 10 }), person: '' },
+        { offset_minutes: 75, title: t('schedule.defaults.song', { number: 11 }), person: '' },
+        { offset_minutes: 90, title: t('schedule.defaults.closing'), person: '' },
       ]
 
       const defaultWorshipTeam = [
         {
-          role: 'Guitar + Vocals',
+          role: t('roles.guitarVocals'),
           person: 'Shilo Ben Hod',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Connected DI box', 'Mic + Stand + 2 XLRs (additional for TalkBack)', 'Guitar Stand']
+          needs: [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')]
         },
         {
-          role: 'Keys + Vocals',
+          role: t('roles.keysVocals'),
           person: 'Levi Davis',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs (ST Keys, ST Tracks and M guide)', 'Computer Stand']
+          needs: [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')]
         },
         {
-          role: 'Drums',
+          role: t('roles.drums'),
           person: 'Boris Shumsky',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Mic\'d Drum Set + chair'],
+          needs: [t('rider.defaults.micdDrumSet')],
           eDrums: false,
-          eDrumsNeeds: ['Connected ST DI box', 'Drums Chair']
+          eDrumsNeeds: [t('rider.defaults.connectedSTDI'), t('rider.defaults.drumsChair')]
         },
         {
-          role: 'Bass',
+          role: t('roles.bass'),
           person: 'Vadym Sokolyk',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Connected DI box', 'Guitar Stand']
+          needs: [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')]
         },
         {
-          role: 'E.Guitar',
+          role: t('roles.electricGuitar'),
           person: 'Yedidyah Ben Hod',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Connected ST DI box', 'Guitar Stand']
+          needs: [t('rider.defaults.connectedSTDI'), t('rider.defaults.guitarStand')]
         },
         {
-          role: 'Vocals 3',
+          role: t('roles.vocals'),
           person: 'Sarah Ben Hod',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Mic + Stand + XLR']
+          needs: [t('rider.defaults.micStandXLR')]
         },
         {
-          role: 'Vocals 4',
+          role: t('roles.vocals'),
           person: 'Rebekah Davis',
           contact_id: '',
           is_user: false,
           user_id: '',
-          needs: ['Mic + Stand + XLR']
+          needs: [t('rider.defaults.micStandXLR')]
         },
       ]
 
@@ -665,8 +667,8 @@ export default function NewEventWizard() {
               notes: item.notes || '',
             }))
           : [
-              { item: 'Tear Down', offset_minutes: 105, notes: '' },
-              { item: 'Drive Home', offset_minutes: 130, notes: '' },
+              { item: t('schedule.defaults.tearDown'), offset_minutes: 105, notes: '' },
+              { item: t('schedule.defaults.driveHome'), offset_minutes: 130, notes: '' },
             ],
         worship_team: (existingEvent.rider_details?.worship_team && existingEvent.rider_details.worship_team.length > 0)
           ? existingEvent.rider_details.worship_team.map((member: any) => ({
@@ -1487,7 +1489,7 @@ export default function NewEventWizard() {
                                             }}
                                             className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                                           />
-                                          <span className="ml-1.5 text-xs font-medium text-gray-700">Ministry Team</span>
+                                          <span className="ml-1.5 text-xs font-medium text-gray-700">{t('teams.ministryTeam')}</span>
                                         </label>
                                       </div>
                                     )}
@@ -1751,7 +1753,7 @@ export default function NewEventWizard() {
                     </div>
 
                     {/* E-Drums Toggle for Drums role */}
-                    {member.role === 'Drums' && (
+                    {isDrumsRole(member.role) && (
                       <div className="mb-3">
                         <label className="flex items-center p-2 bg-white border border-gray-200 rounded-lg">
                           <input
@@ -1772,7 +1774,7 @@ export default function NewEventWizard() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-xs font-semibold text-gray-600">
-                          {member.role === 'Drums' && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
+                          {isDrumsRole(member.role) && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
                         </label>
                         <button
                           type="button"
@@ -1786,14 +1788,14 @@ export default function NewEventWizard() {
                       {editingNeedsIndex === memberIndex ? (
                         // Edit mode - show input fields
                         <div className="space-y-2">
-                          {(member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
+                          {(isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
                             <div key={needIndex} className="flex gap-2">
                               <input
                                 type="text"
                                 value={need}
                                 onChange={(e) => {
                                   const newTeam = [...formData.worship_team]
-                                  if (member.role === 'Drums' && member.eDrums) {
+                                  if (isDrumsRole(member.role) && member.eDrums) {
                                     newTeam[memberIndex].eDrumsNeeds![needIndex] = e.target.value
                                   } else {
                                     newTeam[memberIndex].needs[needIndex] = e.target.value
@@ -1807,7 +1809,7 @@ export default function NewEventWizard() {
                                 type="button"
                                 onClick={() => {
                                   const newTeam = [...formData.worship_team]
-                                  if (member.role === 'Drums' && member.eDrums) {
+                                  if (isDrumsRole(member.role) && member.eDrums) {
                                     newTeam[memberIndex].eDrumsNeeds = newTeam[memberIndex].eDrumsNeeds!.filter((_: string, i: number) => i !== needIndex)
                                   } else {
                                     newTeam[memberIndex].needs = newTeam[memberIndex].needs.filter((_, i) => i !== needIndex)
@@ -1824,7 +1826,7 @@ export default function NewEventWizard() {
                             type="button"
                             onClick={() => {
                               const newTeam = [...formData.worship_team]
-                              if (member.role === 'Drums' && member.eDrums) {
+                              if (isDrumsRole(member.role) && member.eDrums) {
                                 if (!newTeam[memberIndex].eDrumsNeeds) {
                                   newTeam[memberIndex].eDrumsNeeds = []
                                 }
@@ -1853,10 +1855,10 @@ export default function NewEventWizard() {
                       ) : (
                         // View mode - show simple text list
                         <div className="text-sm text-gray-700">
-                          {(member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
+                          {(isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
                             <span key={needIndex}>
                               {need}
-                              {needIndex < ((member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.length || 0) - 1 && ', '}
+                              {needIndex < ((isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.length || 0) - 1 && ', '}
                             </span>
                           ))}
                         </div>

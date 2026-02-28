@@ -16,12 +16,14 @@ interface WorshipMember {
   eDrumsNeeds?: string[]
 }
 
-const defaultWorshipTeam: WorshipMember[] = [
-  { role: 'Guitar + Vocals', person: '', contact_id: '', is_user: false, user_id: '', needs: ['Connected DI box', 'Mic + Stand + 2 XLRs', 'Guitar Stand'] },
-  { role: 'Keys + Vocals', person: '', contact_id: '', is_user: false, user_id: '', needs: ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs', 'Computer Stand'] },
-  { role: 'Drums', person: '', contact_id: '', is_user: false, user_id: '', needs: ["Mic'd Drum Set + chair"], eDrums: false, eDrumsNeeds: ['Connected ST DI box', 'Drums Chair'] },
-  { role: 'Bass', person: '', contact_id: '', is_user: false, user_id: '', needs: ['Connected DI box', 'Guitar Stand'] },
-]
+function getDefaultWorshipTeam(t: (key: string) => string): WorshipMember[] {
+  return [
+    { role: t('roles.guitarVocals'), person: '', contact_id: '', is_user: false, user_id: '', needs: [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')] },
+    { role: t('roles.keysVocals'), person: '', contact_id: '', is_user: false, user_id: '', needs: [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')] },
+    { role: t('roles.drums'), person: '', contact_id: '', is_user: false, user_id: '', needs: [t('rider.defaults.micdDrumSet')], eDrums: false, eDrumsNeeds: [t('rider.defaults.connectedSTDI'), t('rider.defaults.drumsChair')] },
+    { role: t('roles.bass'), person: '', contact_id: '', is_user: false, user_id: '', needs: [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')] },
+  ]
+}
 
 export default function EditRiderPage() {
   const { t } = useTranslation()
@@ -39,6 +41,8 @@ export default function EditRiderPage() {
   const [editingNeedsIndex, setEditingNeedsIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
 
+  const isDrumsRole = (role: string) => role === 'Drums' || role === t('roles.drums')
+
   // Load event data
   useEffect(() => {
     if (!event) return
@@ -48,7 +52,7 @@ export default function EditRiderPage() {
       setWorshipTeam(
         rd.worship_team?.length > 0
           ? rd.worship_team.map((m: any) => ({ ...m, contact_id: m.contact_id || '', is_user: m.is_user || false, user_id: m.user_id || m.contact_id || '' }))
-          : defaultWorshipTeam
+          : getDefaultWorshipTeam(t)
       )
       setContactPerson(rd.contact_person || '')
       setContactPhone(rd.contact_phone || '')
@@ -62,16 +66,16 @@ export default function EditRiderPage() {
         const worshipTeamData = teams.find((t: any) => t.name?.toLowerCase().includes('worship'))
         if (worshipTeamData?.members?.length) {
           const needsMap: Record<string, string[]> = {
-            'acoustic guitar': ['Connected DI box', 'Mic + Stand + 2 XLRs', 'Guitar Stand'],
-            'electric guitar': ['Connected DI box', 'Mic + Stand + 2 XLRs', 'Guitar Stand'],
-            'keys': ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs', 'Computer Stand'],
-            'keys#2': ['Keyboard stand', 'Mic + Stand + XLR', '5 XLRs inputs', 'Computer Stand'],
-            'drums': ["Mic'd Drum Set + chair"],
-            'bass': ['Connected DI box', 'Guitar Stand'],
-            'vocals': ['Mic + Stand + XLR'],
-            'percussion': ['Mic + Stand'],
-            'violin': ['Connected DI box', 'Music Stand'],
-            'cello': ['Connected DI box', 'Music Stand'],
+            'acoustic guitar': [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')],
+            'electric guitar': [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')],
+            'keys': [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')],
+            'keys#2': [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')],
+            'drums': [t('rider.defaults.micdDrumSet')],
+            'bass': [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')],
+            'vocals': [t('rider.defaults.micStandXLR')],
+            'percussion': [t('rider.defaults.micStand')],
+            'violin': [t('rider.defaults.connectedDI'), t('rider.defaults.musicStand')],
+            'cello': [t('rider.defaults.connectedDI'), t('rider.defaults.musicStand')],
           }
           setWorshipTeam(worshipTeamData.members
             .filter((m: any) => m.name?.trim())
@@ -85,14 +89,14 @@ export default function EditRiderPage() {
                 is_user: m.is_user || false,
                 user_id: m.contact_id || '',
                 needs: needsMap[baseRole] || [''],
-                ...(isDrums ? { eDrums: false, eDrumsNeeds: ['Connected ST DI box', 'Drums Chair'] } : {}),
+                ...(isDrums ? { eDrums: false, eDrumsNeeds: [t('rider.defaults.connectedSTDI'), t('rider.defaults.drumsChair')] } : {}),
               }
             }))
         } else {
-          setWorshipTeam(defaultWorshipTeam)
+          setWorshipTeam(getDefaultWorshipTeam(t))
         }
       } else {
-        setWorshipTeam(defaultWorshipTeam)
+        setWorshipTeam(getDefaultWorshipTeam(t))
       }
     }
   }, [event])
@@ -207,7 +211,7 @@ export default function EditRiderPage() {
               </div>
 
               {/* E-Drums Toggle */}
-              {member.role === 'Drums' && (
+              {isDrumsRole(member.role) && (
                 <div className="mb-3">
                   <label className="flex items-center p-2 bg-white border border-gray-200 rounded-lg">
                     <input
@@ -228,7 +232,7 @@ export default function EditRiderPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-gray-600">
-                    {member.role === 'Drums' && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
+                    {isDrumsRole(member.role) && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
                   </label>
                   <button
                     type="button"
@@ -241,14 +245,14 @@ export default function EditRiderPage() {
 
                 {editingNeedsIndex === memberIndex ? (
                   <div className="space-y-2">
-                    {(member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
+                    {(isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
                       <div key={needIndex} className="flex gap-2">
                         <input
                           type="text"
                           value={need}
                           onChange={(e) => {
                             const updated = [...worshipTeam]
-                            if (member.role === 'Drums' && member.eDrums) {
+                            if (isDrumsRole(member.role) && member.eDrums) {
                               updated[memberIndex].eDrumsNeeds![needIndex] = e.target.value
                             } else {
                               updated[memberIndex].needs[needIndex] = e.target.value
@@ -262,7 +266,7 @@ export default function EditRiderPage() {
                           type="button"
                           onClick={() => {
                             const updated = [...worshipTeam]
-                            if (member.role === 'Drums' && member.eDrums) {
+                            if (isDrumsRole(member.role) && member.eDrums) {
                               updated[memberIndex].eDrumsNeeds = updated[memberIndex].eDrumsNeeds!.filter((_, i) => i !== needIndex)
                             } else {
                               updated[memberIndex].needs = updated[memberIndex].needs.filter((_, i) => i !== needIndex)
@@ -279,7 +283,7 @@ export default function EditRiderPage() {
                       type="button"
                       onClick={() => {
                         const updated = [...worshipTeam]
-                        if (member.role === 'Drums' && member.eDrums) {
+                        if (isDrumsRole(member.role) && member.eDrums) {
                           if (!updated[memberIndex].eDrumsNeeds) updated[memberIndex].eDrumsNeeds = []
                           updated[memberIndex].eDrumsNeeds!.push('')
                         } else {
@@ -304,10 +308,10 @@ export default function EditRiderPage() {
                   </div>
                 ) : (
                   <div className="text-sm text-gray-700">
-                    {(member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
+                    {(isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIndex) => (
                       <span key={needIndex}>
                         {need}
-                        {needIndex < ((member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.length || 0) - 1 && ', '}
+                        {needIndex < ((isDrumsRole(member.role) && member.eDrums ? member.eDrumsNeeds : member.needs)?.length || 0) - 1 && ', '}
                       </span>
                     ))}
                   </div>

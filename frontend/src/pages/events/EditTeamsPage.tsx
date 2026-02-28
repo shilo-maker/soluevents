@@ -8,28 +8,25 @@ import ContactAutocomplete from '@/components/ContactAutocomplete'
 import RoleCombobox from '@/components/RoleCombobox'
 import InvitationStatusBadge from '@/components/InvitationStatusBadge'
 
-const VOCALS_COMBINABLE = ['Acoustic Guitar', 'Electric Guitar', 'Bass', 'Keys']
+const VOCALS_COMBINABLE_KEYS = ['roles.acousticGuitar', 'roles.electricGuitar', 'roles.bass', 'roles.keys']
 
-function parseRole(role: string): { instrument: string; hasVocals: boolean } {
-  // "Electric Guitar + Vocals" → instrument=Electric Guitar, hasVocals=true
-  const match = role.match(/^(.+?)\s*\+\s*Vocals$/)
-  if (match && VOCALS_COMBINABLE.includes(match[1].trim())) {
+function parseRole(role: string, vocalsText: string, vocalsCombinable: string[]): { instrument: string; hasVocals: boolean } {
+  const escapedVocals = vocalsText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = role.match(new RegExp(`^(.+?)\\s*\\+\\s*${escapedVocals}$`))
+  if (match && vocalsCombinable.includes(match[1].trim())) {
     return { instrument: match[1].trim(), hasVocals: true }
   }
-  // "Vocals + Electric Guitar" → instrument=Electric Guitar, hasVocals=true
-  const matchReverse = role.match(/^Vocals\s*\+\s*(.+)$/)
-  if (matchReverse && VOCALS_COMBINABLE.includes(matchReverse[1].trim())) {
+  const matchReverse = role.match(new RegExp(`^${escapedVocals}\\s*\\+\\s*(.+)$`))
+  if (matchReverse && vocalsCombinable.includes(matchReverse[1].trim())) {
     return { instrument: matchReverse[1].trim(), hasVocals: true }
   }
-  // "Vocals" alone
-  if (role === 'Vocals') return { instrument: '', hasVocals: true }
-  // Plain instrument
+  if (role === vocalsText) return { instrument: '', hasVocals: true }
   return { instrument: role, hasVocals: false }
 }
 
-function composeRole(instrument: string, hasVocals: boolean): string {
-  if (instrument && hasVocals) return `${instrument} + Vocals`
-  if (!instrument && hasVocals) return 'Vocals'
+function composeRole(instrument: string, hasVocals: boolean, vocalsText: string): string {
+  if (instrument && hasVocals) return `${instrument} + ${vocalsText}`
+  if (!instrument && hasVocals) return vocalsText
   return instrument
 }
 
@@ -46,26 +43,28 @@ function MemberRoleCell({
   onRoleChange: (newRole: string) => void
 }) {
   const { t } = useTranslation()
-  const { instrument, hasVocals } = parseRole(member.role)
+  const vocalsText = t('roles.vocals')
+  const vocalsCombinable = VOCALS_COMBINABLE_KEYS.map(k => t(k))
+  const { instrument, hasVocals } = parseRole(member.role, vocalsText, vocalsCombinable)
   const isWorshipTeam = teamName.toLowerCase().includes('worship')
-  const isInstrument = VOCALS_COMBINABLE.includes(instrument)
+  const isInstrument = vocalsCombinable.includes(instrument)
   const isVocalsOnly = hasVocals && !instrument
 
   const existingRoles = teamMembers.map(m => {
-    const p = parseRole(m.role)
-    return p.instrument || (p.hasVocals ? 'Vocals' : m.role)
+    const p = parseRole(m.role, vocalsText, vocalsCombinable)
+    return p.instrument || (p.hasVocals ? vocalsText : m.role)
   })
 
   return (
     <>
       <RoleCombobox
-        value={isVocalsOnly ? 'Vocals' : instrument}
+        value={isVocalsOnly ? vocalsText : instrument}
         onChange={(val) => {
-          if (val === 'Vocals') {
-            onRoleChange('Vocals')
+          if (val === vocalsText) {
+            onRoleChange(vocalsText)
           } else {
-            const keepVocals = hasVocals && VOCALS_COMBINABLE.includes(val)
-            onRoleChange(composeRole(val, keepVocals))
+            const keepVocals = hasVocals && vocalsCombinable.includes(val)
+            onRoleChange(composeRole(val, keepVocals, vocalsText))
           }
         }}
         teamName={teamName}
@@ -76,7 +75,7 @@ function MemberRoleCell({
           <input
             type="checkbox"
             checked={hasVocals}
-            onChange={(e) => onRoleChange(composeRole(instrument, e.target.checked))}
+            onChange={(e) => onRoleChange(composeRole(instrument, e.target.checked, vocalsText))}
             className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
           />
           <span className="text-xs font-medium text-gray-600">{t('events.teams.addVocals')}</span>
@@ -84,12 +83,12 @@ function MemberRoleCell({
       )}
       {isWorshipTeam && isVocalsOnly && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-          {VOCALS_COMBINABLE.map(inst => (
+          {vocalsCombinable.map(inst => (
             <label key={inst} className="flex items-center gap-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={false}
-                onChange={() => onRoleChange(composeRole(inst, true))}
+                onChange={() => onRoleChange(composeRole(inst, true, vocalsText))}
                 className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
               />
               <span className="text-xs font-medium text-gray-600">+ {inst}</span>
@@ -117,34 +116,36 @@ interface Team {
   members: TeamMember[]
 }
 
-const defaultTeams: Team[] = [
-  {
-    name: 'Worship Team',
-    members: [
-      { role: 'Acoustic Guitar + Vocals', contact_id: '', is_user: false, name: '' },
-      { role: 'Keys', contact_id: '', is_user: false, name: '' },
-      { role: 'Drums', contact_id: '', is_user: false, name: '' },
-      { role: 'Bass', contact_id: '', is_user: false, name: '' },
-      { role: 'Electric Guitar', contact_id: '', is_user: false, name: '' },
-      { role: 'Vocals', contact_id: '', is_user: false, name: '' },
-    ],
-  },
-  {
-    name: 'Production Team',
-    members: [
-      { role: 'Sound Technician', contact_id: '', is_user: false, name: '' },
-      { role: 'Projection', contact_id: '', is_user: false, name: '' },
-      { role: 'Host', contact_id: '', is_user: false, name: '' },
-    ],
-  },
-  {
-    name: 'Logistics Team',
-    members: [
-      { role: 'Event Manager', contact_id: '', is_user: false, name: '' },
-      { role: 'Venue Liaison', contact_id: '', is_user: false, name: '' },
-    ],
-  },
-]
+function getDefaultTeams(t: (key: string) => string): Team[] {
+  return [
+    {
+      name: t('teams.worshipTeam'),
+      members: [
+        { role: t('roles.acousticGuitarVocals'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.keys'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.drums'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.bass'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.electricGuitar'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.vocals'), contact_id: '', is_user: false, name: '' },
+      ],
+    },
+    {
+      name: t('teams.productionTeam'),
+      members: [
+        { role: t('roles.soundTechnician'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.projection'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.host'), contact_id: '', is_user: false, name: '' },
+      ],
+    },
+    {
+      name: t('teams.logisticsTeam'),
+      members: [
+        { role: t('roles.eventManager'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.venueLiaison'), contact_id: '', is_user: false, name: '' },
+      ],
+    },
+  ]
+}
 
 export default function EditTeamsPage() {
   const { t } = useTranslation()
@@ -152,7 +153,6 @@ export default function EditTeamsPage() {
   const navigate = useNavigate()
   const { data: event, isLoading } = useEvent(id!)
   const updateEvent = useUpdateEvent()
-
   const [teams, setTeams] = useState<Team[]>([])
   const [collapsedTeams, setCollapsedTeams] = useState<Set<number> | null>(null)
   const [error, setError] = useState('')
@@ -162,9 +162,9 @@ export default function EditTeamsPage() {
     if (!event) return
 
     if (event.event_teams && Array.isArray(event.event_teams) && event.event_teams.length > 0) {
-      const loaded = event.event_teams.map((t: any) => ({
-        name: t.name || '',
-        members: (t.members || []).map((m: any) => ({
+      const loaded = event.event_teams.map((et: any) => ({
+        name: et.name || '',
+        members: (et.members || []).map((m: any) => ({
           member_id: m.member_id || undefined,
           role: m.role || '',
           contact_id: m.contact_id || '',
@@ -180,12 +180,13 @@ export default function EditTeamsPage() {
     } else {
       // Pre-fill creator as Event Manager in Logistics Team
       const user = useAuthStore.getState().user
-      const prefilled = defaultTeams.map(team => {
-        if (team.name !== 'Logistics Team') return team
+      const defaults = getDefaultTeams(t)
+      const prefilled = defaults.map(team => {
+        if (team.name !== t('teams.logisticsTeam')) return team
         return {
           ...team,
           members: team.members.map(m => {
-            if (m.role !== 'Event Manager') return m
+            if (m.role !== t('roles.eventManager')) return m
             return user ? {
               ...m,
               contact_id: user.id,
@@ -200,7 +201,7 @@ export default function EditTeamsPage() {
       setTeams(prefilled)
       setCollapsedTeams(new Set(prefilled.map((_, i) => i)))
     }
-  }, [event])
+  }, [event, t])
 
   const updateTeamName = (teamIndex: number, name: string) => {
     setTeams(prev => prev.map((t, i) =>
@@ -404,14 +405,14 @@ export default function EditTeamsPage() {
                       {member.status && member.is_user && (
                         <InvitationStatusBadge status={member.status} />
                       )}
-                      {member.role === 'Event Manager' && (
+                      {member.role === t('roles.eventManager') && (
                         <button
                           type="button"
                           onClick={() => {
-                            setTeams(prev => prev.map((t, i) =>
+                            setTeams(prev => prev.map((tm, i) =>
                               i === teamIndex
-                                ? { ...t, members: [...t.members.slice(0, memberIndex + 1), { role: 'Event Manager', contact_id: '', is_user: false, name: '' }, ...t.members.slice(memberIndex + 1)] }
-                                : t
+                                ? { ...tm, members: [...tm.members.slice(0, memberIndex + 1), { role: t('roles.eventManager'), contact_id: '', is_user: false, name: '' }, ...tm.members.slice(memberIndex + 1)] }
+                                : tm
                             ))
                           }}
                           className="text-teal-400 hover:text-teal-600 transition-colors"

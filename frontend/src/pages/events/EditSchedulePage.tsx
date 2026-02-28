@@ -78,26 +78,32 @@ interface PostEventItem {
   notes: string
 }
 
-const defaultPreEventSchedule: PreEventItem[] = [
-  { item: 'Arrival', offset_minutes: -135, notes: '' },
-  { item: 'Soundcheck', offset_minutes: -120, notes: '' },
-  { item: 'Break', offset_minutes: -60, notes: '' },
-  { item: 'Pre-Service Prayer Time', offset_minutes: -20, notes: '' },
-]
+function getDefaultPreEventSchedule(t: (key: string, opts?: any) => string): PreEventItem[] {
+  return [
+    { item: t('schedule.defaults.arrival'), offset_minutes: -135, notes: '' },
+    { item: t('schedule.defaults.soundcheck'), offset_minutes: -120, notes: '' },
+    { item: t('schedule.defaults.break'), offset_minutes: -60, notes: '' },
+    { item: t('schedule.defaults.preServicePrayer'), offset_minutes: -20, notes: '' },
+  ]
+}
 
-const defaultProgramSchedule: ProgramItem[] = [
-  { offset_minutes: 0, title: 'Opening', type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-  { offset_minutes: 5, title: 'Song 1', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-  { offset_minutes: 11, title: 'Song 2', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-  { offset_minutes: 17, title: 'Song 3', type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-  { offset_minutes: undefined as any, title: 'Prayer Time', type: 'prayer', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-  { offset_minutes: 90, title: 'Closing', type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
-]
+function getDefaultProgramSchedule(t: (key: string, opts?: any) => string): ProgramItem[] {
+  return [
+    { offset_minutes: 0, title: t('schedule.defaults.opening'), type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+    { offset_minutes: 5, title: t('schedule.defaults.song', { number: 1 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+    { offset_minutes: 11, title: t('schedule.defaults.song', { number: 2 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+    { offset_minutes: 17, title: t('schedule.defaults.song', { number: 3 }), type: 'song', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+    { offset_minutes: undefined as any, title: t('schedule.defaults.prayerTime'), type: 'prayer', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+    { offset_minutes: 90, title: t('schedule.defaults.closing'), type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false },
+  ]
+}
 
-const defaultPostEventSchedule: PostEventItem[] = [
-  { item: 'Tear Down', offset_minutes: 105, notes: '' },
-  { item: 'Drive Home', offset_minutes: 130, notes: '' },
-]
+function getDefaultPostEventSchedule(t: (key: string, opts?: any) => string): PostEventItem[] {
+  return [
+    { item: t('schedule.defaults.tearDown'), offset_minutes: 105, notes: '' },
+    { item: t('schedule.defaults.driveHome'), offset_minutes: 130, notes: '' },
+  ]
+}
 
 const SortableRow = ({ id, children }: { id: string; children: React.ReactNode }) => {
   const {
@@ -376,12 +382,12 @@ export default function EditSchedulePage() {
       setPreEventSchedule(
         event.program_agenda.pre_event_schedule?.map((item: any) => ({
           ...item, notes: item.notes || '',
-        })) || defaultPreEventSchedule
+        })) || getDefaultPreEventSchedule(t)
       )
 
       const parsed = (event.program_agenda.program_schedule?.length ?? 0) > 0
         ? parseProgramItems(event.program_agenda.program_schedule!)
-        : defaultProgramSchedule
+        : getDefaultProgramSchedule(t)
       setProgramSchedule(parsed)
 
       setHasPostEvent(event.program_agenda.has_post_event_schedule || false)
@@ -390,7 +396,7 @@ export default function EditSchedulePage() {
           ? event.program_agenda.post_event_schedule!.map((item: any) => ({
               ...item, notes: item.notes || '',
             }))
-          : defaultPostEventSchedule
+          : getDefaultPostEventSchedule(t)
       )
 
       // Initialize linked state from event
@@ -399,10 +405,10 @@ export default function EditSchedulePage() {
         setLink(prev => ({ ...prev, serviceId: event.flow_service_id! }))
       }
     } else {
-      setPreEventSchedule(defaultPreEventSchedule)
-      setProgramSchedule(defaultProgramSchedule)
+      setPreEventSchedule(getDefaultPreEventSchedule(t))
+      setProgramSchedule(getDefaultProgramSchedule(t))
       setHasPostEvent(false)
-      setPostEventSchedule(defaultPostEventSchedule)
+      setPostEventSchedule(getDefaultPostEventSchedule(t))
     }
   }, [event])
 

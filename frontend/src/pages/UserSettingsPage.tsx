@@ -16,7 +16,7 @@ function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
     return error.response?.data?.message || error.message
   }
-  return error instanceof Error ? error.message : 'An error occurred'
+  return error instanceof Error ? error.message : 'Error'
 }
 
 export default function UserSettingsPage() {
