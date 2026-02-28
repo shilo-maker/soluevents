@@ -4,7 +4,8 @@ import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
 import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
-import { emitEventUpdate, emitToUser } from '../lib/emitEvent'
+import { emitEventUpdate } from '../lib/emitEvent'
+import { notify } from '../lib/notify'
 
 /** Returns the user's best team member status across all teams (confirmed > pending > declined), or null. */
 function getUserTeamMemberStatus(eventTeams: any, userId: string): 'pending' | 'confirmed' | 'declined' | null {
@@ -365,25 +366,18 @@ export const createEvent = async (
     // Create notifications for pending team invites (after transaction)
     if (pendingInvites.length > 0) {
       const inviterName = event.creator?.name || req.user!.email
-      await Promise.all(
+      Promise.all(
         pendingInvites.map((m) =>
-          prisma.notification.create({
-            data: {
-              user_id: m.contact_id,
-              type: 'event_team_invite',
-              payload: {
-                event_id: event.id,
-                event_title: event.title,
-                member_id: m.member_id,
-                team_name: m.team_name,
-                team_role: m.team_role,
-                invited_by_name: inviterName,
-              },
-            },
-          }).catch(() => {}) // non-blocking: user may not exist
+          notify(m.contact_id, 'event_team_invite', {
+            event_id: event.id,
+            event_title: event.title,
+            member_id: m.member_id,
+            team_name: m.team_name,
+            team_role: m.team_role,
+            invited_by_name: inviterName,
+          }).catch(() => {})
         )
-      )
-      for (const m of pendingInvites) emitToUser(m.contact_id, 'notification:new')
+      ).catch(() => {})
     }
 
     res.status(201).json(event)
@@ -479,17 +473,11 @@ export const updateEvent = async (
             const inviterName = inviter?.name || inviter?.email || req.user!.email
             await Promise.all(
               confirmedMembers.map((m: any) =>
-                prisma.notification.create({
-                  data: {
-                    user_id: m.contact_id,
-                    type: 'event_team_removed',
-                    payload: {
-                      event_id: id,
-                      event_title: existing.title,
-                      team_role: m.role || '',
-                      removed_by_name: inviterName,
-                    },
-                  },
+                notify(m.contact_id, 'event_team_removed', {
+                  event_id: id,
+                  event_title: existing.title,
+                  team_role: m.role || '',
+                  removed_by_name: inviterName,
                 }).catch(() => {})
               )
             )
@@ -608,20 +596,14 @@ export const updateEvent = async (
         notificationOps.push(
           Promise.all(
             newlyPendingMembers.map((m) =>
-              prisma.notification.create({
-                data: {
-                  user_id: m.contact_id,
-                  type: 'event_team_invite',
-                  payload: {
-                    event_id: id,
-                    event_title: event.title,
-                    member_id: m.member_id,
-                    team_name: m.team_name,
-                    team_role: m.team_role,
-                    invited_by_name: inviterName,
-                  },
-                },
-              }).catch(() => {}) // non-blocking: user may not exist
+              notify(m.contact_id, 'event_team_invite', {
+                event_id: id,
+                event_title: event.title,
+                member_id: m.member_id,
+                team_name: m.team_name,
+                team_role: m.team_role,
+                invited_by_name: inviterName,
+              }).catch(() => {})
             )
           )
         )
@@ -643,17 +625,11 @@ export const updateEvent = async (
                 }).catch(() => {})
               } else if (m.status === 'confirmed') {
                 // Notify confirmed members that they've been removed
-                return prisma.notification.create({
-                  data: {
-                    user_id: m.contact_id,
-                    type: 'event_team_removed',
-                    payload: {
-                      event_id: id,
-                      event_title: event.title,
-                      team_role: m.role || '',
-                      removed_by_name: inviterName,
-                    },
-                  },
+                return notify(m.contact_id, 'event_team_removed', {
+                  event_id: id,
+                  event_title: event.title,
+                  team_role: m.role || '',
+                  removed_by_name: inviterName,
                 }).catch(() => {})
               }
               return Promise.resolve()
@@ -664,12 +640,6 @@ export const updateEvent = async (
 
       if (notificationOps.length > 0) {
         await Promise.all(notificationOps)
-      }
-
-      // Emit notification:new for newly invited and removed members
-      for (const m of newlyPendingMembers) emitToUser(m.contact_id, 'notification:new')
-      for (const m of removedMembers) {
-        if ((m as any).status === 'confirmed') emitToUser((m as any).contact_id, 'notification:new')
       }
 
       emitEventUpdate(id, 'event:updated')
@@ -768,25 +738,14 @@ export const respondToTeamInvite = async (
     // Notify event creator about the response (if responder is not the creator)
     if (result.createdBy !== req.user!.id) {
       const responder = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } })
-      await prisma.notification.create({
-        data: {
-          user_id: result.createdBy,
-          type: 'event_team_response',
-          payload: {
-            event_id: eventId,
-            event_title: result.eventTitle,
-            member_name: responder?.name || responder?.email || req.user!.email,
-            team_role: result.teamRole,
-            team_name: result.teamName,
-            action,
-          },
-        },
+      notify(result.createdBy, 'event_team_response', {
+        event_id: eventId,
+        event_title: result.eventTitle,
+        member_name: responder?.name || responder?.email || req.user!.email,
+        team_role: result.teamRole,
+        team_name: result.teamName,
+        action,
       }).catch(() => {})
-    }
-
-    // Notify event creator in real-time
-    if (result.createdBy !== req.user!.id) {
-      emitToUser(result.createdBy, 'notification:new')
     }
     emitEventUpdate(eventId, 'event:updated')
 

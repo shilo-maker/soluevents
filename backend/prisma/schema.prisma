@@ -256,6 +256,7 @@ model User {
   event_invitations   EventInvitation[] @relation("EventInvitations")
   memberInvitesReceived WorkspaceMemberInvite[] @relation("MemberInviteRecipient")
   memberInvitesSent     WorkspaceMemberInvite[] @relation("MemberInviteSender")
+  pushSubscriptions     PushSubscription[]
 
   // --- SoluCast relations (Group A) ---
   operatedRooms              Room[]
@@ -1176,4 +1177,19 @@ model WorkspaceMemberInvite {
   @@index([invited_by_id])
   @@index([token])
   @@map("workspace_member_invites")
+}
+
+model PushSubscription {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("push_subscriptions")
 }

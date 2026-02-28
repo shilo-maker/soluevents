@@ -6,6 +6,7 @@ import api from '@/lib/axios'
 import { Loader2 } from 'lucide-react'
 import Layout from './components/Layout'
 import PWAUpdatePrompt from './components/PWAUpdatePrompt'
+import PushNotificationPrompt from './components/PushNotificationPrompt'
 import { useAppResume } from './hooks/useAppResume'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
@@ -97,6 +98,7 @@ function App() {
   return (
     <Layout>
       <PWAUpdatePrompt />
+      <PushNotificationPrompt />
       <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />

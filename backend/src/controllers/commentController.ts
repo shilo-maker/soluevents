@@ -3,7 +3,8 @@ import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
 import { checkWorkspaceMembership } from '../services/workspaceService'
-import { emitEventUpdate, emitToUser } from '../lib/emitEvent'
+import { emitEventUpdate } from '../lib/emitEvent'
+import { notify } from '../lib/notify'
 
 async function canAccessTaskComments(
   userId: string,
@@ -150,21 +151,16 @@ export const addComment = async (
 
     if (recipients.size > 0) {
       const truncatedBody = body.length > 100 ? body.slice(0, 100) + '…' : body
-      prisma.notification.createMany({
-        data: [...recipients].map((userId) => ({
-          user_id: userId,
-          type: 'task_comment',
-          payload: {
-            task_id: taskId,
-            task_title: task.title,
-            ...(task.event ? { event_id: task.event.id, event_title: task.event.title } : {}),
-            commenter_name: comment.author?.name || req.user!.email,
-            comment_body: truncatedBody,
-          },
-        })),
-      }).then(() => {
-        for (const uid of recipients) emitToUser(uid, 'notification:new')
-      }).catch(() => {})
+      const payload = {
+        task_id: taskId,
+        task_title: task.title,
+        ...(task.event ? { event_id: task.event.id, event_title: task.event.title } : {}),
+        commenter_name: comment.author?.name || req.user!.email,
+        comment_body: truncatedBody,
+      }
+      Promise.all(
+        [...recipients].map((uid) => notify(uid, 'task_comment', payload))
+      ).catch(() => {})
     }
 
     if (task.event_id) emitEventUpdate(task.event_id, 'comment:created', { taskId, commentId: comment.id })

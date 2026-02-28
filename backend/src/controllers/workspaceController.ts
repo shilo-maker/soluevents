@@ -18,6 +18,7 @@ import {
 import { sendEmail } from '../services/emailService'
 import { buildWorkspaceInviteEmailHtml } from '../services/workspaceInviteEmailTemplate'
 import prisma from '../lib/prisma'
+import { notify } from '../lib/notify'
 import crypto from 'crypto'
 
 export const listWorkspaces = async (
@@ -548,26 +549,16 @@ export const sendMemberInvite = async (
       throw new AppError('Failed to send invitation email. Check your SMTP settings.', 500)
     }
 
-    // Create in-app notification for existing users (non-blocking)
+    // Create in-app notification + push for existing users (non-blocking)
     if (targetUser) {
-      try {
-        await prisma.notification.create({
-          data: {
-            user_id: targetUser.id,
-            type: 'workspace_invite',
-            payload: {
-              invite_id: invite.id,
-              token: invite.token,
-              workspace_id: id,
-              workspace_name: workspace.name,
-              role: inviteRole,
-              invited_by_name: invite.invitedBy.name || invite.invitedBy.email || 'Someone',
-            },
-          },
-        })
-      } catch (notifError) {
-        console.error('Failed to create invite notification:', notifError)
-      }
+      notify(targetUser.id, 'workspace_invite', {
+        invite_id: invite.id,
+        token: invite.token,
+        workspace_id: id,
+        workspace_name: workspace.name,
+        role: inviteRole,
+        invited_by_name: invite.invitedBy.name || invite.invitedBy.email || 'Someone',
+      }).catch((err) => console.error('Failed to create invite notification:', err))
     }
 
     res.status(201).json({

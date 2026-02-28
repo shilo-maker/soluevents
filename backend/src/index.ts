@@ -19,6 +19,7 @@ import workspaceRoutes from './routes/workspaces'
 import invitationRoutes from './routes/invitations'
 import userSettingsRoutes from './routes/userSettings'
 import notificationRoutes from './routes/notifications'
+import pushRoutes from './routes/push'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
 import { setupSocketIO, closeIO } from './lib/socket'
@@ -79,6 +80,7 @@ app.use('/api/workspaces', workspaceRoutes)
 app.use('/api/invitations', invitationRoutes)
 app.use('/api/user', userSettingsRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/push', pushRoutes)
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
