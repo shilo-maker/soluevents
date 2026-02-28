@@ -278,7 +278,7 @@ export default function EventDetailPage() {
           </div>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link to={`/events/${id}/edit`} className="btn-secondary">
               <Edit className="w-4 h-4 mr-2" />
               {t('common.edit')}
@@ -310,7 +310,7 @@ export default function EventDetailPage() {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <div className="flex space-x-8">
+        <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}

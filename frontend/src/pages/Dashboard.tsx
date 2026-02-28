@@ -51,8 +51,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-8 shadow-2xl text-white">
-        <h1 className="text-4xl font-bold mb-2">{t('dashboard.welcomeBack', { name: user?.name })} 👋</h1>
+      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-5 sm:p-8 shadow-2xl text-white">
+        <h1 className="text-2xl sm:text-4xl font-bold mb-2">{t('dashboard.welcomeBack', { name: user?.name })} 👋</h1>
         <p className="text-lg text-white/90">
           {t('dashboard.subtitle')}
         </p>
@@ -60,9 +60,9 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Upcoming Events */}
-        <div className="card col-span-2">
+        <div className="card lg:col-span-2">
           <div className="flex items-center mb-4">
-            <Calendar className="w-5 h-5 text-primary-600 mr-2" />
+            <Calendar className="w-5 h-5 text-primary-600 me-2" />
             <h2 className="text-lg font-semibold text-gray-900">
               {t('dashboard.upcomingEvents')}
             </h2>
@@ -91,7 +91,7 @@ export default function Dashboard() {
         {/* Notifications */}
         <div className="card">
           <div className="flex items-center mb-4">
-            <Bell className="w-5 h-5 text-primary-600 mr-2" />
+            <Bell className="w-5 h-5 text-primary-600 me-2" />
             <h2 className="text-lg font-semibold text-gray-900">
               {t('dashboard.notifications')}
             </h2>
@@ -105,7 +105,7 @@ export default function Dashboard() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <CheckSquare className="w-5 h-5 text-primary-600 mr-2" />
+            <CheckSquare className="w-5 h-5 text-primary-600 me-2" />
             <h2 className="text-lg font-semibold text-gray-900">
               {t('dashboard.myPendingTasks')}
             </h2>

@@ -143,7 +143,7 @@ export default function WorkspaceSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-200/60 py-2 z-50" role="menu">
+        <div className="absolute start-0 top-full mt-1 w-[calc(100vw-2rem)] sm:w-72 bg-white rounded-xl shadow-xl border border-gray-200/60 py-2 z-50" role="menu">
           <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             {t('workspaceSwitcher.workspaces')}
           </div>
