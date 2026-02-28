@@ -12,11 +12,24 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
+    overscroll-behavior: contain;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  /* Re-enable caret in actual input elements */
+  /* Re-enable caret and text selection in input elements */
   input, textarea, select, [contenteditable="true"] {
     caret-color: auto;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Allow selection on readable content */
+  p, .selectable {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* Hebrew font for RTL */
