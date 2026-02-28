@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Settings, Mail, Save, Send, Loader2, User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Settings, Mail, Save, Send, Loader2, User, Globe } from 'lucide-react'
 import { isAxiosError } from 'axios'
+import { changeLanguage, getCurrentLanguage } from '@/i18n'
 import {
   useUserEmailSettings,
   useUpdateUserEmailSettings,
@@ -18,6 +20,7 @@ function errorMessage(error: unknown): string {
 }
 
 export default function UserSettingsPage() {
+  const { t } = useTranslation()
   const { data: emailSettings, isLoading } = useUserEmailSettings()
   const updateMutation = useUpdateUserEmailSettings()
   const testMutation = useTestUserEmailSettings()
@@ -33,7 +36,7 @@ export default function UserSettingsPage() {
     try {
       await api.patch(`/users/${user.id}`, { avatar_url: base64 })
       patchUser({ avatar_url: base64 })
-      setAvatarMsg({ type: 'success', text: 'Profile photo updated' })
+      setAvatarMsg({ type: 'success', text: t('settings.photoUpdated') })
     } catch (err) {
       setAvatarMsg({ type: 'error', text: errorMessage(err) })
     } finally {
@@ -48,7 +51,7 @@ export default function UserSettingsPage() {
     try {
       await api.patch(`/users/${user.id}`, { avatar_url: null })
       patchUser({ avatar_url: null })
-      setAvatarMsg({ type: 'success', text: 'Profile photo removed' })
+      setAvatarMsg({ type: 'success', text: t('settings.photoRemoved') })
     } catch (err) {
       setAvatarMsg({ type: 'error', text: errorMessage(err) })
     } finally {
@@ -110,16 +113,16 @@ export default function UserSettingsPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <Settings className="w-8 h-8" />
-          User Settings
+          {t('settings.title')}
         </h1>
-        <p className="text-gray-600 mt-1">Manage your personal settings</p>
+        <p className="text-gray-600 mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Profile */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <User className="w-5 h-5 text-teal-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('settings.profile')}</h2>
         </div>
 
         <div className="flex items-start gap-6">
@@ -144,11 +147,42 @@ export default function UserSettingsPage() {
         )}
       </div>
 
+      {/* Language */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Globe className="w-5 h-5 text-teal-600" />
+          <h2 className="text-lg font-semibold text-gray-900">{t('settings.language')}</h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-3">{t('settings.languageDesc')}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => changeLanguage('he')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              getCurrentLanguage() === 'he'
+                ? 'bg-teal-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            עברית
+          </button>
+          <button
+            onClick={() => changeLanguage('en')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              getCurrentLanguage() === 'en'
+                ? 'bg-teal-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            English
+          </button>
+        </div>
+      </div>
+
       {/* Email Settings */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Mail className="w-5 h-5 text-teal-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Email Settings</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('settings.emailSettings')}</h2>
         </div>
 
         {isLoading ? (
@@ -158,25 +192,25 @@ export default function UserSettingsPage() {
         ) : (
           <>
             <p className="text-sm text-gray-500 mb-2">
-              Configure SMTP credentials so invitation emails are sent from your email account. These settings apply across all your workspaces.
+              {t('settings.smtpDesc')}
             </p>
 
             <details className="mb-4 group">
               <summary className="text-sm text-teal-600 cursor-pointer hover:text-teal-700 font-medium">
-                Gmail setup instructions
+                {t('settings.gmailInstructions')}
               </summary>
               <div className="mt-2 p-3 bg-teal-50 rounded-lg text-sm text-gray-700 space-y-1.5">
-                <p><strong>1.</strong> Go to <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-teal-600 underline hover:text-teal-700">myaccount.google.com/security</a></p>
-                <p><strong>2.</strong> Make sure <strong>2-Step Verification</strong> is turned on</p>
-                <p><strong>3.</strong> Search for <strong>"App Passwords"</strong> in your Google Account settings</p>
-                <p><strong>4.</strong> Create a new App Password (name it "SoluPlan" or anything you like)</p>
-                <p><strong>5.</strong> Copy the 16-character password Google gives you</p>
-                <p><strong>6.</strong> Use these settings below:</p>
+                <p><strong>1.</strong> {t('settings.gmail.step1')} <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-teal-600 underline hover:text-teal-700">myaccount.google.com/security</a></p>
+                <p dangerouslySetInnerHTML={{ __html: `<strong>2.</strong> ${t('settings.gmail.step2')}` }} />
+                <p dangerouslySetInnerHTML={{ __html: `<strong>3.</strong> ${t('settings.gmail.step3')}` }} />
+                <p><strong>4.</strong> {t('settings.gmail.step4')}</p>
+                <p><strong>5.</strong> {t('settings.gmail.step5')}</p>
+                <p><strong>6.</strong> {t('settings.gmail.step6')}</p>
                 <ul className="list-disc list-inside ml-2 text-gray-600">
-                  <li>SMTP Host: <code className="bg-white px-1 rounded">smtp.gmail.com</code></li>
-                  <li>SMTP Port: <code className="bg-white px-1 rounded">587</code></li>
-                  <li>SMTP User: your full Gmail address</li>
-                  <li>SMTP Password: the 16-character App Password (not your Gmail password)</li>
+                  <li>{t('settings.gmail.host')} <code className="bg-white px-1 rounded">smtp.gmail.com</code></li>
+                  <li>{t('settings.gmail.port')} <code className="bg-white px-1 rounded">587</code></li>
+                  <li>{t('settings.gmail.user')}</li>
+                  <li>{t('settings.gmail.password')}</li>
                 </ul>
               </div>
             </details>
@@ -184,7 +218,7 @@ export default function UserSettingsPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Host</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.smtpHost')}</label>
                   <input
                     type="text"
                     value={smtpHost}
@@ -194,7 +228,7 @@ export default function UserSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Port</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.smtpPort')}</label>
                   <input
                     type="number"
                     value={smtpPort}
@@ -214,12 +248,12 @@ export default function UserSettingsPage() {
                   className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                 />
                 <label htmlFor="smtp-secure" className="text-sm font-medium text-gray-700">
-                  Use SSL/TLS (port 465)
+                  {t('settings.smtpSecure')}
                 </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP User</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.smtpUser')}</label>
                 <input
                   type="text"
                   value={smtpUser}
@@ -230,12 +264,12 @@ export default function UserSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SMTP Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.smtpPassword')}</label>
                 <input
                   type="password"
                   value={smtpPass}
                   onChange={(e) => setSmtpPass(e.target.value)}
-                  placeholder={emailSettings?.has_password ? '••••••••  (password set)' : 'Enter password'}
+                  placeholder={emailSettings?.has_password ? t('settings.passwordSet') : t('settings.enterPassword')}
                   className="input w-full"
                 />
               </div>
@@ -246,7 +280,7 @@ export default function UserSettingsPage() {
               <p className="text-sm text-red-500 mt-3">{errorMessage(updateMutation.error)}</p>
             )}
             {updateMutation.isSuccess && (
-              <p className="text-sm text-green-600 mt-3">Email settings saved</p>
+              <p className="text-sm text-green-600 mt-3">{t('settings.emailSaved')}</p>
             )}
             {testMutation.isError && (
               <p className="text-sm text-red-500 mt-3">{errorMessage(testMutation.error)}</p>
@@ -266,7 +300,7 @@ export default function UserSettingsPage() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                Save
+                {t('common.save')}
               </button>
               <button
                 onClick={handleTest}
@@ -278,7 +312,7 @@ export default function UserSettingsPage() {
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                Send Test Email
+                {t('settings.sendTestEmail')}
               </button>
             </div>
           </>

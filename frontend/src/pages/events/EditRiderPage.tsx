@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save } from 'lucide-react'
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents'
@@ -23,6 +24,7 @@ const defaultWorshipTeam: WorshipMember[] = [
 ]
 
 export default function EditRiderPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: event, isLoading } = useEvent(id!)
@@ -113,7 +115,7 @@ export default function EditRiderPage() {
       })
       navigate(`/events/${id}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save rider')
+      setError(err.response?.data?.message || t('events.rider.failedToSave'))
     }
   }
 
@@ -128,8 +130,8 @@ export default function EditRiderPage() {
   if (!event) {
     return (
       <div className="card text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Event not found</h3>
-        <Link to="/events" className="text-primary-600 hover:text-primary-700">← Back to Events</Link>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.eventNotFound')}</h3>
+        <Link to="/events" className="text-primary-600 hover:text-primary-700">{t('events.backToEvents')}</Link>
       </div>
     )
   }
@@ -143,7 +145,7 @@ export default function EditRiderPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Technical Rider</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('events.technicalRider')}</h1>
             <p className="text-sm text-gray-500">{event.title}</p>
           </div>
         </div>
@@ -153,7 +155,7 @@ export default function EditRiderPage() {
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Rider'}
+          {updateEvent.isPending ? t('events.rider.saving') : t('events.rider.saveRider')}
         </button>
       </div>
 
@@ -165,13 +167,13 @@ export default function EditRiderPage() {
 
       {/* Worship Team */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Worship Team</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.worshipTeam')}</h3>
         <div className="space-y-4">
           {worshipTeam.map((member, memberIndex) => (
             <div key={memberIndex} className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.role')}</label>
                   <input
                     type="text"
                     value={member.role}
@@ -184,7 +186,7 @@ export default function EditRiderPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                   <ContactAutocomplete
                     value={member.person}
                     contactId={member.contact_id}
@@ -198,7 +200,7 @@ export default function EditRiderPage() {
                       updated[memberIndex].user_id = contactId || ''
                       setWorshipTeam(updated)
                     }}
-                    placeholder="Enter name..."
+                    placeholder={t('common.name')}
                     className="input text-sm"
                   />
                 </div>
@@ -218,7 +220,7 @@ export default function EditRiderPage() {
                       }}
                       className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                     />
-                    <span className="ml-2 text-sm font-semibold text-gray-900">E-Drums</span>
+                    <span className="ml-2 text-sm font-semibold text-gray-900">{t('events.rider.eDrums')}</span>
                   </label>
                 </div>
               )}
@@ -226,14 +228,14 @@ export default function EditRiderPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-semibold text-gray-600">
-                    {member.role === 'Drums' && member.eDrums ? 'Needs for E-Drums Setup' : 'Needs'}
+                    {member.role === 'Drums' && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
                   </label>
                   <button
                     type="button"
                     onClick={() => setEditingNeedsIndex(editingNeedsIndex === memberIndex ? null : memberIndex)}
                     className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
                   >
-                    {editingNeedsIndex === memberIndex ? 'Done' : 'Edit'}
+                    {editingNeedsIndex === memberIndex ? t('common.done') : t('common.edit')}
                   </button>
                 </div>
 
@@ -254,7 +256,7 @@ export default function EditRiderPage() {
                             setWorshipTeam(updated)
                           }}
                           className="input text-sm flex-1"
-                          placeholder="Needed item"
+                          placeholder={t('events.rider.itemName')}
                         />
                         <button
                           type="button"
@@ -269,7 +271,7 @@ export default function EditRiderPage() {
                           }}
                           className="btn-secondary text-sm"
                         >
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </div>
                     ))}
@@ -287,7 +289,7 @@ export default function EditRiderPage() {
                       }}
                       className="btn-secondary text-sm"
                     >
-                      + Add Need
+                      {t('events.addNeed')}
                     </button>
                     <button
                       type="button"
@@ -297,7 +299,7 @@ export default function EditRiderPage() {
                       }}
                       className="btn-secondary text-sm mt-2"
                     >
-                      Remove Team Member
+                      {t('events.removeTeamMember')}
                     </button>
                   </div>
                 ) : (
@@ -318,34 +320,34 @@ export default function EditRiderPage() {
             onClick={() => setWorshipTeam([...worshipTeam, { role: '', person: '', contact_id: '', is_user: false, user_id: '', needs: [''] }])}
             className="btn-secondary"
           >
-            + Add Team Member
+            {t('events.addTeamMember')}
           </button>
         </div>
       </div>
 
       {/* Contact & Requirements */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact & Requirements</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.rider.contactRequirements')}</h3>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Contact Person</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('events.contactPerson')}</label>
               <input
                 type="text"
                 value={contactPerson}
                 onChange={(e) => setContactPerson(e.target.value)}
                 className="input"
-                placeholder="Name"
+                placeholder={t('common.name')}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Contact Phone</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('events.contactPhone')}</label>
               <input
                 type="text"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 className="input"
-                placeholder="Phone number"
+                placeholder={t('common.phone')}
               />
             </div>
           </div>
@@ -357,7 +359,7 @@ export default function EditRiderPage() {
                 onChange={(e) => setSoundmanNeeded(e.target.checked)}
                 className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
               />
-              <span className="ml-2 text-sm font-semibold text-gray-700">Soundman Needed</span>
+              <span className="ml-2 text-sm font-semibold text-gray-700">{t('events.rider.soundmanNeeded')}</span>
             </label>
             <label className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg cursor-pointer">
               <input
@@ -366,17 +368,17 @@ export default function EditRiderPage() {
                 onChange={(e) => setProjectionNeeded(e.target.checked)}
                 className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
               />
-              <span className="ml-2 text-sm font-semibold text-gray-700">Projection Needed</span>
+              <span className="ml-2 text-sm font-semibold text-gray-700">{t('events.rider.projectionNeeded')}</span>
             </label>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Special Requirements</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t('events.specialRequirements')}</label>
             <textarea
               value={specialRequirements}
               onChange={(e) => setSpecialRequirements(e.target.value)}
               className="input"
               rows={3}
-              placeholder="Any special requirements or notes..."
+              placeholder={t('events.rider.specialReqPlaceholder')}
             />
           </div>
         </div>
@@ -384,14 +386,14 @@ export default function EditRiderPage() {
 
       {/* Bottom Save */}
       <div className="flex justify-end gap-3">
-        <Link to={`/events/${id}`} className="btn-secondary">Cancel</Link>
+        <Link to={`/events/${id}`} className="btn-secondary">{t('common.cancel')}</Link>
         <button
           onClick={handleSave}
           disabled={updateEvent.isPending}
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Rider'}
+          {updateEvent.isPending ? t('events.rider.saving') : t('events.rider.saveRider')}
         </button>
       </div>
     </div>

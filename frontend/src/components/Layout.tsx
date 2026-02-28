@@ -1,5 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
+import { useSocketConnection } from '@/hooks/useSocket'
+import { useNotificationSocket } from '@/hooks/useNotificationSocket'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
 import NotificationBell from './NotificationBell'
 import logoSm from '@/assets/logo-sm.png'
@@ -20,16 +23,20 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
+  useSocketConnection()
+  useNotificationSocket()
+  const { t } = useTranslation()
+
   const location = useLocation()
   const { user, clearAuth } = useAuthStore()
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Events', href: '/events', icon: Calendar },
-    { name: 'Tours', href: '/tours', icon: MapPin },
-    { name: 'Tasks', href: '/tasks', icon: CheckSquare },
-    { name: 'Contacts', href: '/contacts', icon: Users },
-    ...(user?.org_role === 'admin' ? [{ name: 'Users', href: '/users', icon: UserCog }] : []),
+    { name: t('nav.dashboard'), href: '/', icon: Home },
+    { name: t('nav.events'), href: '/events', icon: Calendar },
+    { name: t('nav.tours'), href: '/tours', icon: MapPin },
+    { name: t('nav.tasks'), href: '/tasks', icon: CheckSquare },
+    { name: t('nav.contacts'), href: '/contacts', icon: Users },
+    ...(user?.org_role === 'admin' ? [{ name: t('nav.users'), href: '/users', icon: UserCog }] : []),
   ]
 
   const isActive = (path: string) => {
@@ -42,7 +49,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-gradient-to-br from-teal-800 via-teal-600 to-cyan-500 gradient-animate shadow-2xl">
+      <div className="fixed inset-y-0 start-0 w-64 bg-gradient-to-br from-teal-800 via-teal-600 to-cyan-500 gradient-animate shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 h-16 px-6 border-b border-white/20">
@@ -56,7 +63,7 @@ export default function Layout({ children }: LayoutProps) {
               const Icon = item.icon
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   to={item.href}
                   className={`flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
                     isActive(item.href)
@@ -64,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
                       : 'text-white/90 hover:bg-white/20 hover:text-white'
                   }`}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
+                  <Icon className="w-5 h-5 me-3" />
                   {item.name}
                 </Link>
               )
@@ -76,7 +83,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Avatar src={user?.avatar_url} name={user?.name || ''} size="md" className="shadow-lg" />
-                <div className="ml-3">
+                <div className="ms-3">
                   <p className="text-sm font-semibold text-white">
                     {user?.name}
                   </p>
@@ -87,14 +94,14 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   to="/user/settings"
                   className="p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-                  title="User Settings"
+                  title={t('nav.userSettings')}
                 >
                   <Settings className="w-4 h-4" />
                 </Link>
                 <button
                   onClick={() => clearAuth()}
                   className="p-2 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-                  title="Logout"
+                  title={t('nav.logout')}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -105,7 +112,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="pl-64">
+      <div className="ps-64">
         {/* Top bar */}
         <div className="sticky top-0 z-10 flex items-center justify-between h-16 px-8 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm select-none">
           <WorkspaceSwitcher />

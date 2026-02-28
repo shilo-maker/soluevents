@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Settings, Shield, Users, Link, Trash2, Copy, Loader2, Save, AlertTriangle, UserPlus, Search, Mail, Clock } from 'lucide-react'
 import Avatar from '@/components/Avatar'
@@ -27,10 +28,11 @@ function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
     return error.response?.data?.message || error.message
   }
-  return error instanceof Error ? error.message : 'An error occurred'
+  return error instanceof Error ? error.message : 'Error'
 }
 
 export default function WorkspaceSettingsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { activeWorkspace } = useWorkspaces()
   const currentUser = useAuthStore((s) => s.user)
@@ -100,9 +102,9 @@ export default function WorkspaceSettingsPage() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Not Available</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('workspace.notAvailable')}</h2>
           <p className="text-gray-600">
-            Workspace settings are only available for organization workspaces.
+            {t('workspace.notAvailableDesc')}
           </p>
         </div>
       </div>
@@ -136,7 +138,7 @@ export default function WorkspaceSettingsPage() {
   }
 
   const handleRemoveMember = async (userId: string, memberName: string) => {
-    if (!window.confirm(`Remove ${memberName} from this workspace?`)) return
+    if (!window.confirm(t('workspace.removeConfirm', { name: memberName }))) return
     try {
       await removeMemberMutation.mutateAsync(userId)
     } catch {
@@ -152,7 +154,7 @@ export default function WorkspaceSettingsPage() {
       try {
         await navigator.clipboard.writeText(url)
       } catch {
-        window.prompt('Copy this invite link:', url)
+        window.prompt(t('workspace.copyLink'), url)
       }
     } catch {
       // error shown inline
@@ -166,7 +168,7 @@ export default function WorkspaceSettingsPage() {
       setCopiedToken(token)
       setTimeout(() => setCopiedToken(null), 2000)
     } catch {
-      window.prompt('Copy this invite link:', url)
+      window.prompt(t('workspace.copyLink'), url)
     }
   }
 
@@ -181,7 +183,7 @@ export default function WorkspaceSettingsPage() {
   const handleDelete = async () => {
     if (!wsId || !data?.workspace) return
     const confirmed = window.confirm(
-      `Delete "${data.workspace.name}"? This action cannot be undone. All workspace data will be permanently removed.`
+      t('workspace.deleteConfirm', { name: data.workspace.name })
     )
     if (!confirmed) return
     try {
@@ -220,17 +222,17 @@ export default function WorkspaceSettingsPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           {isOrgAdmin ? <Settings className="w-8 h-8" /> : <Users className="w-8 h-8" />}
-          {isOrgAdmin ? 'Workspace Settings' : 'Workspace Members'}
+          {isOrgAdmin ? t('workspace.title') : t('workspace.membersTitle')}
         </h1>
         <p className="text-gray-600 mt-1">
-          {isOrgAdmin ? 'Manage your workspace configuration and members' : 'View members in your workspace'}
+          {isOrgAdmin ? t('workspace.subtitle') : t('workspace.membersSubtitle')}
         </p>
       </div>
 
       {/* General — admin only */}
       {isOrgAdmin && (
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">General</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('workspace.general')}</h2>
           <div className="flex gap-3">
             <input
               type="text"
@@ -238,7 +240,7 @@ export default function WorkspaceSettingsPage() {
               onChange={(e) => setName(e.target.value)}
               maxLength={100}
               className="input flex-1"
-              placeholder="Workspace name"
+              placeholder={t('workspace.workspaceName')}
             />
             <button
               onClick={handleRename}
@@ -250,14 +252,14 @@ export default function WorkspaceSettingsPage() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              Save
+              {t('common.save')}
             </button>
           </div>
           {renameMutation.isError && (
             <p className="text-sm text-red-500 mt-2">{errorMessage(renameMutation.error)}</p>
           )}
           {renameMutation.isSuccess && (
-            <p className="text-sm text-green-600 mt-2">Workspace renamed successfully</p>
+            <p className="text-sm text-green-600 mt-2">{t('workspace.renameSaved')}</p>
           )}
         </div>
       )}
@@ -266,7 +268,7 @@ export default function WorkspaceSettingsPage() {
       {isOrgAdmin && <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <UserPlus className="w-5 h-5 text-teal-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Add Member</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('workspace.addMember')}</h2>
         </div>
 
         <div className="flex gap-3 mb-3">
@@ -276,7 +278,7 @@ export default function WorkspaceSettingsPage() {
               type="email"
               value={searchEmail}
               onChange={(e) => setSearchEmail(e.target.value)}
-              placeholder="Search by email address..."
+              placeholder={t('workspace.searchByEmail')}
               className="input pl-9 w-full"
             />
           </div>
@@ -293,7 +295,7 @@ export default function WorkspaceSettingsPage() {
 
         {isSearching && (
           <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+            <Loader2 className="w-4 h-4 animate-spin" /> {t('workspace.searching')}
           </div>
         )}
 
@@ -313,11 +315,11 @@ export default function WorkspaceSettingsPage() {
                 <div className="shrink-0">
                   {searchResult.alreadyMember ? (
                     <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
-                      Already a member
+                      {t('workspace.alreadyMember')}
                     </span>
                   ) : searchResult.alreadyInvited ? (
                     <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
-                      Already invited
+                      {t('workspace.alreadyInvited')}
                     </span>
                   ) : (
                     <button
@@ -330,14 +332,14 @@ export default function WorkspaceSettingsPage() {
                       ) : (
                         <Mail className="w-4 h-4" />
                       )}
-                      Invite
+                      {t('common.invite')}
                     </button>
                   )}
                 </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500 text-center py-1">
-                No user found with this email address
+                {t('workspace.noUserFound')}
               </p>
             )}
           </div>
@@ -347,7 +349,7 @@ export default function WorkspaceSettingsPage() {
           <p className="text-sm text-red-500 mt-2">{errorMessage(sendMemberInviteMutation.error)}</p>
         )}
         {sendMemberInviteMutation.isSuccess && (
-          <p className="text-sm text-green-600 mt-2">Invitation sent successfully!</p>
+          <p className="text-sm text-green-600 mt-2">{t('workspace.inviteSent')}</p>
         )}
       </div>}
 
@@ -355,7 +357,7 @@ export default function WorkspaceSettingsPage() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-5 h-5 text-teal-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Members</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('workspace.members')}</h2>
           <span className="text-sm text-gray-500">({data?.members.length || 0})</span>
         </div>
 
@@ -382,7 +384,7 @@ export default function WorkspaceSettingsPage() {
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {displayName}
                       {isCurrentUser && (
-                        <span className="ml-2 text-xs text-teal-600 font-semibold">You</span>
+                        <span className="ml-2 text-xs text-teal-600 font-semibold">{t('common.you')}</span>
                       )}
                     </div>
                     <div className="text-xs text-gray-500 truncate">{member.user.email}</div>
@@ -410,7 +412,7 @@ export default function WorkspaceSettingsPage() {
                           onClick={() => handleRemoveMember(member.userId, displayName)}
                           disabled={removeMemberMutation.isPending}
                           className="p-1.5 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                          title="Remove member"
+                          title={t('workspace.removeMember')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -432,7 +434,7 @@ export default function WorkspaceSettingsPage() {
           <>
             <div className="mt-6 mb-3 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-500" />
-              <h3 className="text-sm font-semibold text-gray-700">Pending Invites</h3>
+              <h3 className="text-sm font-semibold text-gray-700">{t('workspace.pendingInvites')}</h3>
               <span className="text-xs text-gray-500">({memberInvites.length})</span>
             </div>
 
@@ -456,7 +458,7 @@ export default function WorkspaceSettingsPage() {
                         <div className="text-sm font-medium text-gray-700 truncate flex items-center gap-2">
                           {displayName}
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
-                            Pending
+                            {t('common.pending')}
                           </span>
                         </div>
                         <div className="text-xs text-gray-500 truncate">{inv.invited_email}</div>
@@ -471,7 +473,7 @@ export default function WorkspaceSettingsPage() {
                         onClick={() => handleRevokeMemberInvite(inv.id)}
                         disabled={revokeMemberInviteMutation.isPending}
                         className="p-1.5 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                        title="Revoke invite"
+                        title={t('workspace.revokeInvite')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -489,7 +491,7 @@ export default function WorkspaceSettingsPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Link className="w-5 h-5 text-teal-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Invite Links</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('workspace.inviteLinks')}</h2>
           </div>
           <button
             onClick={handleGenerateInvite}
@@ -501,7 +503,7 @@ export default function WorkspaceSettingsPage() {
             ) : (
               <Link className="w-4 h-4" />
             )}
-            Generate Invite
+            {t('workspace.generateInvite')}
           </button>
         </div>
 
@@ -509,7 +511,7 @@ export default function WorkspaceSettingsPage() {
           <p className="text-sm text-red-500 mb-3">{errorMessage(inviteMutation.error)}</p>
         )}
         {inviteMutation.isSuccess && (
-          <p className="text-sm text-green-600 mb-3">Invite link generated and copied!</p>
+          <p className="text-sm text-green-600 mb-3">{t('workspace.inviteGenerated')}</p>
         )}
 
         {invitations && invitations.length > 0 ? (
@@ -524,15 +526,15 @@ export default function WorkspaceSettingsPage() {
                     ...{inv.token.slice(-12)}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
-                    {inv.creator && <span>by {inv.creator.name || inv.creator.email}</span>}
+                    {inv.creator && <span>{t('workspace.by', { name: inv.creator.name || inv.creator.email })}</span>}
                     {inv.expiresAt && (
-                      <span className="ml-2">
-                        expires {new Date(inv.expiresAt).toLocaleDateString()}
+                      <span className="ms-2">
+                        {t('workspace.expires', { date: new Date(inv.expiresAt).toLocaleDateString() })}
                       </span>
                     )}
                     {inv.maxUses != null && (
-                      <span className="ml-2">
-                        {inv.usageCount}/{inv.maxUses} uses
+                      <span className="ms-2">
+                        {t('workspace.uses', { used: inv.usageCount, max: inv.maxUses })}
                       </span>
                     )}
                   </div>
@@ -541,7 +543,7 @@ export default function WorkspaceSettingsPage() {
                   <button
                     onClick={() => handleCopyToken(inv.token)}
                     className="p-1.5 text-gray-400 hover:text-teal-600 transition-colors"
-                    title={copiedToken === inv.token ? 'Copied!' : 'Copy link'}
+                    title={copiedToken === inv.token ? t('workspace.copied') : t('workspace.copyLink')}
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -549,7 +551,7 @@ export default function WorkspaceSettingsPage() {
                     onClick={() => handleRevokeInvite(inv.id)}
                     disabled={revokeMutation.isPending}
                     className="p-1.5 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                    title="Revoke"
+                    title={t('workspace.revoke')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -559,7 +561,7 @@ export default function WorkspaceSettingsPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-500 text-center py-4">
-            No active invite links. Generate one to invite members.
+            {t('workspace.noInviteLinks')}
           </p>
         )}
       </div>}
@@ -568,10 +570,10 @@ export default function WorkspaceSettingsPage() {
       {isOrgAdmin && <div className="card border-2 border-red-200">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="w-5 h-5 text-red-600" />
-          <h2 className="text-lg font-semibold text-red-700">Danger Zone</h2>
+          <h2 className="text-lg font-semibold text-red-700">{t('workspace.dangerZone')}</h2>
         </div>
         <p className="text-sm text-gray-600 mb-4">
-          Permanently delete this workspace and all associated data. This action cannot be undone.
+          {t('workspace.deleteDesc')}
         </p>
         {deleteMutation.isError && (
           <p className="text-sm text-red-500 mb-3">{errorMessage(deleteMutation.error)}</p>
@@ -586,7 +588,7 @@ export default function WorkspaceSettingsPage() {
           ) : (
             <Trash2 className="w-4 h-4" />
           )}
-          Delete Workspace
+          {t('workspace.deleteWorkspace')}
         </button>
       </div>}
     </div>

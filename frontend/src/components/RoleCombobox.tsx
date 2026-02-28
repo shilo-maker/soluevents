@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 
 const ROLES_BY_CATEGORY: Record<string, string[]> = {
@@ -53,9 +54,11 @@ export default function RoleCombobox({
   onChange,
   teamName = '',
   existingRoles = [],
-  placeholder = 'Select or type role...',
+  placeholder,
   className = 'input text-sm',
 }: RoleComboboxProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('roleCombobox.placeholder')
   const [inputValue, setInputValue] = useState(value)
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -146,7 +149,7 @@ export default function RoleCombobox({
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onFocus={() => setShowDropdown(true)}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         className={className}
       />
 

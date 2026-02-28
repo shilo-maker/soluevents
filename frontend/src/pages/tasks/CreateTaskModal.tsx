@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useCreateTask } from '@/hooks/useTasks'
 import { useEvents } from '@/hooks/useEvents'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
@@ -11,6 +12,7 @@ interface CreateTaskModalProps {
 }
 
 export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
+  const { t } = useTranslation()
   const createTask = useCreateTask()
   const { data: events } = useEvents()
 
@@ -33,7 +35,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     setError('')
 
     if (!formData.title) {
-      setError('Title is required')
+      setError(t('tasks.errors.titleRequired'))
       return
     }
 
@@ -70,7 +72,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
         assignee_is_user: true,
       })
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create task')
+      setError(err.response?.data?.message || t('tasks.errors.failedToCreate'))
     }
   }
 
@@ -80,7 +82,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('tasks.createNewTask')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -96,7 +98,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title *
+              {t('tasks.taskTitle')} {t('common.required')}
             </label>
             <input
               type="text"
@@ -104,21 +106,21 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="input"
               required
-              placeholder="e.g., Prepare flyer for event"
+              placeholder={t('tasks.titlePlaceholder')}
             />
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              {t('common.description')}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="input"
               rows={3}
-              placeholder="Task details..."
+              placeholder={t('tasks.descriptionPlaceholder')}
             />
           </div>
 
@@ -126,7 +128,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority
+                {t('common.priority')}
               </label>
               <select
                 value={formData.priority}
@@ -135,14 +137,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                 }
                 className="input"
               >
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                <option value="normal">{t('tasks.priority.normal')}</option>
+                <option value="high">{t('tasks.priority.high')}</option>
+                <option value="critical">{t('tasks.priority.critical')}</option>
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
+                {t('common.status')}
               </label>
               <select
                 value={formData.status}
@@ -151,11 +153,11 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                 }
                 className="input"
               >
-                <option value="not_started">Not Started</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting">Waiting</option>
-                <option value="blocked">Blocked</option>
-                <option value="done">Done</option>
+                <option value="not_started">{t('tasks.status.not_started')}</option>
+                <option value="in_progress">{t('tasks.status.in_progress')}</option>
+                <option value="waiting">{t('tasks.status.waiting')}</option>
+                <option value="blocked">{t('tasks.status.blocked')}</option>
+                <option value="done">{t('tasks.status.done')}</option>
               </select>
             </div>
           </div>
@@ -163,7 +165,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           {/* Due Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date
+              {t('tasks.dueDate')}
             </label>
             <input
               type="datetime-local"
@@ -176,7 +178,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           {/* Assignee */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assign To
+              {t('tasks.assignTo')}
             </label>
             <ContactAutocomplete
               value={formData.assignee_name}
@@ -190,7 +192,7 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
                   assignee_is_user: isUser ?? true,
                 })
               }}
-              placeholder="Search people..."
+              placeholder={t('tasks.searchPeople')}
               className="input"
             />
           </div>
@@ -198,14 +200,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           {/* Event */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Related Event
+              {t('tasks.relatedEvent')}
             </label>
             <select
               value={formData.event_id}
               onChange={(e) => setFormData({ ...formData, event_id: e.target.value })}
               className="input"
             >
-              <option value="">None</option>
+              <option value="">{t('common.none')}</option>
               {events?.map((event) => (
                 <option key={event.id} value={event.id}>
                   {event.title}
@@ -217,14 +219,14 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={createTask.isPending}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createTask.isPending ? 'Creating...' : 'Create Task'}
+              {createTask.isPending ? t('tasks.creating') : t('tasks.createTask')}
             </button>
           </div>
         </form>

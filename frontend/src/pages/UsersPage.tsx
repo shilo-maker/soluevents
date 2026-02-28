@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { UserPlus, Users as UsersIcon, Mail, Shield, X, Edit2, Save, Trash2, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
@@ -6,6 +7,7 @@ import Avatar from '@/components/Avatar'
 import type { User } from '@/types'
 
 export default function UsersPage() {
+  const { t } = useTranslation()
   const { user: currentUser } = useAuthStore()
   const [showAddUser, setShowAddUser] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -28,8 +30,8 @@ export default function UsersPage() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">Only administrators can manage users.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('users.accessDenied')}</h2>
+          <p className="text-gray-600">{t('users.adminOnly')}</p>
         </div>
       </div>
     )
@@ -89,7 +91,7 @@ export default function UsersPage() {
   }
 
   const handleDeleteUser = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to deactivate ${name}? They will no longer be able to access the system.`)) {
+    if (window.confirm(t('users.deactivateConfirm', { name }))) {
       deleteUser.mutate(id)
     }
   }
@@ -106,15 +108,15 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage system users and their roles</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('users.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('users.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowAddUser(true)}
           className="btn-primary flex items-center gap-2"
         >
           <UserPlus className="w-5 h-5" />
-          Add User
+          {t('users.addUser')}
         </button>
       </div>
 
@@ -123,7 +125,7 @@ export default function UsersPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
-              {editingUser ? 'Edit User' : 'New User'}
+              {editingUser ? t('users.editUser') : t('users.newUser')}
             </h3>
             <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
@@ -133,20 +135,20 @@ export default function UsersPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Name <span className="text-red-500">*</span>
+                {t('common.name')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="input"
-                placeholder="Enter user name"
+                placeholder={t('users.enterName')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Email <span className="text-red-500">*</span>
+                {t('common.email')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -159,8 +161,8 @@ export default function UsersPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Password {!editingUser && <span className="text-red-500">*</span>}
-                {editingUser && <span className="text-sm text-gray-500 font-normal ml-2">(leave blank to keep current password)</span>}
+                {t('common.password')} {!editingUser && <span className="text-red-500">*</span>}
+                {editingUser && <span className="text-sm text-gray-500 font-normal ml-2">({t('users.keepPassword')})</span>}
               </label>
               <div className="relative">
                 <input
@@ -168,7 +170,7 @@ export default function UsersPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="input pr-10"
-                  placeholder={editingUser ? 'Enter new password (optional)' : 'Enter password'}
+                  placeholder={editingUser ? t('users.enterNewPassword') : t('users.enterPassword')}
                 />
                 <button
                   type="button"
@@ -182,21 +184,21 @@ export default function UsersPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Role <span className="text-red-500">*</span>
+                {t('common.role')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.org_role}
                 onChange={(e) => setFormData({ ...formData, org_role: e.target.value as 'admin' | 'manager' | 'member' })}
                 className="input"
               >
-                <option value="member">Member</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
+                <option value="member">{t('users.role.member')}</option>
+                <option value="manager">{t('users.role.manager')}</option>
+                <option value="admin">{t('users.role.admin')}</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                {formData.org_role === 'admin' && 'Full system access including user management'}
-                {formData.org_role === 'manager' && 'Can manage events, tours, and tasks'}
-                {formData.org_role === 'member' && 'Can view and participate in assigned tasks'}
+                {formData.org_role === 'admin' && t('users.roleDesc.admin')}
+                {formData.org_role === 'manager' && t('users.roleDesc.manager')}
+                {formData.org_role === 'member' && t('users.roleDesc.member')}
               </p>
             </div>
 
@@ -213,10 +215,10 @@ export default function UsersPage() {
                 className="btn-primary flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {editingUser ? 'Update' : 'Create'} User
+                {editingUser ? t('users.updateUser') : t('users.createUser')}
               </button>
               <button onClick={handleCancelEdit} className="btn-secondary">
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -227,7 +229,7 @@ export default function UsersPage() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <UsersIcon className="w-5 h-5 text-teal-600" />
-          <h2 className="text-xl font-semibold text-gray-900">All Users</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('users.allUsers')}</h2>
           <span className="text-sm text-gray-500">({users?.length || 0})</span>
         </div>
 
@@ -252,14 +254,14 @@ export default function UsersPage() {
                     <button
                       onClick={() => handleEditUser(user)}
                       className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                      title="Edit user"
+                      title={t('users.editUserBtn')}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.id, user.name)}
                       className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Deactivate user"
+                      title={t('users.deactivateUserBtn')}
                       disabled={user.id === currentUser?.id}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -281,7 +283,7 @@ export default function UsersPage() {
 
                 {user.id === currentUser?.id && (
                   <div className="mt-2 pt-2 border-t border-teal-200">
-                    <span className="text-xs font-semibold text-teal-600">You</span>
+                    <span className="text-xs font-semibold text-teal-600">{t('common.you')}</span>
                   </div>
                 )}
               </div>
@@ -289,7 +291,7 @@ export default function UsersPage() {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>No users found. Click "Add User" to create one.</p>
+            <p>{t('users.noUsers')}</p>
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts, useCreateContact, useUpdateContactById } from '@/hooks/useContacts'
 import { Shield, Plus, Check, X, Pencil } from 'lucide-react'
@@ -31,6 +32,7 @@ export default function ContactAutocomplete({
   className = 'input',
   freeTextOnly = false,
 }: ContactAutocompleteProps) {
+  const { t } = useTranslation()
   const [inputValue, setInputValue] = useState(value)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -266,12 +268,12 @@ export default function ContactAutocomplete({
                 type="button"
                 onClick={handleOpenEditForm}
                 className="text-gray-400 hover:text-teal-600 transition-colors"
-                title="Edit contact info"
+                title={t('contactAutocomplete.editContactInfo')}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
             )}
-            <div title={isUser ? "Registered User" : "Contact"}>
+            <div title={isUser ? t('contacts.registeredUser') : t('common.contactLabel')}>
               {isUser ? (
                 <Shield className="h-5 w-5 text-teal-600" />
               ) : (
@@ -298,7 +300,7 @@ export default function ContactAutocomplete({
                 </svg>
               )}
               <span className="font-semibold text-sm text-gray-900">{linkedContact.name}</span>
-              <span className="text-xs text-gray-400">{linkedContact.isUser ? 'Member' : 'Contact'}</span>
+              <span className="text-xs text-gray-400">{linkedContact.isUser ? t('common.member') : t('common.contactLabel')}</span>
             </div>
             {linkedContact.email && (
               <div className="text-xs text-gray-600 ml-6">{linkedContact.email}</div>
@@ -318,11 +320,11 @@ export default function ContactAutocomplete({
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
           <div className="p-3">
             <div className="text-sm font-semibold text-gray-900 mb-3">
-              Edit: {linkedContact.name}
+              {t('contactAutocomplete.editContact', { name: linkedContact.name })}
             </div>
             <div className="space-y-2">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.email')}</label>
                 <input
                   type="email"
                   value={editEmail}
@@ -337,7 +339,7 @@ export default function ContactAutocomplete({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.phone')}</label>
                 <input
                   type="tel"
                   value={editPhone}
@@ -358,7 +360,7 @@ export default function ContactAutocomplete({
                   className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
                 >
                   <Check className="h-3.5 w-3.5" />
-                  {updateContact.isPending ? 'Saving...' : 'Save'}
+                  {updateContact.isPending ? t('common.saving') : t('common.save')}
                 </button>
                 <button
                   type="button"
@@ -366,7 +368,7 @@ export default function ContactAutocomplete({
                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -416,7 +418,7 @@ export default function ContactAutocomplete({
               <div className="flex items-center gap-2 text-green-700">
                 <Plus className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  Create contact "{inputValue.trim()}"
+                  {t('contactAutocomplete.createContact', { name: inputValue.trim() })}
                 </span>
               </div>
             </button>
@@ -432,7 +434,7 @@ export default function ContactAutocomplete({
             >
               <div className="flex items-center gap-2 text-green-700">
                 <Plus className="h-4 w-4" />
-                <span className="text-sm font-medium">Add Contact</span>
+                <span className="text-sm font-medium">{t('contactAutocomplete.addContact')}</span>
               </div>
             </button>
           )}
@@ -440,22 +442,22 @@ export default function ContactAutocomplete({
           {showCreateForm && (
             <div className="p-3 border-t">
               {freeTextOnly ? (
-                <div className="text-sm font-semibold text-gray-900 mb-3">New Contact</div>
+                <div className="text-sm font-semibold text-gray-900 mb-3">{t('contactAutocomplete.newContact')}</div>
               ) : (
                 <div className="text-sm font-semibold text-gray-900 mb-3">
-                  New contact: {inputValue.trim()}
+                  {t('contactAutocomplete.newContactNamed', { name: inputValue.trim() })}
                 </div>
               )}
               <div className="space-y-2">
                 {freeTextOnly && (
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.name')}</label>
                     <input
                       type="text"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       className="input text-sm"
-                      placeholder="Full name"
+                      placeholder={t('auth.fullName')}
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreate() }
@@ -465,7 +467,7 @@ export default function ContactAutocomplete({
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.email')}</label>
                   <input
                     type="email"
                     value={newEmail}
@@ -480,7 +482,7 @@ export default function ContactAutocomplete({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.phone')}</label>
                   <input
                     type="tel"
                     value={newPhone}
@@ -501,7 +503,7 @@ export default function ContactAutocomplete({
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                   >
                     <Check className="h-3.5 w-3.5" />
-                    {createContact.isPending ? 'Creating...' : 'Add'}
+                    {createContact.isPending ? t('common.creating') : t('common.add')}
                   </button>
                   <button
                     type="button"
@@ -509,7 +511,7 @@ export default function ContactAutocomplete({
                     className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>

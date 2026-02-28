@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useJsApiLoader } from '@react-google-maps/api'
 
 const libraries: ('places')[] = ['places']
@@ -13,9 +14,11 @@ interface LocationAutocompleteProps {
 export default function LocationAutocomplete({
   value,
   onChange,
-  placeholder = 'Search for a location...',
+  placeholder,
   className = 'input',
 }: LocationAutocompleteProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('autocomplete.searchLocations')
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const [inputValue, setInputValue] = useState(value)
@@ -67,7 +70,7 @@ export default function LocationAutocomplete({
         type="text"
         value={inputValue}
         onChange={handleChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         className={className}
       />
     )
@@ -79,7 +82,7 @@ export default function LocationAutocomplete({
       type="text"
       value={inputValue}
       onChange={handleChange}
-      placeholder={placeholder}
+      placeholder={resolvedPlaceholder}
       className={className}
     />
   )

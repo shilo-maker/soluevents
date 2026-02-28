@@ -4,15 +4,17 @@ import { Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import { useMemberInviteByToken, useRespondToMemberInvite } from '@/hooks/useWorkspaces'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useTranslation } from 'react-i18next'
 
 function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
     return error.response?.data?.message || error.message
   }
-  return error instanceof Error ? error.message : 'An error occurred'
+  return error instanceof Error ? error.message : 'Error'
 }
 
 export default function MemberInviteResponsePage() {
+  const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -58,10 +60,10 @@ export default function MemberInviteResponsePage() {
       <div className="flex items-center justify-center py-20">
         <div className="text-center max-w-md">
           <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('memberInvite.invalidInvite')}</h2>
           <p className="text-gray-600 mb-6">{errorMessage(fetchError)}</p>
           <button onClick={() => navigate('/')} className="btn-primary">
-            Go to Dashboard
+            {t('common.goToDashboard')}
           </button>
         </div>
       </div>
@@ -76,19 +78,18 @@ export default function MemberInviteResponsePage() {
           {accepted ? (
             <>
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Welcome!</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{t('memberInvite.welcome')}</h2>
               <p className="text-gray-600">
-                You've joined <strong>{invite?.workspace.name}</strong> as <strong>{invite?.role}</strong>.
-                Redirecting...
+                {t('memberInvite.joinedAs', { workspace: invite?.workspace.name, role: invite?.role })}
               </p>
             </>
           ) : (
             <>
               <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Invitation Declined</h2>
-              <p className="text-gray-600 mb-6">You have declined the invitation.</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{t('memberInvite.invitationDeclined')}</h2>
+              <p className="text-gray-600 mb-6">{t('memberInvite.declinedDesc')}</p>
               <button onClick={() => navigate('/')} className="btn-primary">
-                Go to Dashboard
+                {t('common.goToDashboard')}
               </button>
             </>
           )}
@@ -103,18 +104,18 @@ export default function MemberInviteResponsePage() {
     <div className="flex items-center justify-center py-20">
       <div className="max-w-md w-full">
         <div className="card text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Workspace Invitation</h1>
-          <p className="text-gray-600 mb-6">You've been invited to join a workspace</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('memberInvite.title')}</h1>
+          <p className="text-gray-600 mb-6">{t('memberInvite.subtitle')}</p>
 
           <div className="bg-gradient-to-br from-teal-50 to-teal-50 rounded-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-3">{invite.workspace.name}</h2>
             <div className="space-y-1 text-sm text-gray-600">
               <p>
-                <strong>Role:</strong>{' '}
+                <strong>{t('memberInvite.role')}</strong>{' '}
                 <span className="capitalize">{invite.role}</span>
               </p>
               <p>
-                <strong>Invited by:</strong>{' '}
+                <strong>{t('memberInvite.invitedBy')}</strong>{' '}
                 {invite.invitedBy.name || invite.invitedBy.email}
               </p>
             </div>
@@ -135,7 +136,7 @@ export default function MemberInviteResponsePage() {
               ) : (
                 <CheckCircle className="w-4 h-4" />
               )}
-              Accept
+              {t('common.accept')}
             </button>
             <button
               onClick={() => handleRespond('decline')}
@@ -143,7 +144,7 @@ export default function MemberInviteResponsePage() {
               className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
             >
               <XCircle className="w-4 h-4" />
-              Decline
+              {t('common.decline')}
             </button>
           </div>
         </div>

@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Plus, Loader2, Search, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
 import CreateEventDialog from './CreateEventDialog'
 import type { Event } from '@/types'
 
 export default function EventsPage() {
+  const { t } = useTranslation()
   const { data: events, isLoading } = useEvents()
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -65,7 +67,7 @@ export default function EventsPage() {
 
     return {
       type: duplicateEvent.type,
-      title: `Copy of ${duplicateEvent.title}`,
+      title: `${t('events.copyOf')} ${duplicateEvent.title}`,
       location_name: duplicateEvent.location_name || '',
       address: duplicateEvent.address || '',
       venue_id: duplicateEvent.venue_id || '',
@@ -81,9 +83,9 @@ export default function EventsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Events</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('events.title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage your events and worship nights
+            {t('events.subtitle')}
           </p>
         </div>
         <button
@@ -91,7 +93,7 @@ export default function EventsPage() {
           className="btn-primary"
         >
           <Plus className="w-4 h-4 inline mr-2" />
-          New Event
+          {t('events.newEvent')}
         </button>
       </div>
 
@@ -103,7 +105,7 @@ export default function EventsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search events..."
+                placeholder={t('events.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="input pl-10"
@@ -117,11 +119,11 @@ export default function EventsPage() {
               onChange={(e) => setFilterType(e.target.value)}
               className="input"
             >
-              <option value="all">All Types</option>
-              <option value="worship">Worship Night</option>
-              <option value="in_house">In-House Event</option>
-              <option value="film">Film Production</option>
-              <option value="tour_child">Tour Event</option>
+              <option value="all">{t('events.allTypes')}</option>
+              <option value="worship">{t('events.types.worship')}</option>
+              <option value="in_house">{t('events.types.inHouse')}</option>
+              <option value="film">{t('events.types.film')}</option>
+              <option value="tour_child">{t('events.types.tourEvent')}</option>
             </select>
           </div>
 
@@ -131,11 +133,11 @@ export default function EventsPage() {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="input"
             >
-              <option value="all">All Status</option>
-              <option value="planned">Planned</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="canceled">Canceled</option>
-              <option value="archived">Archived</option>
+              <option value="all">{t('events.allStatus')}</option>
+              <option value="planned">{t('events.status.planned')}</option>
+              <option value="confirmed">{t('events.status.confirmed')}</option>
+              <option value="canceled">{t('events.status.canceled')}</option>
+              <option value="archived">{t('events.status.archived')}</option>
             </select>
           </div>
         </div>
@@ -151,7 +153,7 @@ export default function EventsPage() {
           {upcomingEvents && upcomingEvents.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Upcoming Events ({upcomingEvents.length})
+                {t('events.upcomingEvents', { count: upcomingEvents.length })}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingEvents.map((event) => (
@@ -168,7 +170,7 @@ export default function EventsPage() {
                 className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-teal-600 transition-colors mb-4"
               >
                 {showPastEvents ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                Past Events ({pastEvents.length})
+                {t('events.pastEvents', { count: pastEvents.length })}
               </button>
               {showPastEvents && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -183,7 +185,7 @@ export default function EventsPage() {
           {archivedEvents && archivedEvents.length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Archived Events ({archivedEvents.length})
+                {t('events.archivedEvents', { count: archivedEvents.length })}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {archivedEvents.map((event) => (
@@ -197,12 +199,12 @@ export default function EventsPage() {
         <div className="card text-center py-12">
           <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No events found
+            {t('events.noEventsFound')}
           </h3>
           <p className="text-sm text-gray-500 mb-4">
             {debouncedSearch || filterType !== 'all' || filterStatus !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Get started by creating your first event'}
+              ? t('events.tryAdjustingFilters')
+              : t('events.getStarted')}
           </p>
           {!debouncedSearch && filterType === 'all' && filterStatus === 'all' && (
             <button
@@ -210,7 +212,7 @@ export default function EventsPage() {
               className="btn-primary"
             >
               <Plus className="w-4 h-4 inline mr-2" />
-              Create Event
+              {t('events.createEvent')}
             </button>
           )}
         </div>

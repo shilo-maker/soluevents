@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, MoreVertical, Pencil, Trash2, Copy } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
@@ -13,6 +14,7 @@ interface EventCardProps {
 }
 
 function EventCard({ event, onDuplicate }: EventCardProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user: currentUser } = useAuthStore()
   const deleteEvent = useDeleteEvent()
@@ -20,20 +22,6 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const canEdit = event.can_edit ?? (event.created_by === currentUser?.id || currentUser?.org_role === 'admin')
-
-  const phaseColors = {
-    concept: 'default',
-    prep: 'warning',
-    execution: 'info',
-    follow_up: 'success',
-  } as const
-
-  const statusColors = {
-    planned: 'default',
-    confirmed: 'success',
-    canceled: 'danger',
-    archived: 'default',
-  } as const
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -92,7 +80,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
-                  Edit
+                  {t('common.edit')}
                 </button>
                 {onDuplicate && (
                   <button
@@ -105,7 +93,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <Copy className="w-3.5 h-3.5" />
-                    Duplicate
+                    {t('common.duplicate')}
                   </button>
                 )}
                 <button
@@ -118,7 +106,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete
+                  {t('common.delete')}
                 </button>
               </div>
             )}
@@ -131,17 +119,17 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
               {event.title}
             </h3>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={phaseColors[event.phase]} size="sm">
-                {event.phase}
-              </Badge>
-              <Badge variant={statusColors[event.status]} size="sm">
-                {event.status}
-              </Badge>
-              {event.team_member_status === 'pending' && (
-                <Badge variant="warning" size="sm">Invited</Badge>
-              )}
-              {event.team_member_status === 'confirmed' && (
-                <Badge variant="primary" size="sm">Team Member</Badge>
+              {event.created_by === currentUser?.id ? (
+                <Badge variant="primary" size="sm">{t('events.eventManager')}</Badge>
+              ) : (
+                <>
+                  {event.team_member_status === 'pending' && (
+                    <Badge variant="warning" size="sm">{t('events.invited')}</Badge>
+                  )}
+                  {event.team_member_status === 'confirmed' && (
+                    <Badge variant="primary" size="sm">{t('events.teamMember')}</Badge>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -163,7 +151,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
           {event.est_attendance && (
             <div className="flex items-center bg-green-50/50 rounded-lg px-3 py-2">
               <Users className="w-4 h-4 mr-2 text-green-600" />
-              <span className="font-medium">{event.est_attendance} expected</span>
+              <span className="font-medium">{t('events.expected', { count: event.est_attendance })}</span>
             </div>
           )}
         </div>
@@ -183,23 +171,23 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Event</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{t('events.deleteEvent')}</h3>
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{event.title}</strong>? This action cannot be undone.
+              {t('events.deleteConfirm', { title: event.title })}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteEvent.isPending}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
               >
-                {deleteEvent.isPending ? 'Deleting...' : 'Delete'}
+                {deleteEvent.isPending ? t('events.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

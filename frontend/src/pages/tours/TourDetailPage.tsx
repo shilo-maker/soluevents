@@ -7,6 +7,7 @@ import {
   Loader2,
   Edit,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useTour } from '@/hooks/useTours'
 import { useTasks } from '@/hooks/useTasks'
 import { formatDate } from '@/lib/utils'
@@ -16,6 +17,7 @@ import TaskCard from '@/components/TaskCard'
 type Tab = 'overview' | 'schedule' | 'tasks' | 'files'
 
 export default function TourDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
 
@@ -33,19 +35,19 @@ export default function TourDetailPage() {
   if (!tour) {
     return (
       <div className="card text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Tour not found</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('tours.tourNotFound')}</h3>
         <Link to="/tours" className="text-primary-600 hover:text-primary-700">
-          ← Back to Tours
+          {t('tours.backToTours')}
         </Link>
       </div>
     )
   }
 
   const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'schedule', label: 'Daily Schedule', count: (tour as any).tour_days?.length },
-    { id: 'tasks', label: 'Tasks', count: tasks?.length },
-    { id: 'files', label: 'Files', count: 0 },
+    { id: 'overview', label: t('tours.tabs.overview') },
+    { id: 'schedule', label: t('tours.tabs.schedule'), count: (tour as any).tour_days?.length },
+    { id: 'tasks', label: t('tours.tabs.tasks'), count: tasks?.length },
+    { id: 'files', label: t('tours.tabs.files'), count: 0 },
   ]
 
   return (
@@ -66,7 +68,7 @@ export default function TourDetailPage() {
         </div>
         <button className="btn-secondary">
           <Edit className="w-4 h-4 mr-2" />
-          Edit
+          {t('common.edit')}
         </button>
       </div>
 
@@ -99,14 +101,14 @@ export default function TourDetailPage() {
             {/* Tour Info */}
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Tour Details
+                {t('tours.tourDetails')}
               </h3>
               <div className="space-y-4">
                 {tour.regions && tour.regions.length > 0 && (
                   <div className="flex items-start">
                     <MapPin className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Regions</p>
+                      <p className="text-sm font-medium text-gray-700">{t('tours.regions')}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {tour.regions.map((region) => (
                           <Badge key={region} variant="default" size="sm">
@@ -122,11 +124,11 @@ export default function TourDetailPage() {
 
             {/* Team Leads */}
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Leads</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('tours.teamLeads')}</h3>
               <div className="grid grid-cols-2 gap-4">
                 {(tour as any).director && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Director</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('tours.director')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {(tour as any).director.name}
                     </p>
@@ -134,7 +136,7 @@ export default function TourDetailPage() {
                 )}
                 {(tour as any).logistics && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Logistics</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('tours.logistics')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {(tour as any).logistics.name}
                     </p>
@@ -142,7 +144,7 @@ export default function TourDetailPage() {
                 )}
                 {(tour as any).comms && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Communications</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('tours.communications')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {(tour as any).comms.name}
                     </p>
@@ -150,7 +152,7 @@ export default function TourDetailPage() {
                 )}
                 {(tour as any).media && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Media</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('tours.media')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {(tour as any).media.name}
                     </p>
@@ -158,7 +160,7 @@ export default function TourDetailPage() {
                 )}
                 {(tour as any).hospitality && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Hospitality</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('tours.hospitality')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {(tour as any).hospitality.name}
                     </p>
@@ -171,8 +173,8 @@ export default function TourDetailPage() {
 
         {activeTab === 'schedule' && (
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Schedule</h3>
-            <p className="text-sm text-gray-500">Tour day management coming soon...</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('tours.tabs.schedule')}</h3>
+            <p className="text-sm text-gray-500">{t('tours.dayManagementComingSoon')}</p>
           </div>
         )}
 
@@ -186,7 +188,7 @@ export default function TourDetailPage() {
               tasks.map((task) => <TaskCard key={task.id} task={task} />)
             ) : (
               <div className="card text-center py-12">
-                <p className="text-sm text-gray-500">No tasks for this tour</p>
+                <p className="text-sm text-gray-500">{t('tours.noTasksForTour')}</p>
               </div>
             )}
           </div>
@@ -194,7 +196,7 @@ export default function TourDetailPage() {
 
         {activeTab === 'files' && (
           <div className="card text-center py-12">
-            <p className="text-sm text-gray-500">File management coming soon...</p>
+            <p className="text-sm text-gray-500">{t('events.fileManagementComingSoon')}</p>
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { User, Building2, Check, Plus, ChevronDown, Link, Loader2, Settings, Users } from 'lucide-react'
 import { useWorkspaces, useSwitchWorkspace, useCreateWorkspace, useGenerateInvite } from '@/hooks/useWorkspaces'
 import type { Workspace } from '@/types'
@@ -14,6 +15,7 @@ function WorkspaceIcon({ type }: { type: string }) {
 
 export default function WorkspaceSwitcher() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { workspaces, activeWorkspace } = useWorkspaces()
   const switchMutation = useSwitchWorkspace()
   const createMutation = useCreateWorkspace()
@@ -105,7 +107,7 @@ export default function WorkspaceSwitcher() {
         await navigator.clipboard.writeText(url)
       } catch {
         // Clipboard not available (non-HTTPS or old browser)
-        window.prompt('Copy this invite link:', url)
+        window.prompt(t('workspace.copyLink'), url)
       }
       setCopiedId(wsId)
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
@@ -143,7 +145,7 @@ export default function WorkspaceSwitcher() {
       {open && (
         <div className="absolute left-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-200/60 py-2 z-50" role="menu">
           <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Workspaces
+            {t('workspaceSwitcher.workspaces')}
           </div>
 
           {workspaces.map((ws) => (
@@ -184,7 +186,7 @@ export default function WorkspaceSwitcher() {
                       }
                     }}
                     className="p-1 rounded hover:bg-teal-100 text-gray-400 hover:text-teal-600 transition-colors"
-                    title={ws.role === 'admin' ? 'Workspace settings' : 'Workspace members'}
+                    title={ws.role === 'admin' ? t('workspace.workspaceSettings') : t('workspace.workspaceMembers')}
                   >
                     {ws.role === 'admin' ? <Settings className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                   </span>
@@ -196,7 +198,7 @@ export default function WorkspaceSwitcher() {
                     onClick={(e) => handleInvite(e, ws.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(e as any, ws.id) }}
                     className="p-1 rounded hover:bg-teal-100 text-gray-400 hover:text-teal-600 transition-colors"
-                    title={copiedId === ws.id ? 'Copied!' : 'Copy invite link'}
+                    title={copiedId === ws.id ? t('workspace.copied') : t('workspace.copyLink')}
                   >
                     {inviteMutation.isPending && inviteMutation.variables === ws.id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -225,7 +227,7 @@ export default function WorkspaceSwitcher() {
                       setNewName('')
                     }
                   }}
-                  placeholder="Workspace name..."
+                  placeholder={t('workspaceSwitcher.workspaceNamePlaceholder')}
                   maxLength={100}
                   className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
@@ -235,13 +237,13 @@ export default function WorkspaceSwitcher() {
                     disabled={!newName.trim() || createMutation.isPending}
                     className="flex-1 text-xs px-3 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
                   >
-                    {createMutation.isPending ? 'Creating...' : 'Create'}
+                    {createMutation.isPending ? t('workspaceSwitcher.creating') : t('common.create')}
                   </button>
                   <button
                     onClick={() => { setCreating(false); setNewName('') }}
                     className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -251,23 +253,23 @@ export default function WorkspaceSwitcher() {
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                New workspace
+                {t('workspaceSwitcher.newWorkspace')}
               </button>
             )}
           </div>
 
           {copiedId && (
             <div className="px-3 py-1.5 text-xs text-green-600 text-center">
-              Invite link copied to clipboard!
+              {t('workspaceSwitcher.inviteLinkCopied')}
             </div>
           )}
 
           {(switchMutation.isError || createMutation.isError || inviteMutation.isError) && (
             <div className="px-3 py-1.5 text-xs text-red-500 text-center">
               {[
-                switchMutation.isError && 'Failed to switch workspace',
-                createMutation.isError && 'Failed to create workspace',
-                inviteMutation.isError && 'Failed to generate invite',
+                switchMutation.isError && t('workspaceSwitcher.failedSwitch'),
+                createMutation.isError && t('workspaceSwitcher.failedCreate'),
+                inviteMutation.isError && t('workspaceSwitcher.failedInvite'),
               ].filter(Boolean).join('. ')}
             </div>
           )}

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, Save, Plus, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents'
+import { useAuthStore } from '@/stores/authStore'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import RoleCombobox from '@/components/RoleCombobox'
 import InvitationStatusBadge from '@/components/InvitationStatusBadge'
@@ -43,6 +45,7 @@ function MemberRoleCell({
   teamMembers: TeamMember[]
   onRoleChange: (newRole: string) => void
 }) {
+  const { t } = useTranslation()
   const { instrument, hasVocals } = parseRole(member.role)
   const isWorshipTeam = teamName.toLowerCase().includes('worship')
   const isInstrument = VOCALS_COMBINABLE.includes(instrument)
@@ -76,7 +79,7 @@ function MemberRoleCell({
             onChange={(e) => onRoleChange(composeRole(instrument, e.target.checked))}
             className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
           />
-          <span className="text-xs font-medium text-gray-600">+ Vocals</span>
+          <span className="text-xs font-medium text-gray-600">{t('events.teams.addVocals')}</span>
         </label>
       )}
       {isWorshipTeam && isVocalsOnly && (
@@ -137,13 +140,14 @@ const defaultTeams: Team[] = [
   {
     name: 'Logistics Team',
     members: [
-      { role: 'Event Lead', contact_id: '', is_user: false, name: '' },
+      { role: 'Event Manager', contact_id: '', is_user: false, name: '' },
       { role: 'Venue Liaison', contact_id: '', is_user: false, name: '' },
     ],
   },
 ]
 
 export default function EditTeamsPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: event, isLoading } = useEvent(id!)
@@ -174,8 +178,27 @@ export default function EditTeamsPage() {
       setTeams(loaded)
       setCollapsedTeams(new Set(loaded.map((_: any, i: number) => i)))
     } else {
-      setTeams(defaultTeams)
-      setCollapsedTeams(new Set(defaultTeams.map((_, i) => i)))
+      // Pre-fill creator as Event Manager in Logistics Team
+      const user = useAuthStore.getState().user
+      const prefilled = defaultTeams.map(team => {
+        if (team.name !== 'Logistics Team') return team
+        return {
+          ...team,
+          members: team.members.map(m => {
+            if (m.role !== 'Event Manager') return m
+            return user ? {
+              ...m,
+              contact_id: user.id,
+              is_user: true,
+              name: user.name || user.email || '',
+              email: user.email || '',
+              status: 'confirmed' as const,
+            } : m
+          }),
+        }
+      })
+      setTeams(prefilled)
+      setCollapsedTeams(new Set(prefilled.map((_, i) => i)))
     }
   }, [event])
 
@@ -257,7 +280,7 @@ export default function EditTeamsPage() {
       })
       navigate(`/events/${id}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save teams')
+      setError(err.response?.data?.message || t('events.teams.failedToSave'))
     }
   }
 
@@ -272,8 +295,8 @@ export default function EditTeamsPage() {
   if (!event) {
     return (
       <div className="card text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Event not found</h3>
-        <Link to="/events" className="text-primary-600 hover:text-primary-700">← Back to Events</Link>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.eventNotFound')}</h3>
+        <Link to="/events" className="text-primary-600 hover:text-primary-700">{t('events.backToEvents')}</Link>
       </div>
     )
   }
@@ -287,7 +310,7 @@ export default function EditTeamsPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Event Teams</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('events.teams.eventTeams')}</h1>
             <p className="text-sm text-gray-500">{event.title}</p>
           </div>
         </div>
@@ -297,7 +320,7 @@ export default function EditTeamsPage() {
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Teams'}
+          {updateEvent.isPending ? t('events.teams.saving') : t('events.teams.saveTeams')}
         </button>
       </div>
 
@@ -324,9 +347,9 @@ export default function EditTeamsPage() {
               </button>
               {isCollapsed ? (
                 <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleCollapse(teamIndex)}>
-                  <h3 className="text-lg font-semibold text-gray-900">{team.name || 'Unnamed Team'}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{team.name || t('events.teams.unnamedTeam')}</h3>
                   <span className="text-xs text-gray-500">
-                    {filledCount}/{team.members.length} members
+                    {t('events.teams.membersCount', { filled: filledCount, total: team.members.length })}
                   </span>
                 </div>
               ) : (
@@ -335,7 +358,7 @@ export default function EditTeamsPage() {
                   value={team.name}
                   onChange={(e) => updateTeamName(teamIndex, e.target.value)}
                   className="input text-lg font-semibold flex-1"
-                  placeholder="Team name..."
+                  placeholder={t('events.teams.teamNamePlaceholder')}
                 />
               )}
             </div>
@@ -343,7 +366,7 @@ export default function EditTeamsPage() {
               type="button"
               onClick={() => removeTeam(teamIndex)}
               className="ml-3 text-red-400 hover:text-red-600 transition-colors"
-              title="Remove team"
+              title={t('events.teams.removeTeam')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -356,7 +379,7 @@ export default function EditTeamsPage() {
                   <div className="flex items-start gap-3">
                     <div className="grid grid-cols-2 gap-3 flex-1">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.role')}</label>
                         <MemberRoleCell
                           member={member}
                           teamName={team.name}
@@ -365,14 +388,14 @@ export default function EditTeamsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                         <ContactAutocomplete
                           value={member.name}
                           contactId={member.contact_id || undefined}
                           isUser={member.is_user}
                           freeTextOnly
                           onChange={(name, contactId, isUser) => handleMemberContactChange(teamIndex, memberIndex, name, contactId, isUser)}
-                          placeholder="Search people..."
+                          placeholder={t('tasks.searchPeople')}
                           className="input text-sm"
                         />
                       </div>
@@ -381,11 +404,27 @@ export default function EditTeamsPage() {
                       {member.status && member.is_user && (
                         <InvitationStatusBadge status={member.status} />
                       )}
+                      {member.role === 'Event Manager' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTeams(prev => prev.map((t, i) =>
+                              i === teamIndex
+                                ? { ...t, members: [...t.members.slice(0, memberIndex + 1), { role: 'Event Manager', contact_id: '', is_user: false, name: '' }, ...t.members.slice(memberIndex + 1)] }
+                                : t
+                            ))
+                          }}
+                          className="text-teal-400 hover:text-teal-600 transition-colors"
+                          title={t('events.teams.addAnotherEventManager')}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeMember(teamIndex, memberIndex)}
                         className="text-gray-400 hover:text-red-500 transition-colors"
-                        title="Remove member"
+                        title={t('events.teams.removeMember')}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -400,7 +439,7 @@ export default function EditTeamsPage() {
                 className="btn-secondary text-sm"
               >
                 <Plus className="w-4 h-4 mr-1 inline" />
-                Add Member
+                {t('events.teams.addMember')}
               </button>
             </div>
           )}
@@ -415,19 +454,19 @@ export default function EditTeamsPage() {
         className="w-full card flex items-center justify-center gap-2 py-4 text-teal-600 hover:text-teal-700 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
       >
         <Plus className="w-5 h-5" />
-        <span className="font-semibold">Add Team</span>
+        <span className="font-semibold">{t('events.teams.addTeam')}</span>
       </button>
 
       {/* Bottom Save */}
       <div className="flex justify-end gap-3">
-        <Link to={`/events/${id}`} className="btn-secondary">Cancel</Link>
+        <Link to={`/events/${id}`} className="btn-secondary">{t('common.cancel')}</Link>
         <button
           onClick={handleSave}
           disabled={updateEvent.isPending}
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Teams'}
+          {updateEvent.isPending ? t('events.teams.saving') : t('events.teams.saveTeams')}
         </button>
       </div>
     </div>

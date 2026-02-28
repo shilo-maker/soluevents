@@ -3,6 +3,7 @@ import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
 import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
+import { emitEventUpdate } from '../lib/emitEvent'
 
 export const getTasks = async (
   req: AuthRequest,
@@ -103,8 +104,30 @@ export const getTasks = async (
       prisma.task.count({ where }),
     ])
 
+    // Batch-fetch comment counts for all returned tasks (single GROUP BY query)
+    const taskIds = tasks.map((t) => t.id)
+    let commentCounts: Record<string, number> = {}
+    if (taskIds.length > 0) {
+      const counts = await prisma.comment.groupBy({
+        by: ['entity_id'],
+        where: {
+          entity_type: 'task',
+          entity_id: { in: taskIds },
+        },
+        _count: { id: true },
+      })
+      commentCounts = Object.fromEntries(
+        counts.map((c) => [c.entity_id, c._count.id])
+      )
+    }
+
+    const tasksWithCounts = tasks.map((t) => ({
+      ...t,
+      comment_count: commentCounts[t.id] ?? 0,
+    }))
+
     res.json({
-      data: tasks,
+      data: tasksWithCounts,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     })
   } catch (error) {
@@ -269,6 +292,8 @@ export const createTask = async (
       },
     })
 
+    if (event_id) emitEventUpdate(event_id, 'task:created', { taskId: task.id })
+
     res.status(201).json(task)
   } catch (error) {
     next(error)
@@ -360,6 +385,8 @@ export const updateTask = async (
       },
     })
 
+    if (existing.event_id) emitEventUpdate(existing.event_id, 'task:updated', { taskId: id })
+
     res.json(task)
   } catch (error) {
     next(error)
@@ -403,7 +430,24 @@ export const deleteTask = async (
       throw new AppError('Not authorized to delete this task', 403)
     }
 
-    await prisma.task.delete({ where: { id } })
+    // Collect subtask IDs so we can clean up their comments too
+    const subtaskIds = (await prisma.task.findMany({
+      where: { parent_task_id: id },
+      select: { id: true },
+    })).map((s) => s.id)
+
+    const allTaskIds = [id, ...subtaskIds]
+
+    await prisma.$transaction([
+      // Delete comments on this task and all its subtasks
+      prisma.comment.deleteMany({ where: { entity_type: 'task', entity_id: { in: allTaskIds } } }),
+      // Delete subtasks first (FK constraint)
+      ...(subtaskIds.length > 0 ? [prisma.task.deleteMany({ where: { parent_task_id: id } })] : []),
+      // Delete the parent task
+      prisma.task.delete({ where: { id } }),
+    ])
+
+    if (existing.event_id) emitEventUpdate(existing.event_id, 'task:deleted', { taskId: id })
 
     res.status(204).send()
   } catch (error) {

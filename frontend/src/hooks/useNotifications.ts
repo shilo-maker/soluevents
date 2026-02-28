@@ -9,8 +9,8 @@ export function useNotifications(enabled = true) {
       const res = await api.get<Notification[]>('/notifications')
       return res.data
     },
-    refetchInterval: enabled ? 30000 : false,
-    staleTime: 15000,
+    refetchInterval: enabled ? 120000 : false, // Fallback poll — Socket.IO handles real-time
+    staleTime: 60000,
     enabled,
   })
 }
@@ -22,8 +22,8 @@ export function useNotificationCounts() {
       const res = await api.get<{ count: number; total: number }>('/notifications/unread-count')
       return res.data
     },
-    refetchInterval: 30000, // poll every 30s
-    staleTime: 15000,
+    refetchInterval: 120000, // Fallback poll — Socket.IO handles real-time
+    staleTime: 60000,
   })
 }
 

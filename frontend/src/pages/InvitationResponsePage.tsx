@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { Check, X, Loader2, Calendar, MapPin, RefreshCw } from 'lucide-react'
 import axios from 'axios'
 import logoSm from '@/assets/logo-sm.png'
+import { useTranslation } from 'react-i18next'
 
 interface InvitationData {
   id: string
@@ -24,6 +25,7 @@ interface InvitationData {
 const API_BASE = '/api'
 
 export default function InvitationResponsePage() {
+  const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
   const [searchParams] = useSearchParams()
   const [invitation, setInvitation] = useState<InvitationData | null>(null)
@@ -41,7 +43,7 @@ export default function InvitationResponsePage() {
     axios
       .get(`${API_BASE}/invitations/${token}`)
       .then((res) => setInvitation(res.data))
-      .catch(() => setError('Invitation not found or has expired.'))
+      .catch(() => setError(t('invitation.notFoundError')))
       .finally(() => setLoading(false))
   }
 
@@ -68,7 +70,7 @@ export default function InvitationResponsePage() {
       const res = await axios.post(`${API_BASE}/invitations/${token}/respond`, { status })
       setInvitation((prev) => prev ? { ...prev, status: res.data.status, responded_at: res.data.responded_at } : prev)
     } catch {
-      setRespondError('Failed to submit response. Please try again.')
+      setRespondError(t('invitation.failedRespond'))
     } finally {
       respondingRef.current = false
       setRespondingAs(null)
@@ -88,14 +90,14 @@ export default function InvitationResponsePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
           <X className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Invitation Not Found</h1>
-          <p className="text-gray-600 mb-4">{error || 'This invitation link is invalid.'}</p>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">{t('invitation.notFound')}</h1>
+          <p className="text-gray-600 mb-4">{error || t('invitation.notFoundDesc')}</p>
           <button
             onClick={fetchInvitation}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-600 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            Try again
+            {t('common.tryAgain')}
           </button>
         </div>
       </div>
@@ -124,7 +126,7 @@ export default function InvitationResponsePage() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4 text-gray-400" />
-              {dateStr} at {timeStr}
+              {dateStr} {t('invitation.at')} {timeStr}
             </div>
             {invitation.event.location_name && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -137,13 +139,13 @@ export default function InvitationResponsePage() {
           {/* Greeting */}
           <div>
             <p className="text-gray-700">
-              Hi <strong>{invitation.name}</strong>, you've been invited to participate in this event.
+              {t('invitation.greeting', { name: invitation.name })}
             </p>
           </div>
 
           {/* Roles */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Role(s):</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">{t('invitation.yourRoles')}</h3>
             <ul className="space-y-1">
               {invitation.roles_summary.map((r, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
@@ -151,7 +153,7 @@ export default function InvitationResponsePage() {
                   {r.source === 'team' ? (
                     <span><strong>{r.team_name}</strong> — {r.role}</span>
                   ) : (
-                    <span><strong>Program</strong> — {r.role}</span>
+                    <span><strong>{t('invitation.program')}</strong> — {r.role}</span>
                   )}
                 </li>
               ))}
@@ -174,7 +176,7 @@ export default function InvitationResponsePage() {
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 {respondingAs === 'confirmed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Confirm
+                {t('common.confirm')}
               </button>
               <button
                 onClick={() => handleRespond('declined')}
@@ -182,7 +184,7 @@ export default function InvitationResponsePage() {
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {respondingAs === 'declined' ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                Decline
+                {t('common.decline')}
               </button>
             </div>
           ) : (
@@ -193,16 +195,16 @@ export default function InvitationResponsePage() {
                   : 'bg-red-50 text-red-700'
               }`}>
                 {invitation.status === 'confirmed' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                {invitation.status === 'confirmed' ? 'You confirmed this invitation' : 'You declined this invitation'}
+                {invitation.status === 'confirmed' ? t('invitation.confirmed') : t('invitation.declined')}
               </div>
               <p className="text-xs text-gray-500">
-                Changed your mind?{' '}
+                {t('invitation.changedMind')}{' '}
                 <button
                   onClick={() => handleRespond(invitation.status === 'confirmed' ? 'declined' : 'confirmed')}
                   disabled={!!respondingAs}
                   className="text-teal-600 hover:text-teal-800 font-medium underline"
                 >
-                  {invitation.status === 'confirmed' ? 'Decline instead' : 'Confirm instead'}
+                  {invitation.status === 'confirmed' ? t('invitation.declineInstead') : t('invitation.confirmInstead')}
                 </button>
               </p>
             </div>
@@ -210,7 +212,7 @@ export default function InvitationResponsePage() {
         </div>
 
         <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 text-center">
-          <p className="text-xs text-gray-400">Sent via SoluPlan</p>
+          <p className="text-xs text-gray-400">{t('invitation.sentVia')}</p>
         </div>
       </div>
     </div>

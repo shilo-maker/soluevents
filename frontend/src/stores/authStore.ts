@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { User } from '@/types'
 import { useWorkspaceStore } from './workspaceStore'
 import { queryClient } from '@/lib/queryClient'
+import { disconnectSocket } from '@/lib/socket'
 
 interface AuthState {
   user: User | null
@@ -33,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...partial } : state.user,
         })),
       clearAuth: () => {
+        disconnectSocket()
         useWorkspaceStore.getState().clearWorkspaces()
         queryClient.clear()
         set({

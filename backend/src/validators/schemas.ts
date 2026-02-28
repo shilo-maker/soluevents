@@ -124,6 +124,12 @@ export const taskQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).optional(),
 })
 
+// ── Comments ─────────────────────────────────────────────────────
+
+export const createCommentSchema = z.object({
+  body: z.string().min(1).max(5000),
+})
+
 // ── Contacts ──────────────────────────────────────────────────────
 
 export const createContactSchema = z.object({

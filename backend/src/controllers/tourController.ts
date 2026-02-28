@@ -295,7 +295,20 @@ export const deleteTour = async (
       throw new AppError('Not authorized to delete this tour', 403)
     }
 
-    await prisma.tour.delete({ where: { id } })
+    // Collect task IDs that will be cascade-deleted so we can clean up their polymorphic comments
+    const taskIds = (await prisma.task.findMany({
+      where: { tour_id: id },
+      select: { id: true },
+    })).map((t) => t.id)
+
+    await prisma.$transaction([
+      // Delete comments on tasks that will cascade-delete
+      ...(taskIds.length > 0 ? [prisma.comment.deleteMany({ where: { entity_type: 'task', entity_id: { in: taskIds } } })] : []),
+      // Delete comments on the tour itself
+      prisma.comment.deleteMany({ where: { entity_type: 'tour', entity_id: id } }),
+      // Delete tour (cascades tasks, tour_days, etc.)
+      prisma.tour.delete({ where: { id } }),
+    ])
 
     res.status(204).send()
   } catch (error) {

@@ -1,10 +1,13 @@
-import { useState, useEffect, memo } from 'react'
-import { Circle, CheckCircle2, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save } from 'lucide-react'
-import { formatDate, isWithinDays, isPast } from '@/lib/utils'
+import { useState, useEffect, useRef, memo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import { Circle, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save, MessageCircle, Send, Loader2, ChevronDown } from 'lucide-react'
+import { formatDate, formatRelativeTime, isWithinDays, isPast } from '@/lib/utils'
 import Badge from './Badge'
 import ContactAutocomplete from './ContactAutocomplete'
 import PersonHoverCard from './PersonHoverCard'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import { useTaskComments, useAddTaskComment, useDeleteTaskComment } from '@/hooks/useComments'
 import type { Task, TaskPriority, TaskStatus, User } from '@/types'
 
 interface TaskCardProps {
@@ -19,11 +22,31 @@ interface TaskCardProps {
   onUpdateTask?: (taskId: string, data: Partial<Task>) => void
 }
 
+const PRIORITY_COLORS = {
+  critical: 'danger',
+  high: 'warning',
+  normal: 'default',
+} as const
+
+const STATUS_KEYS: { value: TaskStatus; key: string; color: string }[] = [
+  { value: 'not_started', key: 'tasks.status.not_started', color: 'bg-gray-100 text-gray-700' },
+  { value: 'in_progress', key: 'tasks.status.in_progress', color: 'bg-blue-100 text-blue-700' },
+  { value: 'waiting', key: 'tasks.status.waiting', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'blocked', key: 'tasks.status.blocked', color: 'bg-red-100 text-red-700' },
+  { value: 'done', key: 'tasks.status.done', color: 'bg-green-100 text-green-700' },
+]
+
 function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
   const [isEditingLink, setIsEditingLink] = useState(false)
   const [linkValue, setLinkValue] = useState(task.link || '')
   const [isEditingTask, setIsEditingTask] = useState(false)
-  const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null)
+  const [optimisticStatus, setOptimisticStatus] = useState<TaskStatus | null>(null)
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [statusOpen, setStatusOpen] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
 
   // Determine initial assignee name and contact info for the autocomplete
   const initialAssigneeName = task.assignee?.name || task.assignee?.email || task.assignee_contact?.name || task.assignee_contact?.email || ''
@@ -66,14 +89,14 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
       setLinkValue(task.link || '')
     }
     // Reset optimistic state when server data arrives
-    setOptimisticDone(null)
-  }, [task])
-
-  const priorityColors = {
-    critical: 'danger',
-    high: 'warning',
-    normal: 'default',
-  } as const
+    setOptimisticStatus(null)
+  }, [
+    task.title, task.description, task.priority, task.status, task.due_at, task.link,
+    task.assignee_id, task.assignee_contact_id, task.assignee_is_user,
+    task.assignee?.name, task.assignee?.email,
+    task.assignee_contact?.name, task.assignee_contact?.email,
+    isEditingTask,
+  ])
 
   const wsRole = useWorkspaceStore((s) => s.activeWorkspace?.role)
   const userId = currentUser?.id
@@ -87,9 +110,35 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
   const isPrivileged = currentUser?.org_role === 'admin' || wsRole === 'admin' || wsRole === 'planner'
   const canToggle = !!onToggle && (isAssignee || isPrivileged)
   const canEditTask = !!onUpdateTask && (isAssignee || isPrivileged)
+  const canChangeStatus = !!onUpdateTask && (isAssignee || isPrivileged)
+  const canComment = isAssignee || isPrivileged
 
+  // Close status dropdown on click outside
+  useEffect(() => {
+    if (!statusOpen) return
+    const handler = (e: MouseEvent) => {
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
+        setStatusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [statusOpen])
 
-  const isDone = optimisticDone ?? (task.status === 'done')
+  // Comment hooks — only fetch when thread is expanded
+  const { data: comments, isLoading: commentsLoading, isError: commentsError } = useTaskComments(task.id, commentsOpen)
+  const addComment = useAddTaskComment(task.id)
+  const deleteCommentMutation = useDeleteTaskComment(task.id)
+
+  const handleAddComment = () => {
+    const body = commentText.trim()
+    if (!body) return
+    setCommentText('')  // Clear immediately for snappy UX
+    addComment.mutate(body)
+  }
+
+  const displayStatus = optimisticStatus ?? task.status
+  const isDone = displayStatus === 'done'
   const isOverdue = task.due_at && isPast(task.due_at) && !isDone
   const isDueSoon = task.due_at && isWithinDays(task.due_at, 3) && !isDone
 
@@ -142,26 +191,26 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
       <div className="card">
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="font-semibold text-gray-900">Edit Task</h4>
+            <h4 className="font-semibold text-gray-900">{t('tasks.editTask')}</h4>
             <div className="flex gap-2">
               <button
                 onClick={handleSaveTask}
                 className="btn-primary flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                Save
+                {t('common.save')}
               </button>
               <button
                 onClick={handleCancelEdit}
                 className="btn-secondary"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.title')}</label>
             <input
               type="text"
               value={editFormData.title}
@@ -171,7 +220,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.description')}</label>
             <textarea
               value={editFormData.description}
               onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
@@ -182,37 +231,37 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Priority</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.priority')}</label>
               <select
                 value={editFormData.priority}
                 onChange={(e) => setEditFormData({ ...editFormData, priority: e.target.value as TaskPriority })}
                 className="input"
               >
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                <option value="normal">{t('tasks.priority.normal')}</option>
+                <option value="high">{t('tasks.priority.high')}</option>
+                <option value="critical">{t('tasks.priority.critical')}</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.status')}</label>
               <select
                 value={editFormData.status}
                 onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as TaskStatus })}
                 className="input"
               >
-                <option value="not_started">Not Started</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting">Waiting</option>
-                <option value="blocked">Blocked</option>
-                <option value="done">Done</option>
+                <option value="not_started">{t('tasks.status.not_started')}</option>
+                <option value="in_progress">{t('tasks.status.in_progress')}</option>
+                <option value="waiting">{t('tasks.status.waiting')}</option>
+                <option value="blocked">{t('tasks.status.blocked')}</option>
+                <option value="done">{t('tasks.status.done')}</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Assigned To</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('tasks.assignedTo')}</label>
               <ContactAutocomplete
                 value={editFormData.assignee_name}
                 contactId={editFormData.assignee_contact_id || undefined}
@@ -225,13 +274,13 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                     assignee_is_user: isUser ?? true,
                   })
                 }}
-                placeholder="Search people..."
+                placeholder={t('tasks.searchPeople')}
                 className="input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Due Date</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('tasks.dueDate')}</label>
               <input
                 type="datetime-local"
                 value={editFormData.due_at}
@@ -242,7 +291,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Link</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t('tasks.link')}</label>
             <input
               type="url"
               value={editFormData.link}
@@ -257,13 +306,17 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
   }
 
   return (
-    <div className={`card transition-all duration-300 ${isDone ? 'opacity-60 hover:opacity-80' : 'hover:shadow-md'}`}>
+    <div
+      className={`card transition-all duration-300 ${isDone ? 'opacity-60 hover:opacity-80' : 'hover:shadow-md'} ${task.event ? 'cursor-pointer' : ''}`}
+      onClick={() => { if (task.event) navigate(`/events/${task.event.id}?tab=tasks`) }}
+    >
       <div className="flex items-start gap-3">
         {canToggle && (
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation()
               const newDone = !isDone
-              setOptimisticDone(newDone)
+              setOptimisticStatus(newDone ? 'done' : 'not_started')
               onToggle?.(task.id, newDone ? 'done' : 'not_started')
             }}
             className="mt-1 flex-shrink-0 group"
@@ -290,14 +343,28 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
               {task.title}
             </h4>
             <div className="flex items-center gap-2">
-              <Badge variant={priorityColors[task.priority]} size="sm">
+              <Badge variant={PRIORITY_COLORS[task.priority]} size="sm">
                 {task.priority}
               </Badge>
+              {canComment && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setCommentsOpen((o) => !o) }}
+                  className={`p-1 flex items-center gap-1 text-sm transition-colors ${commentsOpen ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  title={t('tasks.comments')}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {(comments && comments.length > 0) ? (
+                    <span className="text-xs">{comments.length}</span>
+                  ) : (task.comment_count != null && task.comment_count > 0) ? (
+                    <span className="text-xs">{task.comment_count}</span>
+                  ) : null}
+                </button>
+              )}
               {canEditTask && (
                 <button
-                  onClick={() => setIsEditingTask(true)}
+                  onClick={(e) => { e.stopPropagation(); setIsEditingTask(true) }}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Edit task"
+                  title={t('common.edit')}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -312,6 +379,43 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
           )}
 
           <div className="flex flex-wrap items-center gap-2 text-sm">
+            {/* Inline status selector */}
+            <div ref={statusRef} className="relative" onClick={(e) => e.stopPropagation()}>
+              {canChangeStatus ? (
+                <button
+                  onClick={() => setStatusOpen((o) => !o)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_KEYS.find((s) => s.value === displayStatus)?.color ?? 'bg-gray-100 text-gray-700'}`}
+                >
+                  {t(STATUS_KEYS.find((s) => s.value === displayStatus)?.key ?? '')}
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              ) : (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_KEYS.find((s) => s.value === displayStatus)?.color ?? 'bg-gray-100 text-gray-700'}`}>
+                  {t(STATUS_KEYS.find((s) => s.value === displayStatus)?.key ?? '')}
+                </span>
+              )}
+              {statusOpen && (
+                <div className="absolute left-0 bottom-full mb-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
+                  {STATUS_KEYS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        if (opt.value !== displayStatus) {
+                          setOptimisticStatus(opt.value)
+                          onUpdateTask?.(task.id, { status: opt.value })
+                        }
+                        setStatusOpen(false)
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 ${opt.value === displayStatus ? 'font-semibold' : ''}`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${opt.color.split(' ')[0].replace('100', '500')}`} />
+                      {t(opt.key)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {task.due_at && (
               <div
                 className={`flex items-center ${
@@ -328,7 +432,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                   <Clock className="w-4 h-4 mr-1" />
                 )}
                 <span>
-                  {isOverdue && 'Overdue: '}
+                  {isOverdue && t('tasks.overdue')}
                   {formatDate(task.due_at)}
                 </span>
               </div>
@@ -352,7 +456,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
 
           {/* Link Section */}
           {(task.link || isEditingLink) && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
               {isEditingLink ? (
                 <div className="flex items-center gap-2">
                   <LinkIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -367,14 +471,14 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                   <button
                     onClick={handleSaveLink}
                     className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-                    title="Save"
+                    title={t('common.save')}
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button
                     onClick={handleCancelLink}
                     className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
-                    title="Cancel"
+                    title={t('common.cancel')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -394,7 +498,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                     <button
                       onClick={() => setIsEditingLink(true)}
                       className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Edit link"
+                      title={t('tasks.editLink')}
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -406,14 +510,86 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
 
           {/* Add Link Button */}
           {!task.link && !isEditingLink && onUpdateLink && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setIsEditingLink(true)}
                 className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <LinkIcon className="w-4 h-4" />
-                <span>Add link</span>
+                <span>{t('tasks.addLink')}</span>
               </button>
+            </div>
+          )}
+
+          {/* Comment Thread */}
+          {commentsOpen && canComment && (
+            <div className="mt-3 pt-3 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
+              {commentsLoading ? (
+                <div className="flex items-center justify-center py-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                </div>
+              ) : commentsError ? (
+                <p className="text-xs text-gray-400 py-2">{t('tasks.cantLoadComments')}</p>
+              ) : (
+                <>
+                  {comments && comments.length > 0 ? (
+                    <div className="space-y-3 mb-3 max-h-64 overflow-y-auto">
+                      {comments.map((c) => (
+                        <div key={c.id} className="flex items-start gap-2 group/comment">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {c.author?.name || c.author?.email || t('common.unknown')}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {formatRelativeTime(c.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.body}</p>
+                          </div>
+                          {!c.id.startsWith('optimistic-') && (c.author_id === userId || currentUser?.org_role === 'admin') && (
+                            <button
+                              onClick={() => { if (!deleteCommentMutation.isPending) deleteCommentMutation.mutate(c.id) }}
+                              className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover/comment:opacity-100 transition-all flex-shrink-0 disabled:opacity-30"
+                              title={t('tasks.deleteComment')}
+                              disabled={deleteCommentMutation.isPending}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 mb-3">{t('tasks.noComments')}</p>
+                  )}
+                  {addComment.isError && (
+                    <p className="text-xs text-red-500 mb-1">{t('tasks.failedComment')}</p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment() } }}
+                      placeholder={t('tasks.addComment')}
+                      className="input text-sm flex-1"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={!commentText.trim() || addComment.isPending}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={t('common.send')}
+                    >
+                      {addComment.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

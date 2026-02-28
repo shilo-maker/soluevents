@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
 import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
+import { emitEventUpdate, emitToUser } from '../lib/emitEvent'
 
 /** Returns the user's best team member status across all teams (confirmed > pending > declined), or null. */
 function getUserTeamMemberStatus(eventTeams: any, userId: string): 'pending' | 'confirmed' | 'declined' | null {
@@ -302,6 +303,16 @@ export const createEvent = async (
         },
       })
 
+      // Auto-assign event_manager role to creator
+      await tx.roleAssignment.create({
+        data: {
+          event_id: created.id,
+          user_id: req.user!.id,
+          role: 'event_manager',
+          scope: 'event',
+        },
+      })
+
       // Create default tasks for worship events
       if (type === 'worship') {
         const eventStartDate = new Date(date_start)
@@ -372,6 +383,7 @@ export const createEvent = async (
           }).catch(() => {}) // non-blocking: user may not exist
         )
       )
+      for (const m of pendingInvites) emitToUser(m.contact_id, 'notification:new')
     }
 
     res.status(201).json(event)
@@ -489,6 +501,7 @@ export const updateEvent = async (
           }),
         ])
 
+        emitEventUpdate(id, 'event:updated')
         return res.json(event)
       }
 
@@ -653,6 +666,13 @@ export const updateEvent = async (
         await Promise.all(notificationOps)
       }
 
+      // Emit notification:new for newly invited and removed members
+      for (const m of newlyPendingMembers) emitToUser(m.contact_id, 'notification:new')
+      for (const m of removedMembers) {
+        if ((m as any).status === 'confirmed') emitToUser((m as any).contact_id, 'notification:new')
+      }
+
+      emitEventUpdate(id, 'event:updated')
       return res.json(event)
     }
 
@@ -666,6 +686,7 @@ export const updateEvent = async (
       },
     })
 
+    emitEventUpdate(id, 'event:updated')
     res.json(event)
   } catch (error) {
     next(error)
@@ -763,6 +784,12 @@ export const respondToTeamInvite = async (
       }).catch(() => {})
     }
 
+    // Notify event creator in real-time
+    if (result.createdBy !== req.user!.id) {
+      emitToUser(result.createdBy, 'notification:new')
+    }
+    emitEventUpdate(eventId, 'event:updated')
+
     res.json({ success: true, status: result.status })
   } catch (error) {
     next(error)
@@ -790,17 +817,29 @@ export const deleteEvent = async (
       throw new AppError('Not authorized to delete this event', 403)
     }
 
-    // Cleanup team notifications and delete event in parallel
-    await Promise.all([
+    // Collect task IDs that will be cascade-deleted so we can clean up their polymorphic comments
+    const taskIds = (await prisma.task.findMany({
+      where: { event_id: id },
+      select: { id: true },
+    })).map((t) => t.id)
+
+    await prisma.$transaction([
+      // Delete comments on tasks that will cascade-delete
+      ...(taskIds.length > 0 ? [prisma.comment.deleteMany({ where: { entity_type: 'task', entity_id: { in: taskIds } } })] : []),
+      // Delete comments on the event itself
+      prisma.comment.deleteMany({ where: { entity_type: 'event', entity_id: id } }),
+      // Delete team notifications
       prisma.notification.deleteMany({
         where: {
           type: { in: ['event_team_invite', 'event_team_removed', 'event_team_response'] },
           payload: { path: ['event_id'], equals: id },
         },
-      }).catch(() => {}),
+      }),
+      // Delete event (cascades tasks, role_assignments, etc.)
       prisma.event.delete({ where: { id } }),
     ])
 
+    emitEventUpdate(id, 'event:deleted')
     res.status(204).send()
   } catch (error) {
     next(error)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useCreateTour } from '@/hooks/useTours'
 import { useUsers } from '@/hooks/useUsers'
 
@@ -10,6 +11,7 @@ interface CreateTourModalProps {
 }
 
 export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const createTour = useCreateTour()
   const { data: users } = useUsers()
@@ -33,7 +35,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
     setError('')
 
     if (!formData.title || !formData.start_date || !formData.end_date) {
-      setError('Title, start date, and end date are required')
+      setError(t('tours.errors.requiredFields'))
       return
     }
 
@@ -52,7 +54,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
       onClose()
       navigate(`/tours/${tour.id}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create tour')
+      setError(err.response?.data?.message || t('tours.errors.failedToCreate'))
     }
   }
 
@@ -62,7 +64,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Tour</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('tours.createNewTour')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -78,7 +80,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tour Title *
+              {t('tours.tourName')} {t('common.required')}
             </label>
             <input
               type="text"
@@ -86,7 +88,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="input"
               required
-              placeholder="e.g., Summer 2025 Regional Tour"
+              placeholder={t('tours.titlePlaceholder')}
             />
           </div>
 
@@ -94,7 +96,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
+                {t('tours.startDate')} {t('common.required')}
               </label>
               <input
                 type="date"
@@ -106,7 +108,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date *
+                {t('tours.endDate')} {t('common.required')}
               </label>
               <input
                 type="date"
@@ -121,25 +123,25 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
           {/* Regions */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Regions
+              {t('tours.regions')}
             </label>
             <input
               type="text"
               value={formData.regions}
               onChange={(e) => setFormData({ ...formData, regions: e.target.value })}
               className="input"
-              placeholder="e.g., Midwest, East Coast (comma-separated)"
+              placeholder={t('tours.regionsPlaceholder')}
             />
           </div>
 
           {/* Team Leads */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">Team Leads</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('tours.teamLeads')}</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Director
+                  {t('tours.director')}
                 </label>
                 <select
                   value={formData.director_user_id}
@@ -148,7 +150,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
                   }
                   className="input"
                 >
-                  <option value="">None</option>
+                  <option value="">{t('common.none')}</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -159,7 +161,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Logistics Lead
+                  {t('tours.logisticsLead')}
                 </label>
                 <select
                   value={formData.logistics_user_id}
@@ -168,7 +170,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
                   }
                   className="input"
                 >
-                  <option value="">None</option>
+                  <option value="">{t('common.none')}</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -179,7 +181,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Communications Lead
+                  {t('tours.communicationsLead')}
                 </label>
                 <select
                   value={formData.comms_user_id}
@@ -188,7 +190,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
                   }
                   className="input"
                 >
-                  <option value="">None</option>
+                  <option value="">{t('common.none')}</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -199,7 +201,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Media Lead
+                  {t('tours.mediaLead')}
                 </label>
                 <select
                   value={formData.media_user_id}
@@ -208,7 +210,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
                   }
                   className="input"
                 >
-                  <option value="">None</option>
+                  <option value="">{t('common.none')}</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -219,7 +221,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hospitality Lead
+                  {t('tours.hospitalityLead')}
                 </label>
                 <select
                   value={formData.hospitality_user_id}
@@ -228,7 +230,7 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
                   }
                   className="input"
                 >
-                  <option value="">None</option>
+                  <option value="">{t('common.none')}</option>
                   {users?.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -242,14 +244,14 @@ export default function CreateTourModal({ isOpen, onClose }: CreateTourModalProp
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={createTour.isPending}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createTour.isPending ? 'Creating...' : 'Create Tour'}
+              {createTour.isPending ? t('tours.creating') : t('tours.createTour')}
             </button>
           </div>
         </form>

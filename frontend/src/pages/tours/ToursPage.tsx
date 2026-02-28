@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Loader2, MapPin, Calendar, Users } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useTours } from '@/hooks/useTours'
 import { formatDate } from '@/lib/utils'
 import Badge from '@/components/Badge'
 import CreateTourModal from './CreateTourModal'
 
 export default function ToursPage() {
+  const { t } = useTranslation()
   const { data: tours, isLoading } = useTours()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
@@ -14,9 +16,9 @@ export default function ToursPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tours</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('tours.title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Plan and manage multi-day tours
+            {t('tours.subtitle')}
           </p>
         </div>
         <button
@@ -24,7 +26,7 @@ export default function ToursPage() {
           className="btn-primary"
         >
           <Plus className="w-4 h-4 inline mr-2" />
-          New Tour
+          {t('tours.newTour')}
         </button>
       </div>
 
@@ -64,7 +66,7 @@ export default function ToursPage() {
                 {tour.tour_days && (
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-2" />
-                    <span>{tour.tour_days.length} day{tour.tour_days.length !== 1 ? 's' : ''}</span>
+                    <span>{t('tours.dayCount', { count: tour.tour_days.length })}</span>
                   </div>
                 )}
               </div>
@@ -85,17 +87,17 @@ export default function ToursPage() {
         <div className="card text-center py-12">
           <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No tours yet
+            {t('tours.noTours')}
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            Get started by creating your first tour
+            {t('tours.getStarted')}
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="btn-primary"
           >
             <Plus className="w-4 h-4 inline mr-2" />
-            Create Tour
+            {t('tours.createTour')}
           </button>
         </div>
       )}

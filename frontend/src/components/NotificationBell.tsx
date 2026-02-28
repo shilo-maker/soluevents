@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Bell, Building2, Music, UserX, UserCheck, Check, X, Loader2, CheckCheck, Trash2, MessageCircle, Send } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,22 +15,23 @@ function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
     return error.response?.data?.message || error.message
   }
-  return error instanceof Error ? error.message : 'An error occurred'
+  return error instanceof Error ? error.message : 'Error'
 }
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string) {
   const diff = Date.now() - new Date(dateStr).getTime()
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1) return t('time.justNow')
+  if (minutes < 60) return t('time.minutesAgo', { count: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t('time.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  return t('time.daysAgo', { count: days })
 }
 
 export default function NotificationBell() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const loadWorkspaces = useWorkspaceStore((s) => s.loadWorkspaces)
 
   const queryClient = useQueryClient()
@@ -201,17 +203,17 @@ export default function NotificationBell() {
     const eventLink = payload.event_id ? (
       <Link to={`/events/${payload.event_id}`} onClick={closeDropdown}
         className="font-bold text-teal-600 hover:text-teal-700 hover:underline">
-        {payload.event_title || 'an event'}
+        {payload.event_title || t('notifications.anEvent')}
       </Link>
-    ) : <strong>{payload.event_title || 'an event'}</strong>
+    ) : <strong>{payload.event_title || t('notifications.anEvent')}</strong>
 
     // Task title — links to event tasks tab if event_id present
     const taskLink = isTaskComment && payload.event_id ? (
       <Link to={`/events/${payload.event_id}?tab=tasks`} onClick={closeDropdown}
         className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
-        {payload.task_title || 'a task'}
+        {payload.task_title || t('notifications.aTask')}
       </Link>
-    ) : <strong>{payload.task_title || 'a task'}</strong>
+    ) : <strong>{payload.task_title || t('notifications.aTask')}</strong>
 
     // Choose icon + gradient based on notification type
     const IconComponent = isTaskComment ? MessageCircle : isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
@@ -244,38 +246,44 @@ export default function NotificationBell() {
           <div className="flex-1 min-w-0">
             {isTaskComment ? (
               <p className="text-sm text-gray-900">
-                <strong>{payload.commenter_name || 'Someone'}</strong> commented on {taskLink}
+                <strong>{payload.commenter_name || t('notifications.someone')}</strong>{' '}
+                {t('notifications.commentedOn')} {taskLink}
                 {payload.comment_body && (
                   <span className="text-gray-500">: &ldquo;{payload.comment_body}&rdquo;</span>
                 )}
               </p>
             ) : isTeamResponse ? (
               <p className="text-sm text-gray-900">
-                <strong>{payload.member_name || 'Someone'}</strong>{' '}
-                {payload.action === 'accept' ? 'accepted' : 'declined'} the role of{' '}
-                <strong>{payload.team_role || 'a role'}</strong> at {eventLink}
+                <strong>{payload.member_name || t('notifications.someone')}</strong>{' '}
+                {payload.action === 'accept' ? t('notifications.acceptedRoleOf') : t('notifications.declinedRoleOf')}{' '}
+                <strong>{payload.team_role || t('notifications.aRole')}</strong>{' '}
+                {t('notifications.at')} {eventLink}
                 {payload.team_name && <span className="text-gray-500"> ({payload.team_name})</span>}
               </p>
             ) : isTeamRemoved ? (
               <p className="text-sm text-gray-900">
-                You've been removed from <strong>{payload.team_role || 'a role'}</strong> at{' '}
-                {eventLink}
+                {t('notifications.removedFrom')}{' '}
+                <strong>{payload.team_role || t('notifications.aRole')}</strong>{' '}
+                {t('notifications.at')} {eventLink}
               </p>
             ) : isTeamInvite ? (
               <p className="text-sm text-gray-900">
-                You're invited to play <strong>{payload.team_role || 'a role'}</strong> at{' '}
-                {eventLink}
+                {t('notifications.invitedToPlay')}{' '}
+                <strong>{payload.team_role || t('notifications.aRole')}</strong>{' '}
+                {t('notifications.at')} {eventLink}
                 {payload.team_name && <span className="text-gray-500"> ({payload.team_name})</span>}
               </p>
             ) : isInvite ? (
               <p className="text-sm text-gray-900">
-                <strong>{payload.invited_by_name || 'Someone'}</strong> invited you to join{' '}
-                <strong>{payload.workspace_name || 'a workspace'}</strong> as <span className="capitalize">{payload.role || 'member'}</span>
+                <strong>{payload.invited_by_name || t('notifications.someone')}</strong>{' '}
+                {t('notifications.invitedToJoin')}{' '}
+                <strong>{payload.workspace_name || t('notifications.aWorkspace')}</strong>{' '}
+                {t('notifications.asRole')} <span className="capitalize">{payload.role || t('common.member').toLowerCase()}</span>
               </p>
             ) : (
-              <p className="text-sm text-gray-900">{payload.message || 'You have a new notification'}</p>
+              <p className="text-sm text-gray-900">{payload.message || t('notifications.newNotification')}</p>
             )}
-            <p className="text-xs text-gray-500 mt-0.5">{timeAgo(n.created_at)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{timeAgo(n.created_at, t)}</p>
 
             {isTaskComment && payload.task_id && (
               replyingTo === n.id ? (
@@ -289,7 +297,7 @@ export default function NotificationBell() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(payload.task_id!, n.id) }
                       if (e.key === 'Escape') { setReplyingTo(null); setReplyText('') }
                     }}
-                    placeholder="Write a reply..."
+                    placeholder={t('notifications.writeReply')}
                     disabled={replySending}
                     className="flex-1 text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 disabled:opacity-50"
                   />
@@ -297,7 +305,7 @@ export default function NotificationBell() {
                     onClick={() => handleReply(payload.task_id!, n.id)}
                     disabled={replySending || !replyText.trim()}
                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Send"
+                    title={t('common.send')}
                   >
                     {replySending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   </button>
@@ -308,7 +316,7 @@ export default function NotificationBell() {
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1.5 flex items-center gap-1"
                 >
                   <MessageCircle className="w-3 h-3" />
-                  Reply
+                  {t('notifications.reply')}
                 </button>
               )
             )}
@@ -321,7 +329,7 @@ export default function NotificationBell() {
                   className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
                   {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  Accept
+                  {t('common.accept')}
                 </button>
                 <button
                   onClick={() => isTeamInvite ? handleTeamDecline(n) : handleDecline(n)}
@@ -329,7 +337,7 @@ export default function NotificationBell() {
                   className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
                   <X className="w-3 h-3" />
-                  Decline
+                  {t('common.decline')}
                 </button>
               </div>
             )}
@@ -346,7 +354,7 @@ export default function NotificationBell() {
               onClick={() => deleteMutation.mutate(n.id)}
               disabled={deleteMutation.isPending}
               className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded-md"
-              title="Dismiss"
+              title={t('notifications.dismiss')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -373,7 +381,7 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-1 w-96 bg-white rounded-xl shadow-xl border border-gray-200/60 z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('notifications.title')}</h3>
             <div className="flex items-center gap-3">
               {unreadCount > 0 && (
                 <button
@@ -382,7 +390,7 @@ export default function NotificationBell() {
                   className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  Mark all read
+                  {t('notifications.markAllRead')}
                 </button>
               )}
               {notifications && notifications.length > 0 && (
@@ -392,7 +400,7 @@ export default function NotificationBell() {
                   className="text-xs text-gray-400 hover:text-red-500 font-medium flex items-center gap-1 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Clear
+                  {t('notifications.clear')}
                 </button>
               )}
             </div>
@@ -407,14 +415,14 @@ export default function NotificationBell() {
                     onClick={() => setExpanded(true)}
                     className="w-full py-2.5 text-xs font-medium text-teal-600 hover:text-teal-700 hover:bg-teal-50/50 transition-colors border-t border-gray-100"
                   >
-                    Show {notifications.length - 4} more
+                    {t('notifications.showMore', { count: notifications.length - 4 })}
                   </button>
                 )}
               </>
             ) : (
               <div className="py-8 text-center">
                 <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No notifications yet</p>
+                <p className="text-sm text-gray-500">{t('notifications.noNotifications')}</p>
               </div>
             )}
           </div>

@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Calendar, CheckSquare, Bell, Loader2 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEvents } from '@/hooks/useEvents'
@@ -11,6 +12,7 @@ import EventCard from '@/components/EventCard'
 import TaskCard from '@/components/TaskCard'
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const { user } = useAuthStore()
   const { data: events, isLoading: eventsLoading } = useEvents()
   const { data: tasks, isLoading: tasksLoading } = useTasks({ assignee: 'me' })
@@ -50,9 +52,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl p-8 shadow-2xl text-white">
-        <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name}! 👋</h1>
+        <h1 className="text-4xl font-bold mb-2">{t('dashboard.welcomeBack', { name: user?.name })} 👋</h1>
         <p className="text-lg text-white/90">
-          Here's what's happening with your events and tasks.
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -62,7 +64,7 @@ export default function Dashboard() {
           <div className="flex items-center mb-4">
             <Calendar className="w-5 h-5 text-primary-600 mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Upcoming Events (30 days)
+              {t('dashboard.upcomingEvents')}
             </h2>
           </div>
 
@@ -77,12 +79,12 @@ export default function Dashboard() {
               ))}
               {upcomingEvents.length > 3 && (
                 <p className="text-sm text-gray-500 text-center pt-2">
-                  + {upcomingEvents.length - 3} more events
+                  {t('dashboard.moreEvents', { count: upcomingEvents.length - 3 })}
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No upcoming events in the next 30 days</p>
+            <p className="text-sm text-gray-500">{t('dashboard.noUpcoming')}</p>
           )}
         </div>
 
@@ -91,11 +93,11 @@ export default function Dashboard() {
           <div className="flex items-center mb-4">
             <Bell className="w-5 h-5 text-primary-600 mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Notifications
+              {t('dashboard.notifications')}
             </h2>
           </div>
-          <p className="text-sm text-gray-500">No new notifications</p>
-          <p className="text-xs text-gray-400 mt-2">Coming soon...</p>
+          <p className="text-sm text-gray-500">{t('dashboard.noNotifications')}</p>
+          <p className="text-xs text-gray-400 mt-2">{t('dashboard.comingSoon')}</p>
         </div>
       </div>
 
@@ -105,12 +107,12 @@ export default function Dashboard() {
           <div className="flex items-center">
             <CheckSquare className="w-5 h-5 text-primary-600 mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">
-              My Pending Tasks
+              {t('dashboard.myPendingTasks')}
             </h2>
           </div>
           {pendingTasks && pendingTasks.length > 0 && (
             <span className="text-sm text-gray-500">
-              {pendingTasks.length} task{pendingTasks.length !== 1 ? 's' : ''}
+              {t('dashboard.taskCount', { count: pendingTasks.length })}
             </span>
           )}
         </div>
@@ -130,7 +132,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No pending tasks</p>
+          <p className="text-sm text-gray-500">{t('dashboard.noPendingTasks')}</p>
         )}
       </div>
     </div>

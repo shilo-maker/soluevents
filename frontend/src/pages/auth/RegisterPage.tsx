@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
 import logo from '@/assets/logo.png'
 import type { AuthResponse, RegisterData } from '@/types'
 
 export default function RegisterPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { setAuth } = useAuthStore()
@@ -29,7 +31,7 @@ export default function RegisterPage() {
       setAuth(user, access_token, refresh_token)
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+      setError(err.response?.data?.message || t('auth.registerFailed'))
     } finally {
       setLoading(false)
     }
@@ -44,7 +46,7 @@ export default function RegisterPage() {
             SoluPlan
           </h1>
           <h2 className="mt-4 text-2xl font-semibold text-gray-900">
-            Create your account
+            {t('auth.createAccount')}
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -56,7 +58,7 @@ export default function RegisterPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full name
+                {t('auth.fullName')}
               </label>
               <input
                 id="name"
@@ -72,7 +74,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                {t('auth.emailAddress')}
               </label>
               <input
                 id="email"
@@ -89,7 +91,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t('common.password')}
               </label>
               <input
                 id="password"
@@ -105,7 +107,7 @@ export default function RegisterPage() {
                 }
               />
               <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters
+                {t('auth.passwordMinLength')}
               </p>
             </div>
           </div>
@@ -116,7 +118,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? t('auth.creatingAccount') : t('auth.signUp')}
             </button>
           </div>
 
@@ -126,7 +128,7 @@ export default function RegisterPage() {
               state={{ from: redirectTo !== '/' ? redirectTo : undefined }}
               className="text-sm text-primary-600 hover:text-primary-500"
             >
-              Already have an account? Sign in
+              {t('auth.hasAccount')}
             </Link>
           </div>
         </form>

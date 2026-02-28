@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Task, TaskStatus, User } from '@/types'
 import TaskCard from './TaskCard'
 
@@ -14,12 +15,13 @@ interface TaskKanbanProps {
 }
 
 export default function TaskKanban({ tasks, currentUser, onTaskUpdate, onUpdateTask, onUpdateLink }: TaskKanbanProps) {
-  const columns: { id: TaskStatus; label: string }[] = [
-    { id: 'not_started', label: 'Not Started' },
-    { id: 'in_progress', label: 'In Progress' },
-    { id: 'waiting', label: 'Waiting' },
-    { id: 'blocked', label: 'Blocked' },
-    { id: 'done', label: 'Done' },
+  const { t } = useTranslation()
+  const columns: { id: TaskStatus; key: string }[] = [
+    { id: 'not_started', key: 'tasks.status.not_started' },
+    { id: 'in_progress', key: 'tasks.status.in_progress' },
+    { id: 'waiting', key: 'tasks.status.waiting' },
+    { id: 'blocked', key: 'tasks.status.blocked' },
+    { id: 'done', key: 'tasks.status.done' },
   ]
 
   const getTasksByStatus = (status: TaskStatus) => {
@@ -34,9 +36,9 @@ export default function TaskKanban({ tasks, currentUser, onTaskUpdate, onUpdateT
           <div key={column.id} className="flex flex-col">
             <div className="card mb-3">
               <h3 className="font-semibold text-gray-900 text-sm">
-                {column.label}
+                {t(column.key)}
               </h3>
-              <span className="text-xs text-gray-500">{columnTasks.length} tasks</span>
+              <span className="text-xs text-gray-500">{t('tasks.kanban.tasks', { count: columnTasks.length })}</span>
             </div>
             <div className="space-y-3 flex-1">
               {columnTasks.map((task) => (

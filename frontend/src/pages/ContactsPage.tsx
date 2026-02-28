@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { UserPlus, Mail, Phone, Briefcase, X, Edit2, Save, Trash2, Loader2, Search, Shield } from 'lucide-react'
 import { useContacts, useCreateContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useUsers } from '@/hooks/useUsers'
@@ -21,6 +22,7 @@ type UnifiedContact = {
 }
 
 export default function ContactsPage() {
+  const { t } = useTranslation()
   const [showAddContact, setShowAddContact] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -133,7 +135,7 @@ export default function ContactsPage() {
   }
 
   const handleDeleteContact = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
+    if (window.confirm(t('contacts.deleteConfirm'))) {
       deleteContact.mutate(id)
     }
   }
@@ -150,9 +152,9 @@ export default function ContactsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contacts</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('contacts.title')}</h1>
           <p className="text-gray-600 mt-1">
-            {allContacts.length} total ({users?.length || 0} users, {contacts?.length || 0} contacts)
+            {t('contacts.total', { total: allContacts.length, users: users?.length || 0, contacts: contacts?.length || 0 })}
           </p>
         </div>
         <button
@@ -160,7 +162,7 @@ export default function ContactsPage() {
           className="btn-primary flex items-center gap-2"
         >
           <UserPlus className="w-5 h-5" />
-          Add Contact
+          {t('contacts.addContact')}
         </button>
       </div>
 
@@ -172,7 +174,7 @@ export default function ContactsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, phone, or role..."
+            placeholder={t('contacts.searchPlaceholder')}
             className="input pl-10"
           />
         </div>
@@ -183,7 +185,7 @@ export default function ContactsPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
-              {editingContact ? 'Edit Contact' : 'New Contact'}
+              {editingContact ? t('contacts.editContact') : t('contacts.newContact')}
             </h3>
             <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
@@ -194,31 +196,31 @@ export default function ContactsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Name <span className="text-red-500">*</span>
+                  {t('common.name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="input"
-                  placeholder="Enter contact name"
+                  placeholder={t('contacts.enterName')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Nickname</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t('contacts.nickname')}</label>
                 <input
                   type="text"
                   value={formData.nickname}
                   onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
                   className="input"
-                  placeholder="e.g., Johnny, DJ"
+                  placeholder={t('contacts.nicknamePlaceholder')}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.email')}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -229,7 +231,7 @@ export default function ContactsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">{t('contacts.phone')}</label>
                 <input
                   type="tel"
                   value={formData.phone}
@@ -241,24 +243,24 @@ export default function ContactsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Role</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.role')}</label>
               <input
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 className="input"
-                placeholder="e.g., Sound Engineer, Venue Manager"
+                placeholder={t('contacts.rolePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Notes</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.notes')}</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="input"
                 rows={3}
-                placeholder="Additional notes about this contact"
+                placeholder={t('contacts.notesPlaceholder')}
               />
             </div>
 
@@ -269,10 +271,10 @@ export default function ContactsPage() {
                 className="btn-primary flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {editingContact ? 'Update' : 'Save'} Contact
+                {editingContact ? t('contacts.updateContact') : t('contacts.saveContact')}
               </button>
               <button onClick={handleCancelEdit} className="btn-secondary">
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -315,14 +317,14 @@ export default function ContactsPage() {
                       <button
                         onClick={() => handleEditContact(contact.originalContact!)}
                         className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Edit contact"
+                        title={t('contacts.editContactBtn')}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteContact(contact.id)}
                         className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                        title="Delete contact"
+                        title={t('contacts.deleteContactBtn')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -366,7 +368,7 @@ export default function ContactsPage() {
                   <div className="mt-2 pt-2 border-t border-teal-200">
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600">
                       <Shield className="w-3 h-3" />
-                      Registered User
+                      {t('contacts.registeredUser')}
                     </span>
                   </div>
                 )}
@@ -376,9 +378,9 @@ export default function ContactsPage() {
         ) : (
           <div className="text-center py-12 text-gray-500">
             {debouncedSearch ? (
-              <p>No contacts found matching "{debouncedSearch}"</p>
+              <p>{t('contacts.noResults', { query: debouncedSearch })}</p>
             ) : (
-              <p>No contacts yet. Click "Add Contact" to create one.</p>
+              <p>{t('contacts.noContacts')}</p>
             )}
           </div>
         )}

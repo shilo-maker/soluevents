@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, Music, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -136,6 +137,7 @@ interface LinkState {
 }
 
 export default function EditSchedulePage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -244,7 +246,7 @@ export default function EditSchedulePage() {
 
       return {
         offset_minutes: existing?.offset_minutes ?? (undefined as any),
-        title: fs.song?.title || fs.segmentTitle || 'Untitled',
+        title: fs.song?.title || fs.segmentTitle || t('events.schedule.untitled'),
         type: 'song',
         person: existing?.person || '', person_id: existing?.person_id || '', person_is_user: existing?.person_is_user || false,
         key: fs.song?.musicalKey ? transposeKey(fs.song.musicalKey, fs.transposition || 0) : '',
@@ -274,7 +276,7 @@ export default function EditSchedulePage() {
   const handleLink = async () => {
     const code = extractCode(link.input)
     if (!code) {
-      setLink(prev => ({ ...prev, error: 'Invalid SoluFlow link or code' }))
+      setLink(prev => ({ ...prev, error: t('events.schedule.invalidCode') }))
       return
     }
 
@@ -300,8 +302,8 @@ export default function EditSchedulePage() {
         ...prev,
         loading: false,
         error: err.response?.status === 404
-          ? 'Service not found. Check the code and try again.'
-          : err.response?.data?.message || 'Failed to fetch service',
+          ? t('events.schedule.serviceNotFound')
+          : err.response?.data?.message || t('events.schedule.failedFetch'),
       }))
     }
   }
@@ -325,7 +327,7 @@ export default function EditSchedulePage() {
         setLink(prev => ({ ...prev, loading: false }))
       }
     } catch {
-      setLink(prev => ({ ...prev, loading: false, error: 'Failed to refresh songs' }))
+      setLink(prev => ({ ...prev, loading: false, error: t('events.schedule.failedRefresh') }))
     }
   }
 
@@ -448,8 +450,8 @@ export default function EditSchedulePage() {
             ...prev,
             loading: false,
             error: err.response?.status === 404
-              ? 'Service not found. Check the code and try again.'
-              : err.response?.data?.message || 'Failed to link service',
+              ? t('events.schedule.serviceNotFound')
+              : err.response?.data?.message || t('events.schedule.failedLink'),
           }))
         })
     }
@@ -469,17 +471,17 @@ export default function EditSchedulePage() {
     const parts: React.ReactNode[] = []
     if (item.type === 'song') {
       if (item.person) parts.push(<PersonHoverCard key="person" name={item.person} contactId={item.person_id} isUser={item.person_is_user} />)
-      if (item.key) parts.push(<span key="key">Key: {item.key}</span>)
-      if (item.bpm) parts.push(<span key="bpm">BPM: {item.bpm}</span>)
+      if (item.key) parts.push(<span key="key">{t('events.itemLabels.key')}: {item.key}</span>)
+      if (item.bpm) parts.push(<span key="bpm">{t('events.itemLabels.bpm')}: {item.bpm}</span>)
     } else if (item.type === 'share') {
-      if (item.speaker) parts.push(<span key="speaker">Speaker: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
-      if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
+      if (item.speaker) parts.push(<span key="speaker">{t('events.itemLabels.speaker')}: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
+      if (item.topic) parts.push(<span key="topic">{t('events.itemLabels.topic')}: {item.topic}</span>)
     } else if (item.type === 'prayer') {
-      if (item.prayer_leader) parts.push(<span key="leader">Leader: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
-      if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
+      if (item.prayer_leader) parts.push(<span key="leader">{t('events.itemLabels.leader')}: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
+      if (item.topic) parts.push(<span key="topic">{t('events.itemLabels.topic')}: {item.topic}</span>)
     } else if (item.type === 'ministry') {
-      if (item.facilitator) parts.push(<span key="facilitator">Facilitator: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
-      if (item.has_ministry_team) parts.push(<span key="ministry">Ministry Team</span>)
+      if (item.facilitator) parts.push(<span key="facilitator">{t('events.itemLabels.facilitator')}: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
+      if (item.has_ministry_team) parts.push(<span key="ministry">{t('events.schedule.ministryTeam')}</span>)
     }
     return parts
   }, [])
@@ -542,7 +544,7 @@ export default function EditSchedulePage() {
       queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
       queryClient.invalidateQueries({ queryKey: ['setlists'] })
     } catch (error: any) {
-      setSolucastError(error.response?.data?.message || 'Failed to generate SoluCast setlist.')
+      setSolucastError(error.response?.data?.message || t('events.schedule.failedGenerateSolucast'))
     } finally {
       setGeneratingSolucast(false)
     }
@@ -557,11 +559,11 @@ export default function EditSchedulePage() {
       await api.post(`/integration/events/${event.id}/generate-solucast`)
       queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
       queryClient.invalidateQueries({ queryKey: ['setlists'] })
-      setSyncMessage('Synced successfully')
+      setSyncMessage(t('events.schedule.syncedSuccessfully'))
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current)
       syncTimerRef.current = setTimeout(() => setSyncMessage(null), 3000)
     } catch (error: any) {
-      setSolucastError(error.response?.data?.message || 'Failed to sync SoluCast setlist.')
+      setSolucastError(error.response?.data?.message || t('events.schedule.failedSyncSolucast'))
     } finally {
       setSyncing(false)
     }
@@ -574,7 +576,7 @@ export default function EditSchedulePage() {
       queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
       setSyncMessage(null)
     } catch (error: any) {
-      setSolucastError(error.response?.data?.message || 'Failed to unlink SoluCast.')
+      setSolucastError(error.response?.data?.message || t('events.schedule.failedUnlinkSolucast'))
     }
   }
 
@@ -620,7 +622,7 @@ export default function EditSchedulePage() {
 
       navigate(`/events/${id}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save schedule')
+      setError(err.response?.data?.message || t('events.schedule.failedSave'))
     }
   }
 
@@ -635,8 +637,8 @@ export default function EditSchedulePage() {
   if (!event) {
     return (
       <div className="card text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Event not found</h3>
-        <Link to="/events" className="text-primary-600 hover:text-primary-700">← Back to Events</Link>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.eventNotFound')}</h3>
+        <Link to="/events" className="text-primary-600 hover:text-primary-700">{t('events.backToEvents')}</Link>
       </div>
     )
   }
@@ -650,7 +652,7 @@ export default function EditSchedulePage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Event Schedule</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('events.eventSchedule')}</h1>
             <p className="text-sm text-gray-500">{event.title}</p>
           </div>
         </div>
@@ -660,7 +662,7 @@ export default function EditSchedulePage() {
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Schedule'}
+          {updateEvent.isPending ? t('events.schedule.saving') : t('events.schedule.saveSchedule')}
         </button>
       </div>
 
@@ -672,15 +674,15 @@ export default function EditSchedulePage() {
 
       {/* Pre-Event Schedule */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pre-Event Schedule</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.preEventSchedule')}</h3>
         <div className="overflow-x-auto">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreEventDragEnd}>
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -717,7 +719,7 @@ export default function EditSchedulePage() {
                                 setPreEventSchedule(updated)
                               }}
                               className="input text-sm"
-                              placeholder="e.g. Arrival, Soundcheck"
+                              placeholder={t('events.schedule.preEventItemPlaceholder')}
                               autoFocus
                             />
                             <input
@@ -729,9 +731,9 @@ export default function EditSchedulePage() {
                                 setPreEventSchedule(updated)
                               }}
                               className="input text-sm"
-                              placeholder="Notes (optional)"
+                              placeholder={t('events.schedule.notesOptional')}
                             />
-                            <button type="button" onClick={() => setEditingPreEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
+                            <button type="button" onClick={() => setEditingPreEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">{t('common.done')}</button>
                           </div>
                         ) : (
                           <button
@@ -739,7 +741,7 @@ export default function EditSchedulePage() {
                             onClick={() => setEditingPreEventItem(index)}
                             className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                           >
-                            <div className="font-semibold">{item.item || 'Click to edit'}</div>
+                            <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                             {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}
                           </button>
                         )}
@@ -752,7 +754,7 @@ export default function EditSchedulePage() {
                             if (editingPreEventItem === index) setEditingPreEventItem(null)
                           }}
                           className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Remove"
+                          title={t('common.remove')}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -768,7 +770,7 @@ export default function EditSchedulePage() {
             onClick={() => setPreEventSchedule([...preEventSchedule, { item: '', offset_minutes: getNextPreEventTime(), notes: '' }])}
             className="btn-secondary mt-3"
           >
-            + Add Pre-Event Item
+            {t('events.addPreEventItem')}
           </button>
         </div>
       </div>
@@ -783,11 +785,11 @@ export default function EditSchedulePage() {
             className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
           />
           <Music className="w-5 h-5 text-blue-500" />
-          <span className="text-lg font-semibold text-gray-900">SoluFlow Setlist</span>
+          <span className="text-lg font-semibold text-gray-900">{t('events.schedule.soluflowSetlist')}</span>
           {link.serviceId && !showSoluFlow && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
               <Link2 className="w-3 h-3" />
-              Linked
+              {t('events.schedule.linked')}
             </span>
           )}
         </label>
@@ -800,7 +802,7 @@ export default function EditSchedulePage() {
                   <Link2 className="w-4 h-4 text-blue-600" />
                   <div>
                     <p className="text-sm font-semibold text-blue-900">
-                      Linked to:{' '}
+                      {t('events.schedule.linkedTo')}{' '}
                       {linkedService?.code ? (
                         <a
                           href={`https://soluflow.app/service/code/${linkedService.code}`}
@@ -808,11 +810,11 @@ export default function EditSchedulePage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
                         >
-                          {link.serviceTitle || 'SoluFlow Service'}
+                          {link.serviceTitle || t('events.schedule.soluflowService')}
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        link.serviceTitle || 'SoluFlow Service'
+                        link.serviceTitle || t('events.schedule.soluflowService')
                       )}
                     </p>
                     <p className="text-xs text-blue-700">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
@@ -823,7 +825,7 @@ export default function EditSchedulePage() {
                     onClick={handleRefresh}
                     disabled={link.loading}
                     className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
-                    title="Refresh songs from SoluFlow"
+                    title={t('events.schedule.refreshSongs')}
                   >
                     <RefreshCw className={`w-4 h-4 ${link.loading ? 'animate-spin' : ''}`} />
                   </button>
@@ -832,14 +834,14 @@ export default function EditSchedulePage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Unlink className="w-3.5 h-3.5" />
-                    Unlink
+                    {t('events.schedule.unlink')}
                   </button>
                 </div>
               </div>
             ) : soluFlowMode === 'choose' ? (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
-                  Link an existing SoluFlow setlist or create a new one for this event.
+                  {t('events.schedule.linkExistingDesc')}
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -847,14 +849,14 @@ export default function EditSchedulePage() {
                     className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm font-medium text-gray-700"
                   >
                     <Link2 className="w-4 h-4" />
-                    Link Existing
+                    {t('events.schedule.linkExisting')}
                   </button>
                   <button
                     onClick={handleCreateInSoluFlow}
                     className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm font-medium text-gray-700"
                   >
                     <Plus className="w-4 h-4" />
-                    Create New
+                    {t('events.schedule.createNew')}
                   </button>
                 </div>
               </div>
@@ -862,13 +864,13 @@ export default function EditSchedulePage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Paste a SoluFlow link or service code to import songs.
+                    {t('events.schedule.pasteCodeDesc')}
                   </p>
                   <button
                     onClick={() => setSoluFlowMode('choose')}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Back
+                    {t('common.back')}
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -876,7 +878,7 @@ export default function EditSchedulePage() {
                     type="text"
                     value={link.input}
                     onChange={(e) => setLink(prev => ({ ...prev, input: e.target.value, error: '' }))}
-                    placeholder="e.g. soluflow.app/guest/ABCD or ABCD"
+                    placeholder={t('events.schedule.flowCodePlaceholder')}
                     className="input text-sm flex-1"
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLink() }}
                   />
@@ -886,9 +888,9 @@ export default function EditSchedulePage() {
                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     {link.loading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin mr-1.5 inline" />Linking...</>
+                      <><Loader2 className="w-4 h-4 animate-spin mr-1.5 inline" />{t('events.schedule.linking')}</>
                     ) : (
-                      <><Link2 className="w-4 h-4 mr-1.5 inline" />Link</>
+                      <><Link2 className="w-4 h-4 mr-1.5 inline" />{t('events.schedule.link')}</>
                     )}
                   </button>
                 </div>
@@ -904,15 +906,15 @@ export default function EditSchedulePage() {
 
       {/* Program Schedule */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Schedule</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.programSchedule')}</h3>
         <div className="overflow-x-auto">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProgramDragEnd}>
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -951,11 +953,11 @@ export default function EditSchedulePage() {
                                   }}
                                   className="input text-sm w-32"
                                 >
-                                  <option value="song">Song</option>
-                                  <option value="share">Share</option>
-                                  <option value="prayer">Prayer</option>
-                                  <option value="ministry">Ministry Time</option>
-                                  <option value="other">Other</option>
+                                  <option value="song">{t('events.itemTypes.song')}</option>
+                                  <option value="share">{t('events.itemTypes.share')}</option>
+                                  <option value="prayer">{t('events.itemTypes.prayer')}</option>
+                                  <option value="ministry">{t('events.itemTypes.ministry')}</option>
+                                  <option value="other">{t('events.itemTypes.other')}</option>
                                 </select>
                                 <div className="flex-1">
                                   {item.type === 'song' ? (
@@ -974,7 +976,7 @@ export default function EditSchedulePage() {
                                         }
                                         setProgramSchedule(updated)
                                       }}
-                                      placeholder="Search SoluFlow songs..."
+                                      placeholder={t('autocomplete.searchSongs')}
                                       className="input text-sm"
                                     />
                                   ) : item.type === 'prayer' ? (
@@ -990,7 +992,7 @@ export default function EditSchedulePage() {
                                         updated[index].prayer_leader_is_user = isUser || false
                                         setProgramSchedule(updated)
                                       }}
-                                      placeholder="Prayer leader"
+                                      placeholder={t('events.prayerLeader')}
                                       className="input text-sm"
                                     />
                                   ) : (
@@ -1003,7 +1005,7 @@ export default function EditSchedulePage() {
                                         setProgramSchedule(updated)
                                       }}
                                       className="input text-sm"
-                                      placeholder="e.g. Opening, Closing"
+                                      placeholder={t('events.schedule.programItemPlaceholder')}
                                       autoFocus
                                     />
                                   )}
@@ -1026,7 +1028,7 @@ export default function EditSchedulePage() {
                                         updated[index].person_is_user = isUser || false
                                         setProgramSchedule(updated)
                                       }}
-                                      placeholder="Leader"
+                                      placeholder={t('events.itemLabels.leader')}
                                       className="input text-sm"
                                     />
                                   </div>
@@ -1039,7 +1041,7 @@ export default function EditSchedulePage() {
                                       setProgramSchedule(updated)
                                     }}
                                     className="input text-sm w-20"
-                                    placeholder="Key"
+                                    placeholder={t('events.schedule.key')}
                                   />
                                   <input
                                     type="text"
@@ -1050,7 +1052,7 @@ export default function EditSchedulePage() {
                                       setProgramSchedule(updated)
                                     }}
                                     className="input text-sm w-20"
-                                    placeholder="BPM"
+                                    placeholder={t('events.schedule.bpm')}
                                   />
                                 </div>
                               )}
@@ -1072,7 +1074,7 @@ export default function EditSchedulePage() {
                                           updated[index].speaker_is_user = isUser || false
                                           setProgramSchedule(updated)
                                         }}
-                                        placeholder="Speaker"
+                                        placeholder={t('events.itemLabels.speaker')}
                                         className="input text-sm"
                                       />
                                     </div>
@@ -1086,7 +1088,7 @@ export default function EditSchedulePage() {
                                           setProgramSchedule(updated)
                                         }}
                                         className="input text-sm"
-                                        placeholder="Topic"
+                                        placeholder={t('events.topic')}
                                       />
                                     </div>
                                   </div>
@@ -1098,7 +1100,7 @@ export default function EditSchedulePage() {
                                       setProgramSchedule(updated)
                                     }}
                                     className="input text-sm"
-                                    placeholder="Key points or notes..."
+                                    placeholder={t('events.schedule.keyPointsPlaceholder')}
                                     rows={2}
                                   />
                                 </div>
@@ -1118,7 +1120,7 @@ export default function EditSchedulePage() {
                                         setProgramSchedule(updated)
                                       }}
                                       className="input text-sm flex-1"
-                                      placeholder="Prayer title"
+                                      placeholder={t('events.schedule.prayerTitlePlaceholder')}
                                     />
                                     <input
                                       type="text"
@@ -1129,7 +1131,7 @@ export default function EditSchedulePage() {
                                         setProgramSchedule(updated)
                                       }}
                                       className="input text-sm flex-1"
-                                      placeholder="Title translation"
+                                      placeholder={t('events.schedule.titleTranslationPlaceholder')}
                                     />
                                   </div>
 
@@ -1146,7 +1148,7 @@ export default function EditSchedulePage() {
                                       }}
                                       className="w-4 h-4 rounded border-gray-300"
                                     />
-                                    Use same verse for all points
+                                    {t('events.schedule.sameVerseForAll')}
                                   </label>
 
                                   {/* Shared bible ref (when same verse for all) */}
@@ -1164,7 +1166,7 @@ export default function EditSchedulePage() {
                                   {/* Prayer points */}
                                   <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                      <span className="text-xs font-semibold text-gray-500 uppercase">Prayer Points</span>
+                                      <span className="text-xs font-semibold text-gray-500 uppercase">{t('events.schedule.prayerPoints')}</span>
                                       <button
                                         type="button"
                                         onClick={() => {
@@ -1175,7 +1177,7 @@ export default function EditSchedulePage() {
                                         }}
                                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                                       >
-                                        + Add Point
+                                        {t('events.schedule.addPoint')}
                                       </button>
                                     </div>
 
@@ -1192,7 +1194,7 @@ export default function EditSchedulePage() {
                                               setProgramSchedule(updated)
                                             }}
                                             className="input text-sm flex-1"
-                                            placeholder="Point title"
+                                            placeholder={t('events.schedule.pointTitlePlaceholder')}
                                           />
                                           <input
                                             type="text"
@@ -1203,7 +1205,7 @@ export default function EditSchedulePage() {
                                               setProgramSchedule(updated)
                                             }}
                                             className="input text-sm flex-1"
-                                            placeholder="Point title translation"
+                                            placeholder={t('events.schedule.pointTitleTranslationPlaceholder')}
                                           />
                                           <button
                                             type="button"
@@ -1226,7 +1228,7 @@ export default function EditSchedulePage() {
                                               setProgramSchedule(updated)
                                             }}
                                             className="input text-sm flex-1"
-                                            placeholder="Description"
+                                            placeholder={t('common.description')}
                                             rows={1}
                                           />
                                           <textarea
@@ -1237,7 +1239,7 @@ export default function EditSchedulePage() {
                                               setProgramSchedule(updated)
                                             }}
                                             className="input text-sm flex-1"
-                                            placeholder="Description translation"
+                                            placeholder={t('events.schedule.descriptionTranslationPlaceholder')}
                                             rows={1}
                                           />
                                         </div>
@@ -1255,7 +1257,7 @@ export default function EditSchedulePage() {
                                     ))}
 
                                     {(!item.prayer_points || item.prayer_points.length === 0) && (
-                                      <p className="text-xs text-gray-400 italic">No points added yet</p>
+                                      <p className="text-xs text-gray-400 italic">{t('events.schedule.noPointsYet')}</p>
                                     )}
                                   </div>
                                 </div>
@@ -1277,7 +1279,7 @@ export default function EditSchedulePage() {
                                         updated[index].facilitator_is_user = isUser || false
                                         setProgramSchedule(updated)
                                       }}
-                                      placeholder="Facilitator"
+                                      placeholder={t('events.itemLabels.facilitator')}
                                       className="input text-sm"
                                     />
                                   </div>
@@ -1292,12 +1294,12 @@ export default function EditSchedulePage() {
                                       }}
                                       className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                                     />
-                                    <span className="ml-1.5 text-xs font-medium text-gray-700">Ministry Team</span>
+                                    <span className="ml-1.5 text-xs font-medium text-gray-700">{t('events.schedule.ministryTeam')}</span>
                                   </label>
                                 </div>
                               )}
 
-                              <button type="button" onClick={() => setEditingProgramItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
+                              <button type="button" onClick={() => setEditingProgramItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">{t('common.done')}</button>
                             </div>
                           ) : (
                             <button
@@ -1305,7 +1307,7 @@ export default function EditSchedulePage() {
                               onClick={() => setEditingProgramItem(index)}
                               className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
-                              <div className="font-semibold">{item.title || 'Click to edit'}</div>
+                              <div className="font-semibold">{item.title || t('common.clickToEdit')}</div>
                               {getItemDetails(item).length > 0 && (
                                 <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
                                   {getItemDetails(item).map((el, i) => (
@@ -1327,7 +1329,7 @@ export default function EditSchedulePage() {
                               if (editingProgramItem === index) setEditingProgramItem(null)
                             }}
                             className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Remove"
+                            title={t('common.remove')}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -1344,7 +1346,7 @@ export default function EditSchedulePage() {
             onClick={() => setProgramSchedule([...programSchedule, { offset_minutes: getNextProgramTime(), title: '', type: 'other', person: '', person_id: '', person_is_user: false, key: '', bpm: '', soluflow_song_id: undefined, speaker: '', speaker_id: '', speaker_is_user: false, topic: '', points: '', prayer_leader: '', prayer_leader_id: '', prayer_leader_is_user: false, facilitator: '', facilitator_id: '', facilitator_is_user: false, has_ministry_team: false }])}
             className="btn-secondary mt-3"
           >
-            + Add Program Item
+            {t('events.addProgramItem')}
           </button>
         </div>
       </div>
@@ -1355,7 +1357,7 @@ export default function EditSchedulePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Monitor className="w-5 h-5 text-teal-500" />
-              <h3 className="text-lg font-semibold text-gray-900">SoluCast Presentation</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('events.schedule.solucastPresentation')}</h3>
             </div>
             {!event?.setlist_id && (
               <button
@@ -1368,7 +1370,7 @@ export default function EditSchedulePage() {
                 ) : (
                   <Monitor className="w-3.5 h-3.5" />
                 )}
-                Generate SoluCast
+                {t('events.schedule.generateSolucast')}
               </button>
             )}
           </div>
@@ -1378,7 +1380,7 @@ export default function EditSchedulePage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Monitor className="w-4 h-4 text-teal-700" />
-                  <span className="text-sm font-semibold text-teal-900">SoluCast Linked</span>
+                  <span className="text-sm font-semibold text-teal-900">{t('events.schedule.solucastLinked')}</span>
                   <span className="text-xs text-teal-700">({linkedSetlist.itemCount} items)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -1386,27 +1388,27 @@ export default function EditSchedulePage() {
                     onClick={handleSyncSolucast}
                     disabled={syncing}
                     className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition-colors disabled:opacity-50"
-                    title="Sync setlist with current schedule"
+                    title={t('events.schedule.syncSongs')}
                   >
                     {syncing ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
                       <RefreshCw className="w-3 h-3" />
                     )}
-                    Sync
+                    {t('events.schedule.syncSongs')}
                   </button>
                   <button
                     onClick={handleUnlinkSolucast}
                     className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
-                    title="Unlink SoluCast setlist"
+                    title={t('events.schedule.unlinkService')}
                   >
                     <Unlink className="w-3 h-3" />
-                    Unlink
+                    {t('events.schedule.unlink')}
                   </button>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-gray-600">Share code:</span>
+                <span className="text-xs text-gray-600">{t('events.schedule.shareCode')}</span>
                 <code className="px-2 py-0.5 bg-white rounded border border-teal-200 text-sm font-mono font-bold text-teal-800 tracking-wider">
                   {linkedSetlist.shareCode}
                 </code>
@@ -1415,7 +1417,7 @@ export default function EditSchedulePage() {
                   className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-teal-700 hover:text-teal-800 hover:bg-teal-100 rounded transition-colors"
                 >
                   {codeCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {codeCopied ? 'Copied' : 'Copy'}
+                  {codeCopied ? t('common.copied') : t('events.schedule.copy')}
                 </button>
               </div>
               <a
@@ -1424,7 +1426,7 @@ export default function EditSchedulePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-teal-700 hover:text-teal-800 hover:underline"
               >
-                Open in SoluCast
+                {t('events.schedule.openInSolucast')}
                 <ExternalLink className="w-3 h-3" />
               </a>
               {syncMessage && (
@@ -1434,7 +1436,7 @@ export default function EditSchedulePage() {
           )}
 
           {!event?.setlist_id && !generatingSolucast && (
-            <p className="mt-2 text-sm text-gray-500">Generate a SoluCast setlist to broadcast songs during the event.</p>
+            <p className="mt-2 text-sm text-gray-500">{t('events.schedule.solucastDesc')}</p>
           )}
 
           {solucastError && (
@@ -1448,7 +1450,7 @@ export default function EditSchedulePage() {
       {/* Post-Event Schedule */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Post-Event Schedule</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('events.postEventSchedule')}</h3>
           <label className="flex items-center cursor-pointer">
             <input
               type="checkbox"
@@ -1456,7 +1458,7 @@ export default function EditSchedulePage() {
               onChange={(e) => setHasPostEvent(e.target.checked)}
               className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
             />
-            <span className="ml-2 text-sm font-semibold text-gray-700">Include Post-Event Schedule</span>
+            <span className="ml-2 text-sm font-semibold text-gray-700">{t('events.includePostEventSchedule')}</span>
           </label>
         </div>
 
@@ -1467,8 +1469,8 @@ export default function EditSchedulePage() {
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="w-8"></th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                     <th className="w-20"></th>
                   </tr>
                 </thead>
@@ -1505,7 +1507,7 @@ export default function EditSchedulePage() {
                                   setPostEventSchedule(updated)
                                 }}
                                 className="input text-sm"
-                                placeholder="e.g. Tear Down, Drive Home"
+                                placeholder={t('events.schedule.postEventItemPlaceholder')}
                                 autoFocus
                               />
                               <input
@@ -1517,9 +1519,9 @@ export default function EditSchedulePage() {
                                   setPostEventSchedule(updated)
                                 }}
                                 className="input text-sm"
-                                placeholder="Notes (optional)"
+                                placeholder={t('events.schedule.notesOptional')}
                               />
-                              <button type="button" onClick={() => setEditingPostEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
+                              <button type="button" onClick={() => setEditingPostEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">{t('common.done')}</button>
                             </div>
                           ) : (
                             <button
@@ -1527,7 +1529,7 @@ export default function EditSchedulePage() {
                               onClick={() => setEditingPostEventItem(index)}
                               className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
-                              <div className="font-semibold">{item.item || 'Click to edit'}</div>
+                              <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                               {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}
                             </button>
                           )}
@@ -1540,7 +1542,7 @@ export default function EditSchedulePage() {
                               if (editingPostEventItem === index) setEditingPostEventItem(null)
                             }}
                             className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Remove"
+                            title={t('common.remove')}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -1556,7 +1558,7 @@ export default function EditSchedulePage() {
               onClick={() => setPostEventSchedule([...postEventSchedule, { item: '', offset_minutes: getNextPostEventTime(), notes: '' }])}
               className="btn-secondary mt-3"
             >
-              + Add Post-Event Item
+              {t('events.addPostEventItem')}
             </button>
           </div>
         )}
@@ -1564,14 +1566,14 @@ export default function EditSchedulePage() {
 
       {/* Bottom Save */}
       <div className="flex justify-end gap-3">
-        <Link to={`/events/${id}`} className="btn-secondary">Cancel</Link>
+        <Link to={`/events/${id}`} className="btn-secondary">{t('common.cancel')}</Link>
         <button
           onClick={handleSave}
           disabled={updateEvent.isPending}
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4 mr-2 inline" />
-          {updateEvent.isPending ? 'Saving...' : 'Save Schedule'}
+          {updateEvent.isPending ? t('events.schedule.saving') : t('events.schedule.saveSchedule')}
         </button>
       </div>
     </div>

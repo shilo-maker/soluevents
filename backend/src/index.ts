@@ -1,3 +1,4 @@
+import http from 'http'
 import express, { Request, Response } from 'express'
 import path from 'path'
 import cors from 'cors'
@@ -20,6 +21,7 @@ import userSettingsRoutes from './routes/userSettings'
 import notificationRoutes from './routes/notifications'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
+import { setupSocketIO, closeIO } from './lib/socket'
 
 dotenv.config()
 
@@ -106,15 +108,20 @@ if (process.env.NODE_ENV === 'production') {
 // Error handling middleware
 app.use(errorHandler)
 
-const server = app.listen(port, () => {
+const httpServer = http.createServer(app)
+setupSocketIO(httpServer)
+
+httpServer.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
 })
 
 // Graceful shutdown
 const shutdown = () => {
   console.log('Shutting down gracefully...')
-  server.close(() => {
-    prisma.$disconnect().then(() => process.exit(0))
+  closeIO().then(() => {
+    httpServer.close(() => {
+      prisma.$disconnect().then(() => process.exit(0))
+    })
   })
   setTimeout(() => process.exit(1), 10000)
 }

@@ -1,4 +1,6 @@
 import { useState, useRef, useMemo, useLayoutEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts } from '@/hooks/useContacts'
 import Avatar from './Avatar'
@@ -15,9 +17,11 @@ export default function PersonHoverCard({
   contactId,
   className = '',
 }: PersonHoverCardProps) {
+  const { t } = useTranslation()
   const [show, setShow] = useState(false)
-  const [popupPos, setPopupPos] = useState<{ flipY: boolean; flipX: boolean } | null>(null)
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties | null>(null)
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const triggerRef = useRef<HTMLSpanElement>(null)
   const popupRef = useRef<HTMLSpanElement>(null)
   const { data: users } = useUsers()
   const { data: contacts } = useContacts()
@@ -32,14 +36,15 @@ export default function PersonHoverCard({
   }, [contactId, users, contacts])
 
   useLayoutEffect(() => {
-    if (!show || !popupRef.current) return
-    const parent = popupRef.current.parentElement
-    if (!parent) return
-    const triggerRect = parent.getBoundingClientRect()
+    if (!show || !triggerRef.current || !popupRef.current) return
+    const triggerRect = triggerRef.current.getBoundingClientRect()
     const popupRect = popupRef.current.getBoundingClientRect()
-    setPopupPos({
-      flipY: triggerRect.bottom + popupRect.height + 4 > window.innerHeight,
-      flipX: triggerRect.left + popupRect.width > window.innerWidth - 8,
+    const flipY = triggerRect.bottom + popupRect.height + 4 > window.innerHeight
+    const flipX = triggerRect.left + popupRect.width > window.innerWidth - 8
+    setPopupStyle({
+      position: 'fixed',
+      top: flipY ? triggerRect.top - popupRect.height - 4 : triggerRect.bottom + 4,
+      left: flipX ? triggerRect.right - popupRect.width : triggerRect.left,
     })
   }, [show])
 
@@ -47,10 +52,11 @@ export default function PersonHoverCard({
 
   return (
     <span
-      className={`relative inline-flex items-center gap-1.5 ${person ? 'cursor-default' : ''} ${className}`}
+      ref={triggerRef}
+      className={`inline-flex items-center gap-1.5 ${person ? 'cursor-default' : ''} ${className}`}
       onMouseEnter={() => {
         if (person) {
-          timeout.current = setTimeout(() => { setPopupPos(null); setShow(true) }, 400)
+          timeout.current = setTimeout(() => { setPopupStyle(null); setShow(true) }, 400)
         }
       }}
       onMouseLeave={() => {
@@ -64,16 +70,17 @@ export default function PersonHoverCard({
         <Avatar name={name} size="xs" />
       )}
       {name}
-      {show && person && (
+      {show && person && createPortal(
         <span
           ref={popupRef}
-          className={`absolute z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-4 pointer-events-none whitespace-nowrap ${popupPos ? '' : 'invisible'} ${popupPos?.flipY ? 'bottom-full mb-1' : 'top-full mt-1'} ${popupPos?.flipX ? 'right-0' : 'left-0'}`}
+          style={popupStyle ?? undefined}
+          className={`z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl p-4 pointer-events-none whitespace-nowrap ${popupStyle ? 'fixed' : 'fixed invisible'}`}
         >
           <span className="flex items-center gap-3 mb-2">
             <Avatar src={person.avatar_url} name={person.name} size="lg" />
             <span className="flex flex-col">
               <span className="font-semibold text-sm text-gray-900">{person.name}</span>
-              <span className="text-xs text-gray-400">{person.isUser ? 'Member' : 'Contact'}</span>
+              <span className="text-xs text-gray-400">{person.isUser ? t('common.member') : t('common.contactLabel')}</span>
             </span>
           </span>
           {person.email && (
@@ -85,7 +92,8 @@ export default function PersonHoverCard({
           {person.role && (
             <span className="block text-xs text-gray-500 capitalize">{person.role}</span>
           )}
-        </span>
+        </span>,
+        document.body
       )}
     </span>
   )

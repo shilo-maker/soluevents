@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useVenues, useCreateVenue } from '@/hooks/useVenues'
 import { MapPin, Plus } from 'lucide-react'
 import type { Venue } from '@/types'
@@ -15,9 +16,11 @@ export default function VenueAutocomplete({
   value,
   venueId,
   onChange,
-  placeholder = 'Search venues...',
+  placeholder,
   className = 'input',
 }: VenueAutocompleteProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('autocomplete.searchVenues')
   const [inputValue, setInputValue] = useState(value)
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -123,18 +126,18 @@ export default function VenueAutocomplete({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setShowDropdown(true)}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className={`${className} ${venueId ? 'pr-8' : ''}`}
         />
         {venueId && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2" title="Linked Venue">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2" title={t('venueAutocomplete.linkedVenue')}>
             <MapPin className="h-5 w-5 text-green-600" />
           </div>
         )}
       </div>
 
       {showDropdown && totalItems > 0 && (
-        <div className="absolute z-50 w-full mt-0 bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-0 bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-56 overflow-y-auto">
           {filtered.map((venue, index) => (
             <button
               key={venue.id}
@@ -149,7 +152,7 @@ export default function VenueAutocomplete({
                 <span className="font-semibold text-sm text-gray-900">{venue.name}</span>
               </div>
               <div className="text-xs text-gray-500 truncate ml-5.5">
-                {venue.address || 'No address'}
+                {venue.address || t('common.noAddress')}
               </div>
             </button>
           ))}
@@ -166,7 +169,7 @@ export default function VenueAutocomplete({
               <div className="flex items-center gap-2 text-green-700">
                 <Plus className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                  {createVenue.isPending ? 'Creating...' : `Create venue "${inputValue.trim()}"`}
+                  {createVenue.isPending ? t('common.creating') : t('venueAutocomplete.createVenue', { name: inputValue.trim() })}
                 </span>
               </div>
             </button>

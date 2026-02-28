@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
 import logo from '@/assets/logo.png'
 import type { AuthResponse, LoginCredentials } from '@/types'
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { setAuth } = useAuthStore()
@@ -28,7 +30,7 @@ export default function LoginPage() {
       setAuth(user, access_token, refresh_token)
       navigate(redirectTo, { replace: true })
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.')
+      setError(err.response?.data?.message || t('auth.loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -44,7 +46,7 @@ export default function LoginPage() {
               SoluPlan
             </h1>
             <p className="text-gray-600 font-medium">
-              Sign in to continue
+              {t('auth.signInContinue')}
             </p>
           </div>
 
@@ -58,7 +60,7 @@ export default function LoginPage() {
             <div className="space-y-5">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email address
+                  {t('auth.emailAddress')}
                 </label>
                 <input
                   id="email"
@@ -76,7 +78,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
+                  {t('common.password')}
                 </label>
                 <input
                   id="password"
@@ -106,10 +108,10 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Signing in...
+                    {t('auth.signingIn')}
                   </span>
                 ) : (
-                  'Sign in →'
+                  t('auth.signInArrow')
                 )}
               </button>
             </div>
@@ -120,7 +122,7 @@ export default function LoginPage() {
                 state={{ from: redirectTo !== '/' ? redirectTo : undefined }}
                 className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
               >
-                Don't have an account? <span className="underline">Sign up</span>
+                {t('auth.noAccount')} <span className="underline">{t('auth.signUp')}</span>
               </Link>
             </div>
           </form>

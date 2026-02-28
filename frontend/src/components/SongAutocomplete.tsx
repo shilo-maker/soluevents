@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { searchSongs, SoluFlowSong } from '@/lib/soluflowApi'
 import { Music } from 'lucide-react'
 
@@ -14,9 +15,11 @@ export default function SongAutocomplete({
   value,
   onChange,
   soluflowSongId,
-  placeholder = 'Search SoluFlow songs...',
+  placeholder,
   className = 'input',
 }: SongAutocompleteProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('autocomplete.searchSongs')
   const [inputValue, setInputValue] = useState(value)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestions, setSuggestions] = useState<SoluFlowSong[]>([])
@@ -136,11 +139,11 @@ export default function SongAutocomplete({
               setShowSuggestions(true)
             }
           }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className={`${className} ${soluflowSongId ? 'pr-8' : ''}`}
         />
         {soluflowSongId && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2" title="Linked to SoluFlow">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2" title={t('soluflow.linkedToSoluFlow')}>
             <Music className="h-5 w-5 text-blue-600" />
           </div>
         )}
@@ -148,7 +151,7 @@ export default function SongAutocomplete({
 
       {loading && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg px-4 py-3 text-sm text-gray-600">
-          Searching SoluFlow...
+          {t('soluflow.searching')}
         </div>
       )}
 
@@ -196,7 +199,7 @@ export default function SongAutocomplete({
 
       {!loading && showSuggestions && suggestions.length === 0 && inputValue.length >= 2 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg px-4 py-3 text-sm text-gray-500">
-          No songs found in SoluFlow
+          {t('soluflow.noSongsFound')}
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Plus, Loader2, Search, LayoutGrid, List as ListIcon, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useTasks } from '@/hooks/useTasks'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
@@ -12,6 +13,7 @@ import type { TaskStatus } from '@/types'
 type View = 'list' | 'kanban'
 
 export default function TasksPage() {
+  const { t } = useTranslation()
   const { user: _user } = useAuthStore()
   const [view, setView] = useState<View>('list')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -44,25 +46,25 @@ export default function TasksPage() {
     api.patch(`/tasks/${taskId}`, { status: newStatus }).then(() => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     }).catch((err: any) => {
-      showError(err.response?.data?.message || 'Failed to update task status')
+      showError(err.response?.data?.message || t('tasks.errors.failedUpdateStatus'))
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     })
-  }, [queryClient, showError])
+  }, [queryClient, showError, t])
 
   const handleUpdateTask = useCallback((taskId: string, data: Record<string, any>) => {
     api.patch(`/tasks/${taskId}`, data).then(() => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     }).catch((err: any) => {
-      showError(err.response?.data?.message || 'Failed to update task')
+      showError(err.response?.data?.message || t('tasks.errors.failedUpdate'))
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     })
-  }, [queryClient, showError])
+  }, [queryClient, showError, t])
 
   const handleUpdateLink = useCallback((taskId: string, link: string | null) => {
     api.patch(`/tasks/${taskId}`, { link }).then(() => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     }).catch((err: any) => {
-      showError(err.response?.data?.message || 'Failed to update link')
+      showError(err.response?.data?.message || t('tasks.errors.failedUpdateLink'))
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     })
   }, [queryClient, showError])
@@ -94,14 +96,14 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('tasks.title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Track and manage your tasks
+            {t('tasks.subtitle')}
           </p>
         </div>
         <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary">
           <Plus className="w-4 h-4 inline mr-2" />
-          New Task
+          {t('tasks.newTask')}
         </button>
       </div>
 
@@ -114,7 +116,7 @@ export default function TasksPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search tasks..."
+                placeholder={t('tasks.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="input pl-10"
@@ -128,8 +130,8 @@ export default function TasksPage() {
             onChange={(e) => setFilterAssignee(e.target.value)}
             className="input"
           >
-            <option value="me">My Tasks</option>
-            <option value="all">All Tasks</option>
+            <option value="me">{t('tasks.myTasks')}</option>
+            <option value="all">{t('tasks.allTasks')}</option>
           </select>
 
           <select
@@ -137,12 +139,12 @@ export default function TasksPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="input"
           >
-            <option value="all">All Status</option>
-            <option value="not_started">Not Started</option>
-            <option value="in_progress">In Progress</option>
-            <option value="waiting">Waiting</option>
-            <option value="blocked">Blocked</option>
-            <option value="done">Done</option>
+            <option value="all">{t('tasks.allStatus')}</option>
+            <option value="not_started">{t('tasks.status.not_started')}</option>
+            <option value="in_progress">{t('tasks.status.in_progress')}</option>
+            <option value="waiting">{t('tasks.status.waiting')}</option>
+            <option value="blocked">{t('tasks.status.blocked')}</option>
+            <option value="done">{t('tasks.status.done')}</option>
           </select>
 
           <select
@@ -150,10 +152,10 @@ export default function TasksPage() {
             onChange={(e) => setFilterPriority(e.target.value)}
             className="input"
           >
-            <option value="all">All Priority</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
+            <option value="all">{t('tasks.allPriority')}</option>
+            <option value="critical">{t('tasks.priority.critical')}</option>
+            <option value="high">{t('tasks.priority.high')}</option>
+            <option value="normal">{t('tasks.priority.normal')}</option>
           </select>
 
           {/* View Toggle */}
@@ -165,7 +167,7 @@ export default function TasksPage() {
                   ? 'bg-primary-100 text-primary-700'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
-              title="List View"
+              title={t('tasks.listView')}
             >
               <ListIcon className="w-4 h-4" />
             </button>
@@ -176,7 +178,7 @@ export default function TasksPage() {
                   ? 'bg-primary-100 text-primary-700'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
-              title="Kanban View"
+              title={t('tasks.kanbanView')}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -190,7 +192,7 @@ export default function TasksPage() {
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
           <span className="text-sm">{error}</span>
           <button onClick={() => setError('')} className="ml-auto text-red-500 hover:text-red-700 text-sm font-medium">
-            Dismiss
+            {t('common.dismiss')}
           </button>
         </div>
       )}
@@ -218,11 +220,11 @@ export default function TasksPage() {
         )
       ) : (
         <div className="card text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('tasks.noTasksFound')}</h3>
           <p className="text-sm text-gray-500 mb-4">
             {debouncedSearch || filterStatus !== 'all' || filterPriority !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Get started by creating your first task'}
+              ? t('tasks.tryAdjustingFilters')
+              : t('tasks.getStarted')}
           </p>
           {!debouncedSearch && filterStatus === 'all' && filterPriority === 'all' && (
             <button
@@ -230,7 +232,7 @@ export default function TasksPage() {
               className="btn-primary"
             >
               <Plus className="w-4 h-4 inline mr-2" />
-              Create Task
+              {t('tasks.createTask')}
             </button>
           )}
         </div>

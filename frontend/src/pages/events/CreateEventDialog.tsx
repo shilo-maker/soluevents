@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useCreateEvent } from '@/hooks/useEvents'
 import { useUpdateVenue } from '@/hooks/useVenues'
@@ -25,18 +26,19 @@ interface CreateEventDialogProps {
   initialData?: InitialEventData
 }
 
-const eventTypes = [
-  { value: 'worship', label: 'Worship Night', icon: '🎵', description: 'Evening worship service with music and prayer' },
-  { value: 'in_house', label: 'In-House Event', icon: '🏛️', description: 'Internal event at your venue' },
-  { value: 'film', label: 'Film Production', icon: '🎬', description: 'Video recording or film project' },
-  { value: 'tour_child', label: 'Tour Event', icon: '🚌', description: 'Part of a multi-city tour' },
-]
-
 export default function CreateEventDialog({ isOpen, onClose, initialData }: CreateEventDialogProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const createEvent = useCreateEvent()
   const updateVenue = useUpdateVenue()
   const programAgendaRef = useRef<object | undefined>(undefined)
+
+  const eventTypes = [
+    { value: 'worship', label: t('events.types.worship'), icon: '🎵', description: t('events.types.worshipDesc') },
+    { value: 'in_house', label: t('events.types.inHouse'), icon: '🏛️', description: t('events.types.inHouseDesc') },
+    { value: 'film', label: t('events.types.film'), icon: '🎬', description: t('events.types.filmDesc') },
+    { value: 'tour_child', label: t('events.types.tourEvent'), icon: '🚌', description: t('events.types.tourEventDesc') },
+  ]
 
   const isDuplicate = !!initialData
 
@@ -78,15 +80,15 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
     setError('')
 
     if (!formData.event_date) {
-      setError('Event date is required')
+      setError(t('events.errors.dateRequired'))
       return
     }
     if (!formData.event_time) {
-      setError('Event start time is required')
+      setError(t('events.errors.startTimeRequired'))
       return
     }
     if (!formData.location_name.trim()) {
-      setError('Venue name is required')
+      setError(t('events.errors.venueRequired'))
       return
     }
 
@@ -123,7 +125,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
       onClose()
       navigate(`/events/${event.id}`)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create event')
+      setError(err.response?.data?.message || t('events.errors.failedToCreate'))
     }
   }
 
@@ -155,7 +157,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-semibold text-gray-900">{isDuplicate ? 'Duplicate Event' : 'Create New Event'}</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{isDuplicate ? t('events.duplicateEvent') : t('events.createNewEvent')}</h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -170,7 +172,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
 
           {/* Event Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.eventType')}</label>
             <div className="flex gap-2">
               {eventTypes.map((type) => (
                 <button
@@ -193,7 +195,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.date')} *</label>
               <input
                 type="date"
                 value={formData.event_date}
@@ -202,7 +204,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.startTime')} *</label>
               <input
                 type="time"
                 value={formData.event_time}
@@ -214,8 +216,8 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
 
           {/* Venue */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Venue *</label>
-            <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-teal-500">
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.venue')} *</label>
+            <div className="border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-teal-500">
               <VenueAutocomplete
                 value={formData.location_name}
                 venueId={formData.venue_id || undefined}
@@ -227,7 +229,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
                     venue_id: venueId || '',
                   })
                 }}
-                placeholder="Venue name"
+                placeholder={t('events.venuePlaceholder')}
                 className="w-full px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm"
               />
               <div className="border-t border-gray-200">
@@ -241,7 +243,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
                     }
                   }}
                   className="w-full px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm text-gray-600"
-                  placeholder="Address or Google Maps link (optional)"
+                  placeholder={t('events.addressPlaceholder')}
                 />
               </div>
             </div>
@@ -249,43 +251,43 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.eventTitle')}</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="input"
-              placeholder="e.g., Summer Worship Night 2025"
+              placeholder={t('events.eventTitlePlaceholder')}
             />
-            <p className="text-xs text-gray-400 mt-1">Leave blank to auto-generate from type and date</p>
+            <p className="text-xs text-gray-400 mt-1">{t('events.titleAutoGenerate')}</p>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.description')}</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="input"
               rows={3}
-              placeholder="Brief description of the event..."
+              placeholder={t('events.descriptionPlaceholder')}
             />
           </div>
 
           {/* Tags & Attendance */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.tags')}</label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 className="input"
-                placeholder="worship, summer"
+                placeholder={t('events.tagsPlaceholder')}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expected Attendance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.expectedAttendance')}</label>
               <input
                 type="number"
                 value={formData.est_attendance}
@@ -300,14 +302,14 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={handleClose} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={createEvent.isPending}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createEvent.isPending ? 'Creating...' : isDuplicate ? 'Create Copy' : 'Create Event'}
+              {createEvent.isPending ? t('events.creating') : isDuplicate ? t('events.createCopy') : t('events.createEvent')}
             </button>
           </div>
         </form>

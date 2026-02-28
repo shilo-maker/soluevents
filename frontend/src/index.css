@@ -13,6 +13,11 @@
   input, textarea, select, [contenteditable="true"] {
     caret-color: auto;
   }
+
+  /* Hebrew font for RTL */
+  [dir="rtl"] {
+    font-family: 'Heebo', sans-serif;
+  }
 }
 
 @layer components {

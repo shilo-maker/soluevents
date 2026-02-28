@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Camera, Trash2, Loader2 } from 'lucide-react'
 import type { Area } from 'react-easy-crop'
 import Avatar from './Avatar'
@@ -14,6 +15,7 @@ interface AvatarUploadProps {
 }
 
 export default function AvatarUpload({ src, name, onUpload, onRemove, loading }: AvatarUploadProps) {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const [compressing, setCompressing] = useState(false)
   const [cropFile, setCropFile] = useState<File | null>(null)
@@ -79,7 +81,7 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-50"
         >
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-          Change Photo
+          {t('avatarUpload.changePhoto')}
         </button>
         {src && (
           <button
@@ -89,7 +91,7 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
-            Remove
+            {t('avatarUpload.removePhoto')}
           </button>
         )}
       </div>

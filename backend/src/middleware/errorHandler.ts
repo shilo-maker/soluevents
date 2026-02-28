@@ -40,6 +40,12 @@ export const errorHandler = (
         message: 'Record not found',
       })
     }
+    if (err.code === 'P2023') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid ID format',
+      })
+    }
   }
 
   console.error('ERROR:', err)

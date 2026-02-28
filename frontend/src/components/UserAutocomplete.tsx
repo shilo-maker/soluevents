@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useUsers } from '@/hooks/useUsers'
 import type { User } from '@/types'
 
@@ -14,9 +15,11 @@ export default function UserAutocomplete({
   value,
   onChange,
   userId,
-  placeholder = 'Enter name...',
+  placeholder,
   className = 'input',
 }: UserAutocompleteProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('autocomplete.searchUsers')
   const [inputValue, setInputValue] = useState(value)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
@@ -109,11 +112,11 @@ export default function UserAutocomplete({
               setShowSuggestions(true)
             }
           }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           className={`${className} ${userId ? 'pr-8' : ''}`}
         />
         {userId && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600" title="Registered User">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-green-600" title={t('contacts.registeredUser')}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
             </svg>

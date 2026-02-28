@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface BibleRef {
   book: string
@@ -126,6 +127,7 @@ interface BibleRefPickerProps {
 }
 
 export default function BibleRefPicker({ value, onChange, className }: BibleRefPickerProps) {
+  const { t } = useTranslation()
   const ref = useMemo(() => parseBibleRef(value), [value])
 
   const selectedBook = BIBLE_BOOKS.find((b) => b.name === ref.book)
@@ -143,13 +145,13 @@ export default function BibleRefPicker({ value, onChange, className }: BibleRefP
         onChange={(e) => update({ book: e.target.value, chapter: null, verseStart: null, verseEnd: null })}
         className="input text-xs w-32"
       >
-        <option value="">Book</option>
-        <optgroup label="Old Testament">
+        <option value="">{t('bibleRef.book')}</option>
+        <optgroup label={t('bibleRef.oldTestament')}>
           {BIBLE_BOOKS.slice(0, 39).map((b) => (
             <option key={b.name} value={b.name}>{b.name}</option>
           ))}
         </optgroup>
-        <optgroup label="New Testament">
+        <optgroup label={t('bibleRef.newTestament')}>
           {BIBLE_BOOKS.slice(39).map((b) => (
             <option key={b.name} value={b.name}>{b.name}</option>
           ))}
@@ -165,7 +167,7 @@ export default function BibleRefPicker({ value, onChange, className }: BibleRefP
           }}
           className="input text-xs w-15"
         >
-          <option value="">Ch.</option>
+          <option value="">{t('bibleRef.chapter')}</option>
           {Array.from({ length: chapterCount }, (_, i) => i + 1).map((ch) => (
             <option key={ch} value={ch}>{ch}</option>
           ))}
@@ -183,7 +185,7 @@ export default function BibleRefPicker({ value, onChange, className }: BibleRefP
               update({ verseStart: v })
             }}
             className="input text-xs w-13"
-            placeholder="v."
+            placeholder={t('bibleRef.verseStart')}
           />
           <span className="text-gray-400 text-xs">-</span>
           <input
@@ -195,7 +197,7 @@ export default function BibleRefPicker({ value, onChange, className }: BibleRefP
               update({ verseEnd: v })
             }}
             className="input text-xs w-13"
-            placeholder="to"
+            placeholder={t('bibleRef.verseEnd')}
           />
         </>
       )}

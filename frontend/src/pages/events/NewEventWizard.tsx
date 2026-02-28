@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { X, ArrowRight, ArrowLeft, Check, Save, GripVertical } from 'lucide-react'
 import { useCreateEvent, useEvent, useUpdateEvent } from '@/hooks/useEvents'
 import { useUsers } from '@/hooks/useUsers'
@@ -123,18 +124,19 @@ interface FormData {
   special_requirements: string
 }
 
-const steps = [
-  { id: 1, name: 'Template', description: 'Choose event type' },
-  { id: 2, name: 'Basics', description: 'Event details' },
-  { id: 3, name: 'Schedule', description: 'Timeline & program' },
-  { id: 4, name: 'Rider', description: 'Worship team & tech' },
-  { id: 5, name: 'Review', description: 'Confirm details' },
-]
-
 export default function NewEventWizard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
+
+  const steps = [
+    { id: 1, name: t('events.wizard.template'), description: t('events.wizard.templateDesc') },
+    { id: 2, name: t('events.wizard.basics'), description: t('events.wizard.basicsDesc') },
+    { id: 3, name: t('events.wizard.schedule'), description: t('events.wizard.scheduleDesc') },
+    { id: 4, name: t('events.wizard.rider'), description: t('events.wizard.riderDesc') },
+    { id: 5, name: t('events.wizard.review'), description: t('events.wizard.reviewDesc') },
+  ]
   const isEditMode = !!id
 
   const createEvent = useCreateEvent()
@@ -763,7 +765,7 @@ export default function NewEventWizard() {
   }, [users, contacts, isEditMode])
 
   const clearDraft = () => {
-    if (confirm('Are you sure you want to clear the saved draft?')) {
+    if (confirm(t('events.confirmClearDraft'))) {
       localStorage.removeItem(DRAFT_KEY)
       navigate('/events')
     }
@@ -772,27 +774,27 @@ export default function NewEventWizard() {
   const eventTypes = [
     {
       value: 'worship',
-      label: 'Worship Night',
+      label: t('events.types.worship'),
       icon: '🎵',
-      description: 'Evening worship service with music and prayer'
+      description: t('events.types.worshipDesc')
     },
     {
       value: 'in_house',
-      label: 'In-House Event',
+      label: t('events.types.inHouse'),
       icon: '🏛️',
-      description: 'Internal event at your venue'
+      description: t('events.types.inHouseDesc')
     },
     {
       value: 'film',
-      label: 'Film Production',
+      label: t('events.types.film'),
       icon: '🎬',
-      description: 'Video recording or film project'
+      description: t('events.types.filmDesc')
     },
     {
       value: 'tour_child',
-      label: 'Tour Event',
+      label: t('events.types.tourEvent'),
       icon: '🚌',
-      description: 'Part of a multi-city tour'
+      description: t('events.types.tourEventDesc')
     },
   ]
 
@@ -800,11 +802,11 @@ export default function NewEventWizard() {
     // Validation for each step
     if (currentStep === 2) {
       if (!formData.event_date) {
-        setError('Event date is required')
+        setError(t('events.errors.dateRequired'))
         return
       }
       if (!formData.location_name.trim()) {
-        setError('Venue name is required')
+        setError(t('events.errors.venueRequired'))
         return
       }
     }
@@ -825,7 +827,7 @@ export default function NewEventWizard() {
     setError('')
 
     if (!formData.event_date || !formData.location_name.trim()) {
-      setError('Please complete all required fields')
+      setError(t('events.errors.completeRequired'))
       return
     }
 
@@ -887,7 +889,7 @@ export default function NewEventWizard() {
         navigate(`/events/${event.id}`)
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} event`)
+      setError(err.response?.data?.message || (isEditMode ? t('events.errors.failedToUpdate') : t('events.errors.failedToCreate')))
     }
   }
 
@@ -897,8 +899,8 @@ export default function NewEventWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text mb-2">Choose Event Type</h2>
-              <p className="text-gray-600">Select the type of event you want to create</p>
+              <h2 className="text-3xl font-bold gradient-text mb-2">{t('events.wizard.chooseEventType')}</h2>
+              <p className="text-gray-600">{t('events.wizard.chooseEventTypeDesc')}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {eventTypes.map((type) => (
@@ -925,13 +927,13 @@ export default function NewEventWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text mb-2">Event Details</h2>
-              <p className="text-gray-600">Tell us about your event</p>
+              <h2 className="text-3xl font-bold gradient-text mb-2">{t('events.eventDetails')}</h2>
+              <p className="text-gray-600">{t('events.wizard.eventDetailsDesc')}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Date *
+                  {t('common.date')} *
                 </label>
                 <input
                   type="date"
@@ -942,7 +944,7 @@ export default function NewEventWizard() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Time *
+                  {t('events.startTime')} *
                 </label>
                 <input
                   type="time"
@@ -954,7 +956,7 @@ export default function NewEventWizard() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Venue *
+                {t('events.venue')} *
               </label>
               <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-teal-500">
                 <VenueAutocomplete
@@ -968,7 +970,7 @@ export default function NewEventWizard() {
                       venue_id: venueId || '',
                     })
                   }}
-                  placeholder="Venue name"
+                  placeholder={t('events.venuePlaceholder')}
                   className="w-full px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm"
                 />
                 <div className="border-t border-gray-200">
@@ -982,50 +984,50 @@ export default function NewEventWizard() {
                       }
                     }}
                     className="w-full px-3 py-2 border-0 focus:ring-0 focus:outline-none text-sm text-gray-600"
-                    placeholder="Address or Google Maps link (optional)"
+                    placeholder={t('events.addressPlaceholder')}
                   />
                 </div>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Event Title
+                {t('events.eventTitle')}
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="input"
-                placeholder="e.g., Summer Worship Night 2025"
+                placeholder={t('events.eventTitlePlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Description
+                {t('events.description')}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="input"
                 rows={4}
-                placeholder="Brief description of the event..."
+                placeholder={t('events.descriptionPlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tags (comma-separated)
+                {t('events.tagsCommaSeparated')}
               </label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 className="input"
-                placeholder="worship, summer, special"
+                placeholder={t('events.tagsPlaceholder')}
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Expected Attendance
+                {t('events.expectedAttendance')}
               </label>
               <input
                 type="number"
@@ -1056,13 +1058,13 @@ export default function NewEventWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text mb-2">Event Schedule</h2>
-              <p className="text-gray-600">Plan your timeline and program</p>
+              <h2 className="text-3xl font-bold gradient-text mb-2">{t('events.eventSchedule')}</h2>
+              <p className="text-gray-600">{t('events.wizard.scheduleDesc2')}</p>
             </div>
 
             {/* Pre-Event Schedule */}
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Pre-Event Schedule</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.preEventSchedule')}</h3>
               <div className="overflow-x-auto">
                 <DndContext
                   sensors={sensors}
@@ -1073,8 +1075,8 @@ export default function NewEventWizard() {
                     <thead>
                       <tr className="border-b-2 border-gray-200">
                         <th className="w-8"></th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                         <th className="w-20"></th>
                       </tr>
                     </thead>
@@ -1117,7 +1119,7 @@ export default function NewEventWizard() {
                                       setFormData({ ...formData, pre_event_schedule: newSchedule })
                                     }}
                                     className="input text-sm"
-                                    placeholder="e.g. Arrival, Soundcheck"
+                                    placeholder={t('events.schedule.preEventItemPlaceholder')}
                                     autoFocus
                                   />
                                   <input
@@ -1129,14 +1131,14 @@ export default function NewEventWizard() {
                                       setFormData({ ...formData, pre_event_schedule: newSchedule })
                                     }}
                                     className="input text-sm"
-                                    placeholder="Notes (optional)"
+                                    placeholder={t('events.schedule.notesOptional')}
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setEditingPreEventItem(null)}
                                     className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                   >
-                                    Done
+                                    {t('common.done')}
                                   </button>
                                 </div>
                               ) : (
@@ -1145,7 +1147,7 @@ export default function NewEventWizard() {
                                   onClick={() => setEditingPreEventItem(index)}
                                   className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                 >
-                                  <div className="font-semibold">{item.item || 'Click to edit'}</div>
+                                  <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                                   {item.notes && (
                                     <div className="text-xs text-gray-600 mt-1">
                                       {item.notes}
@@ -1163,7 +1165,7 @@ export default function NewEventWizard() {
                                   if (editingPreEventItem === index) setEditingPreEventItem(null)
                                 }}
                                 className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                title="Remove"
+                                title={t('common.remove')}
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -1184,14 +1186,14 @@ export default function NewEventWizard() {
                   }}
                   className="btn-secondary mt-3"
                 >
-                  + Add Pre-Event Item
+                  {t('events.addPreEventItem')}
                 </button>
               </div>
             </div>
 
             {/* Program Schedule */}
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Schedule</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.programSchedule')}</h3>
               <div className="overflow-x-auto">
                 <DndContext
                   sensors={sensors}
@@ -1202,8 +1204,8 @@ export default function NewEventWizard() {
                     <thead>
                       <tr className="border-b-2 border-gray-200">
                         <th className="w-8"></th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                         <th className="w-20"></th>
                       </tr>
                     </thead>
@@ -1218,17 +1220,17 @@ export default function NewEventWizard() {
                             const parts: React.ReactNode[] = []
                             if (item.type === 'song') {
                               if (item.person) parts.push(<PersonHoverCard key="person" name={item.person} contactId={item.person_id} isUser={item.person_is_user} />)
-                              if (item.key) parts.push(<span key="key">Key: {item.key}</span>)
-                              if (item.bpm) parts.push(<span key="bpm">BPM: {item.bpm}</span>)
+                              if (item.key) parts.push(<span key="key">{t('events.itemLabels.key')}: {item.key}</span>)
+                              if (item.bpm) parts.push(<span key="bpm">{t('events.itemLabels.bpm')}: {item.bpm}</span>)
                             } else if (item.type === 'share') {
-                              if (item.speaker) parts.push(<span key="speaker">Speaker: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
-                              if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
+                              if (item.speaker) parts.push(<span key="speaker">{t('events.itemLabels.speaker')}: <PersonHoverCard name={item.speaker} contactId={item.speaker_id} isUser={item.speaker_is_user} /></span>)
+                              if (item.topic) parts.push(<span key="topic">{t('events.itemLabels.topic')}: {item.topic}</span>)
                             } else if (item.type === 'prayer') {
-                              if (item.prayer_leader) parts.push(<span key="leader">Leader: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
-                              if (item.topic) parts.push(<span key="topic">Topic: {item.topic}</span>)
+                              if (item.prayer_leader) parts.push(<span key="leader">{t('events.itemLabels.leader')}: <PersonHoverCard name={item.prayer_leader} contactId={item.prayer_leader_id} isUser={item.prayer_leader_is_user} /></span>)
+                              if (item.topic) parts.push(<span key="topic">{t('events.itemLabels.topic')}: {item.topic}</span>)
                             } else if (item.type === 'ministry') {
-                              if (item.facilitator) parts.push(<span key="facilitator">Facilitator: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
-                              if (item.has_ministry_team) parts.push(<span key="ministry">Ministry Team</span>)
+                              if (item.facilitator) parts.push(<span key="facilitator">{t('events.itemLabels.facilitator')}: <PersonHoverCard name={item.facilitator} contactId={item.facilitator_id} isUser={item.facilitator_is_user} /></span>)
+                              if (item.has_ministry_team) parts.push(<span key="ministry">{t('events.itemLabels.ministryTeam')}</span>)
                             }
                             return parts
                           }
@@ -1268,11 +1270,11 @@ export default function NewEventWizard() {
                                         }}
                                         className="input text-sm w-32"
                                       >
-                                        <option value="song">Song</option>
-                                        <option value="share">Share</option>
-                                        <option value="prayer">Prayer</option>
-                                        <option value="ministry">Ministry Time</option>
-                                        <option value="other">Other</option>
+                                        <option value="song">{t('events.itemTypes.song')}</option>
+                                        <option value="share">{t('events.itemTypes.share')}</option>
+                                        <option value="prayer">{t('events.itemTypes.prayer')}</option>
+                                        <option value="ministry">{t('events.itemTypes.ministry')}</option>
+                                        <option value="other">{t('events.itemTypes.other')}</option>
                                       </select>
                                       <div className="flex-1">
                                         {item.type === 'song' ? (
@@ -1291,7 +1293,7 @@ export default function NewEventWizard() {
                                               }
                                               setFormData({ ...formData, program_schedule: newSchedule })
                                             }}
-                                            placeholder="Search SoluFlow songs..."
+                                            placeholder={t('autocomplete.searchSongs')}
                                             className="input text-sm"
                                           />
                                         ) : (
@@ -1304,7 +1306,7 @@ export default function NewEventWizard() {
                                               setFormData({ ...formData, program_schedule: newSchedule })
                                             }}
                                             className="input text-sm"
-                                            placeholder="e.g. Prayer Time, Opening, Closing"
+                                            placeholder={t('events.schedule.programItemPlaceholder')}
                                             autoFocus
                                           />
                                         )}
@@ -1327,7 +1329,7 @@ export default function NewEventWizard() {
                                               newSchedule[index].person_is_user = isUser || false
                                               setFormData({ ...formData, program_schedule: newSchedule })
                                             }}
-                                            placeholder="Leader"
+                                            placeholder={t('events.itemLabels.leader')}
                                             className="input text-sm"
                                           />
                                         </div>
@@ -1340,7 +1342,7 @@ export default function NewEventWizard() {
                                             setFormData({ ...formData, program_schedule: newSchedule })
                                           }}
                                           className="input text-sm w-20"
-                                          placeholder="Key"
+                                          placeholder={t('events.itemLabels.key')}
                                         />
                                         <input
                                           type="text"
@@ -1351,7 +1353,7 @@ export default function NewEventWizard() {
                                             setFormData({ ...formData, program_schedule: newSchedule })
                                           }}
                                           className="input text-sm w-20"
-                                          placeholder="BPM"
+                                          placeholder={t('events.itemLabels.bpm')}
                                         />
                                       </div>
                                     )}
@@ -1373,7 +1375,7 @@ export default function NewEventWizard() {
                                                 newSchedule[index].speaker_is_user = isUser || false
                                                 setFormData({ ...formData, program_schedule: newSchedule })
                                               }}
-                                              placeholder="Speaker"
+                                              placeholder={t('events.itemLabels.speaker')}
                                               className="input text-sm"
                                             />
                                           </div>
@@ -1387,7 +1389,7 @@ export default function NewEventWizard() {
                                                 setFormData({ ...formData, program_schedule: newSchedule })
                                               }}
                                               className="input text-sm"
-                                              placeholder="Topic"
+                                              placeholder={t('events.itemLabels.topic')}
                                             />
                                           </div>
                                         </div>
@@ -1399,7 +1401,7 @@ export default function NewEventWizard() {
                                             setFormData({ ...formData, program_schedule: newSchedule })
                                           }}
                                           className="input text-sm"
-                                          placeholder="Key points or notes..."
+                                          placeholder={t('events.schedule.keyPointsPlaceholder')}
                                           rows={2}
                                         />
                                       </div>
@@ -1422,7 +1424,7 @@ export default function NewEventWizard() {
                                                 newSchedule[index].prayer_leader_is_user = isUser || false
                                                 setFormData({ ...formData, program_schedule: newSchedule })
                                               }}
-                                              placeholder="Prayer leader"
+                                              placeholder={t('events.prayerLeader')}
                                               className="input text-sm"
                                             />
                                           </div>
@@ -1436,7 +1438,7 @@ export default function NewEventWizard() {
                                                 setFormData({ ...formData, program_schedule: newSchedule })
                                               }}
                                               className="input text-sm"
-                                              placeholder="Prayer focus"
+                                              placeholder={t('events.wizard.prayerFocus')}
                                             />
                                           </div>
                                         </div>
@@ -1448,7 +1450,7 @@ export default function NewEventWizard() {
                                             setFormData({ ...formData, program_schedule: newSchedule })
                                           }}
                                           className="input text-sm"
-                                          placeholder="Prayer points or scriptures..."
+                                          placeholder={t('events.wizard.prayerPointsPlaceholder')}
                                           rows={2}
                                         />
                                       </div>
@@ -1470,7 +1472,7 @@ export default function NewEventWizard() {
                                               newSchedule[index].facilitator_is_user = isUser || false
                                               setFormData({ ...formData, program_schedule: newSchedule })
                                             }}
-                                            placeholder="Facilitator"
+                                            placeholder={t('events.itemLabels.facilitator')}
                                             className="input text-sm"
                                           />
                                         </div>
@@ -1495,7 +1497,7 @@ export default function NewEventWizard() {
                                       onClick={() => setEditingProgramItem(null)}
                                       className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                     >
-                                      Done
+                                      {t('common.done')}
                                     </button>
                                   </div>
                                 ) : (
@@ -1504,7 +1506,7 @@ export default function NewEventWizard() {
                                     onClick={() => setEditingProgramItem(index)}
                                     className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                   >
-                                    <div className="font-semibold">{item.title || 'Click to edit'}</div>
+                                    <div className="font-semibold">{item.title || t('common.clickToEdit')}</div>
                                     {getDetailsElements().length > 0 && (
                                       <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
                                         {getDetailsElements().map((el, i) => (
@@ -1527,7 +1529,7 @@ export default function NewEventWizard() {
                                     if (editingProgramItem === index) setEditingProgramItem(null)
                                   }}
                                   className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Remove"
+                                  title={t('common.remove')}
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
@@ -1549,7 +1551,7 @@ export default function NewEventWizard() {
                   }}
                   className="btn-secondary mt-3"
                 >
-                  + Add Program Item
+                  {t('events.addProgramItem')}
                 </button>
               </div>
             </div>
@@ -1557,7 +1559,7 @@ export default function NewEventWizard() {
             {/* Post-Event Schedule */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Post-Event Schedule</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('events.postEventSchedule')}</h3>
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -1565,7 +1567,7 @@ export default function NewEventWizard() {
                     onChange={(e) => setFormData({ ...formData, has_post_event_schedule: e.target.checked })}
                     className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
                   />
-                  <span className="ml-2 text-sm font-semibold text-gray-700">Include Post-Event Schedule</span>
+                  <span className="ml-2 text-sm font-semibold text-gray-700">{t('events.includePostEventSchedule')}</span>
                 </label>
               </div>
 
@@ -1580,8 +1582,8 @@ export default function NewEventWizard() {
                       <thead>
                         <tr className="border-b-2 border-gray-200">
                           <th className="w-8"></th>
-                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">Time</th>
-                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">Item</th>
+                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                           <th className="w-20"></th>
                         </tr>
                       </thead>
@@ -1624,7 +1626,7 @@ export default function NewEventWizard() {
                                         setFormData({ ...formData, post_event_schedule: newSchedule })
                                       }}
                                       className="input text-sm"
-                                      placeholder="e.g. Tear Down, Drive Home"
+                                      placeholder={t('events.schedule.postEventItemPlaceholder')}
                                       autoFocus
                                     />
                                     <input
@@ -1636,14 +1638,14 @@ export default function NewEventWizard() {
                                         setFormData({ ...formData, post_event_schedule: newSchedule })
                                       }}
                                       className="input text-sm"
-                                      placeholder="Notes (optional)"
+                                      placeholder={t('events.schedule.notesOptional')}
                                     />
                                     <button
                                       type="button"
                                       onClick={() => setEditingPostEventItem(null)}
                                       className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                     >
-                                      Done
+                                      {t('common.done')}
                                     </button>
                                   </div>
                                 ) : (
@@ -1652,7 +1654,7 @@ export default function NewEventWizard() {
                                     onClick={() => setEditingPostEventItem(index)}
                                     className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                   >
-                                    <div className="font-semibold">{item.item || 'Click to edit'}</div>
+                                    <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                                     {item.notes && (
                                       <div className="text-xs text-gray-600 mt-1">
                                         {item.notes}
@@ -1670,7 +1672,7 @@ export default function NewEventWizard() {
                                     if (editingPostEventItem === index) setEditingPostEventItem(null)
                                   }}
                                   className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                  title="Remove"
+                                  title={t('common.remove')}
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
@@ -1691,7 +1693,7 @@ export default function NewEventWizard() {
                     }}
                     className="btn-secondary mt-3"
                   >
-                    + Add Post-Event Item
+                    {t('events.addPostEventItem')}
                   </button>
                 </div>
               )}
@@ -1703,19 +1705,19 @@ export default function NewEventWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text mb-2">Technical Rider</h2>
-              <p className="text-gray-600">Worship team and technical requirements</p>
+              <h2 className="text-3xl font-bold gradient-text mb-2">{t('events.technicalRider')}</h2>
+              <p className="text-gray-600">{t('events.wizard.riderDesc2')}</p>
             </div>
 
             {/* Worship Team Section */}
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Worship Team</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.worshipTeam')}</h3>
               <div className="space-y-4">
                 {(formData.worship_team || []).map((member, memberIndex) => (
                   <div key={memberIndex} className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.role')}</label>
                         <input
                           type="text"
                           value={member.role}
@@ -1728,7 +1730,7 @@ export default function NewEventWizard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                         <ContactAutocomplete
                           value={member.person}
                           contactId={member.contact_id}
@@ -1742,7 +1744,7 @@ export default function NewEventWizard() {
                             newTeam[memberIndex].user_id = contactId || ''
                             setFormData({ ...formData, worship_team: newTeam })
                           }}
-                          placeholder="Enter name..."
+                          placeholder={t('events.wizard.enterName')}
                           className="input text-sm"
                         />
                       </div>
@@ -1770,14 +1772,14 @@ export default function NewEventWizard() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-xs font-semibold text-gray-600">
-                          {member.role === 'Drums' && member.eDrums ? 'Needs for E-Drums Setup' : 'Needs'}
+                          {member.role === 'Drums' && member.eDrums ? t('events.needsEDrums') : t('events.needs')}
                         </label>
                         <button
                           type="button"
                           onClick={() => setEditingNeedsIndex(editingNeedsIndex === memberIndex ? null : memberIndex)}
                           className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
                         >
-                          {editingNeedsIndex === memberIndex ? 'Done' : 'Edit'}
+                          {editingNeedsIndex === memberIndex ? t('common.done') : t('common.edit')}
                         </button>
                       </div>
 
@@ -1799,7 +1801,7 @@ export default function NewEventWizard() {
                                   setFormData({ ...formData, worship_team: newTeam })
                                 }}
                                 className="input text-sm flex-1"
-                                placeholder="Needed item"
+                                placeholder={t('events.wizard.neededItem')}
                               />
                               <button
                                 type="button"
@@ -1814,7 +1816,7 @@ export default function NewEventWizard() {
                                 }}
                                 className="btn-secondary text-sm"
                               >
-                                Remove
+                                {t('common.remove')}
                               </button>
                             </div>
                           ))}
@@ -1834,7 +1836,7 @@ export default function NewEventWizard() {
                             }}
                             className="btn-secondary text-sm"
                           >
-                            + Add Need
+                            {t('events.addNeed')}
                           </button>
                           <button
                             type="button"
@@ -1845,7 +1847,7 @@ export default function NewEventWizard() {
                             }}
                             className="btn-secondary text-sm mt-2"
                           >
-                            Remove Team Member
+                            {t('events.removeTeamMember')}
                           </button>
                         </div>
                       ) : (
@@ -1872,7 +1874,7 @@ export default function NewEventWizard() {
                   }}
                   className="btn-secondary"
                 >
-                  + Add Team Member
+                  {t('events.addTeamMember')}
                 </button>
               </div>
             </div>
@@ -1880,7 +1882,7 @@ export default function NewEventWizard() {
             {/* Prayer Leader Section */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Prayer Leader</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('events.prayerLeader')}</h3>
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -1888,14 +1890,14 @@ export default function NewEventWizard() {
                     onChange={(e) => setFormData({ ...formData, has_prayer_leader: e.target.checked })}
                     className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
                   />
-                  <span className="ml-2 text-sm font-semibold text-gray-700">Include Prayer Leader</span>
+                  <span className="ml-2 text-sm font-semibold text-gray-700">{t('events.includePrayerLeader')}</span>
                 </label>
               </div>
 
               {formData.has_prayer_leader && (
                 <div className="space-y-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-orange-200">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Person</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">{t('events.person')}</label>
                     <ContactAutocomplete
                       value={formData.prayer_leader.person}
                       contactId={formData.prayer_leader.user_id}
@@ -1904,12 +1906,12 @@ export default function NewEventWizard() {
                         ...formData,
                         prayer_leader: { ...formData.prayer_leader, person: name, user_id: contactId, is_user: isUser }
                       })}
-                      placeholder="Enter name..."
+                      placeholder={t('events.wizard.enterName')}
                       className="input"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Topic</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">{t('events.topic')}</label>
                     <input
                       type="text"
                       value={formData.prayer_leader.topic}
@@ -1918,11 +1920,11 @@ export default function NewEventWizard() {
                         prayer_leader: { ...formData.prayer_leader, topic: e.target.value }
                       })}
                       className="input"
-                      placeholder="Prayer topic or theme"
+                      placeholder={t('events.wizard.prayerTopicPlaceholder')}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">{t('events.description')}</label>
                     <textarea
                       value={formData.prayer_leader.description}
                       onChange={(e) => setFormData({
@@ -1931,7 +1933,7 @@ export default function NewEventWizard() {
                       })}
                       className="input"
                       rows={3}
-                      placeholder="Additional details or notes"
+                      placeholder={t('events.wizard.additionalDetailsPlaceholder')}
                     />
                   </div>
                 </div>
@@ -1940,14 +1942,14 @@ export default function NewEventWizard() {
 
             {/* Production Team Section */}
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Production Team</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.productionTeam')}</h3>
               <div className="space-y-4">
                 {/* Soundman */}
                 <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Soundman</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">{t('events.soundman')}</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                       <ContactAutocomplete
                         value={formData.production_team.soundman.person}
                         contactId={formData.production_team.soundman.contact_id}
@@ -1960,13 +1962,13 @@ export default function NewEventWizard() {
                             soundman: { ...formData.production_team.soundman, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
-                        placeholder="Enter name..."
+                        placeholder={t('events.wizard.enterName')}
                         className="input text-sm"
                       />
                     </div>
                     {!formData.production_team.soundman.contact_id && (
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Contact</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.contact')}</label>
                         <input
                           type="text"
                           value={formData.production_team.soundman.contact}
@@ -1978,7 +1980,7 @@ export default function NewEventWizard() {
                             }
                           })}
                           className="input text-sm"
-                          placeholder="Phone or email (only needed if not in database)"
+                          placeholder={t('events.wizard.contactInfoPlaceholder')}
                         />
                       </div>
                     )}
@@ -1987,10 +1989,10 @@ export default function NewEventWizard() {
 
                 {/* Projection */}
                 <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Projection</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">{t('events.projection')}</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                       <ContactAutocomplete
                         value={formData.production_team.projection.person}
                         contactId={formData.production_team.projection.contact_id}
@@ -2003,13 +2005,13 @@ export default function NewEventWizard() {
                             projection: { ...formData.production_team.projection, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
-                        placeholder="Enter name..."
+                        placeholder={t('events.wizard.enterName')}
                         className="input text-sm"
                       />
                     </div>
                     {!formData.production_team.projection.contact_id && (
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Contact</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.contact')}</label>
                         <input
                           type="text"
                           value={formData.production_team.projection.contact}
@@ -2021,7 +2023,7 @@ export default function NewEventWizard() {
                             }
                           })}
                           className="input text-sm"
-                          placeholder="Phone or email (only needed if not in database)"
+                          placeholder={t('events.wizard.contactInfoPlaceholder')}
                         />
                       </div>
                     )}
@@ -2030,10 +2032,10 @@ export default function NewEventWizard() {
 
                 {/* Host */}
                 <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Host</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">{t('events.host')}</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">{t('events.person')}</label>
                       <ContactAutocomplete
                         value={formData.production_team.host.person}
                         contactId={formData.production_team.host.contact_id}
@@ -2046,13 +2048,13 @@ export default function NewEventWizard() {
                             host: { ...formData.production_team.host, person: name, contact_id: contactId || '', is_user: isUser || false, user_id: contactId || '' }
                           }
                         })}
-                        placeholder="Enter name..."
+                        placeholder={t('events.wizard.enterName')}
                         className="input text-sm"
                       />
                     </div>
                     {!formData.production_team.host.contact_id && (
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Contact</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">{t('common.contact')}</label>
                         <input
                           type="text"
                           value={formData.production_team.host.contact}
@@ -2064,7 +2066,7 @@ export default function NewEventWizard() {
                             }
                           })}
                           className="input text-sm"
-                          placeholder="Phone or email (only needed if not in database)"
+                          placeholder={t('events.wizard.contactInfoPlaceholder')}
                         />
                       </div>
                     )}
@@ -2079,57 +2081,57 @@ export default function NewEventWizard() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold gradient-text mb-2">Review & Confirm</h2>
-              <p className="text-gray-600">Check your event details before creating</p>
+              <h2 className="text-3xl font-bold gradient-text mb-2">{t('events.wizard.reviewConfirm')}</h2>
+              <p className="text-gray-600">{t('events.wizard.reviewConfirmDesc')}</p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-6 space-y-4">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Event Type</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.eventType')}</p>
                 <p className="text-lg font-bold text-gray-900 capitalize">{formData.type.replace('_', ' ')}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Title</p>
-                <p className="text-lg font-bold text-gray-900">{formData.title || 'Not set'}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.eventTitle')}</p>
+                <p className="text-lg font-bold text-gray-900">{formData.title || t('common.notSet')}</p>
               </div>
               {formData.description && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Description</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.description')}</p>
                   <p className="text-sm text-gray-700">{formData.description}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Event Date & Time</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.eventDateTime')}</p>
                 <p className="text-sm font-bold text-gray-900">
                   {formData.event_date
                     ? `${new Date(formData.event_date).toLocaleDateString()} ${formData.event_time}`
-                    : 'Not set'}
+                    : t('common.notSet')}
                 </p>
               </div>
               {formData.address && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Location</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.location')}</p>
                   <p className="text-sm font-bold text-gray-900">{formData.address}</p>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Phase</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.phase')}</p>
                   <p className="text-sm font-bold text-gray-900 capitalize">{formData.phase.replace('_', ' ')}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Status</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.statusLabel')}</p>
                   <p className="text-sm font-bold text-gray-900 capitalize">{formData.status}</p>
                 </div>
               </div>
               {formData.program_schedule.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Program Schedule ({formData.program_schedule.length} items)</p>
-                  <p className="text-xs text-gray-600">View full schedule in Step 5</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.programScheduleCount', { count: formData.program_schedule.length })}</p>
+                  <p className="text-xs text-gray-600">{t('events.viewFullSchedule')}</p>
                 </div>
               )}
               {formData.has_post_event_schedule && formData.post_event_schedule.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Post-Event Schedule ({formData.post_event_schedule.length} items)</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.postEventScheduleCount', { count: formData.post_event_schedule.length })}</p>
                   <p className="text-xs text-gray-600">
                     {formData.post_event_schedule.map((item, index) => (
                       <span key={index}>
@@ -2142,16 +2144,16 @@ export default function NewEventWizard() {
               )}
               {(formData.contact_person || formData.contact_phone || formData.special_requirements) && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Technical Rider</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{t('events.technicalRider')}</p>
                   {formData.contact_person && (
-                    <p className="text-sm text-gray-700">Contact: {formData.contact_person}</p>
+                    <p className="text-sm text-gray-700">{t('common.contact')}: {formData.contact_person}</p>
                   )}
                   {formData.contact_phone && (
-                    <p className="text-sm text-gray-700">Phone: {formData.contact_phone}</p>
+                    <p className="text-sm text-gray-700">{t('common.phone')}: {formData.contact_phone}</p>
                   )}
                   <p className="text-sm text-gray-700">
-                    Soundman: {formData.soundman_needed ? 'Yes' : 'No'} |
-                    Projection: {formData.projection_needed ? 'Yes' : 'No'}
+                    {t('events.soundman')}: {formData.soundman_needed ? t('common.yes') : t('common.no')} |
+                    {t('events.projection')}: {formData.projection_needed ? t('common.yes') : t('common.no')}
                   </p>
                   {formData.special_requirements && (
                     <p className="text-sm text-gray-700 mt-1">{formData.special_requirements}</p>
@@ -2171,7 +2173,7 @@ export default function NewEventWizard() {
   if (isEditMode && eventLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600">Loading event data...</div>
+        <div className="text-gray-600">{t('events.loadingEventData')}</div>
       </div>
     )
   }
@@ -2210,11 +2212,11 @@ export default function NewEventWizard() {
       {/* Header with draft indicator */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Event' : 'Create New Event'}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? t('events.editEvent') : t('events.createNewEvent')}</h1>
           {draftSaved && !isEditMode && (
             <p className="text-sm text-green-600 flex items-center mt-1">
               <Save className="w-4 h-4 mr-1" />
-              Draft saved automatically
+              {t('events.draftSaved')}
             </p>
           )}
         </div>
@@ -2224,7 +2226,7 @@ export default function NewEventWizard() {
             className="btn-secondary text-sm"
           >
             <X className="w-4 h-4 mr-1" />
-            Clear Draft & Exit
+            {t('events.clearDraftExit')}
           </button>
         )}
       </div>
@@ -2308,7 +2310,7 @@ export default function NewEventWizard() {
           className="btn-secondary"
         >
           <ArrowLeft className="w-4 h-4 mr-2 inline" />
-          {(currentStep === 1 || (isEditMode && currentStep === 2)) ? 'Cancel' : 'Previous'}
+          {(currentStep === 1 || (isEditMode && currentStep === 2)) ? t('common.cancel') : t('events.previous')}
         </button>
 
         <div className="flex gap-3">
@@ -2317,7 +2319,7 @@ export default function NewEventWizard() {
             <>
               {currentStep < steps.length && (
                 <button onClick={handleNext} className="btn-secondary">
-                  Next
+                  {t('events.next')}
                   <ArrowRight className="w-4 h-4 ml-2 inline" />
                 </button>
               )}
@@ -2326,14 +2328,14 @@ export default function NewEventWizard() {
                 disabled={updateEvent.isPending}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {updateEvent.isPending ? 'Updating...' : 'Update Event ✨'}
+                {updateEvent.isPending ? t('events.updating') : t('events.updateEvent')}
               </button>
             </>
           ) : (
             // Create mode: Show Next or Create button
             currentStep < steps.length ? (
               <button onClick={handleNext} className="btn-primary">
-                Next
+                {t('events.next')}
                 <ArrowRight className="w-4 h-4 ml-2 inline" />
               </button>
             ) : (
@@ -2342,7 +2344,7 @@ export default function NewEventWizard() {
                 disabled={createEvent.isPending}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createEvent.isPending ? 'Creating...' : 'Create Event ✨'}
+                {createEvent.isPending ? t('events.creating') : t('events.createEvent')}
               </button>
             )
           )}

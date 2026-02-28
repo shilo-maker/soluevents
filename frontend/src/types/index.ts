@@ -262,6 +262,7 @@ export interface Task {
   assignee_is_user?: boolean
   creator_id: string
   parent_task_id?: string
+  comment_count?: number
   created_at: string
   updated_at: string
 }
@@ -286,6 +287,7 @@ export interface Comment {
   mentions: string[]
   created_at: string
   updated_at: string
+  author?: { id: string; name: string | null; email: string }
 }
 
 // File
@@ -333,6 +335,10 @@ export interface NotificationPayload {
   removed_by_name?: string
   member_name?: string
   action?: 'accept' | 'decline'
+  task_id?: string
+  task_title?: string
+  commenter_name?: string
+  comment_body?: string
   [key: string]: unknown
 }
 
