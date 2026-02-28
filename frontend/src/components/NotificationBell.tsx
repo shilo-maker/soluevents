@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Bell, Building2, Music, UserX, UserCheck, Check, X, Loader2, CheckCheck, Trash2, MessageCircle, Send } from 'lucide-react'
+import { Bell, Building2, Music, UserX, UserCheck, Check, X, Loader2, CheckCheck, Trash2, MessageCircle, Send, Clock, CalendarClock } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNotifications, useNotificationCounts, useMarkAllAsRead, useClearNotifications, useDeleteNotification } from '@/hooks/useNotifications'
@@ -195,6 +195,8 @@ export default function NotificationBell() {
     const isTeamRemoved = n.type === 'event_team_removed'
     const isTeamResponse = n.type === 'event_team_response'
     const isTaskComment = n.type === 'task_comment'
+    const isTaskReminder = n.type === 'task_deadline_reminder'
+    const isEventReminder = n.type === 'event_reminder'
     const payload = n.payload || {}
     const isActing = actingId === n.id
     const hasActions = isInvite || isTeamInvite
@@ -216,18 +218,24 @@ export default function NotificationBell() {
     ) : <strong>{payload.task_title || t('notifications.aTask')}</strong>
 
     // Choose icon + gradient based on notification type
-    const IconComponent = isTaskComment ? MessageCircle : isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
-    const iconGradient = isTaskComment
-      ? 'from-blue-500 to-indigo-500'
-      : isTeamRemoved
-        ? 'from-red-400 to-orange-400'
-        : isTeamResponse
-          ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
-          : isTeamInvite
-            ? 'from-teal-500 to-green-500'
-            : 'from-teal-500 to-cyan-500'
+    const IconComponent = isTaskReminder ? Clock : isEventReminder ? CalendarClock : isTaskComment ? MessageCircle : isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
+    const iconGradient = isTaskReminder
+      ? 'from-orange-400 to-amber-500'
+      : isEventReminder
+        ? 'from-purple-500 to-indigo-500'
+        : isTaskComment
+          ? 'from-blue-500 to-indigo-500'
+          : isTeamRemoved
+            ? 'from-red-400 to-orange-400'
+            : isTeamResponse
+              ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
+              : isTeamInvite
+                ? 'from-teal-500 to-green-500'
+                : 'from-teal-500 to-cyan-500'
     const bgHighlight = isUnread
-      ? isTaskComment ? 'bg-blue-50/50'
+      ? isTaskReminder ? 'bg-orange-50/50'
+        : isEventReminder ? 'bg-purple-50/50'
+        : isTaskComment ? 'bg-blue-50/50'
         : isTeamRemoved ? 'bg-red-50/50'
         : isTeamResponse ? (payload.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50')
         : isTeamInvite ? 'bg-teal-50/50'
@@ -244,7 +252,27 @@ export default function NotificationBell() {
             <IconComponent className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            {isTaskComment ? (
+            {isTaskReminder ? (
+              <p className="text-sm text-gray-900">
+                <Link
+                  to={payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks'}
+                  onClick={closeDropdown}
+                  className="hover:underline"
+                >
+                  {t(`notifications.reminder.${payload.reminder_key || 'task_24h'}`, { title: payload.task_title || t('notifications.aTask') })}
+                </Link>
+              </p>
+            ) : isEventReminder ? (
+              <p className="text-sm text-gray-900">
+                <Link
+                  to={payload.event_id ? `/events/${payload.event_id}` : '/'}
+                  onClick={closeDropdown}
+                  className="hover:underline"
+                >
+                  {t(`notifications.reminder.${payload.reminder_key || 'event_24h'}`, { title: payload.event_title || t('notifications.anEvent') })}
+                </Link>
+              </p>
+            ) : isTaskComment ? (
               <p className="text-sm text-gray-900">
                 <strong>{payload.commenter_name || t('notifications.someone')}</strong>{' '}
                 {t('notifications.commentedOn')} {taskLink}

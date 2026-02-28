@@ -40,6 +40,22 @@ function buildPushContent(type: string, payload: Record<string, any>): PushConte
         body: `${payload.commenter_name || ''} הגיב על: ${payload.task_title || ''}`,
         url: payload.event_id ? `/events/${payload.event_id}` : '/tasks',
       }
+    case 'task_deadline_reminder': {
+      const taskWindow = payload.reminder_key === 'task_1h' ? 'שעה' : 'יום'
+      return {
+        title: 'תזכורת משימה',
+        body: `${payload.task_title || 'משימה'} — בעוד ${taskWindow}`,
+        url: payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks',
+      }
+    }
+    case 'event_reminder': {
+      const eventWindow = payload.reminder_key === 'event_2h' ? 'שעתיים' : 'יום'
+      return {
+        title: 'תזכורת אירוע',
+        body: `${payload.event_title || 'אירוע'} — בעוד ${eventWindow}`,
+        url: payload.event_id ? `/events/${payload.event_id}` : '/',
+      }
+    }
     default:
       return {
         title: 'SoluPlan',

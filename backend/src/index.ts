@@ -23,6 +23,7 @@ import pushRoutes from './routes/push'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
 import { setupSocketIO, closeIO } from './lib/socket'
+import { startReminderScheduler, stopReminderScheduler } from './lib/reminderScheduler'
 
 dotenv.config()
 
@@ -115,11 +116,13 @@ setupSocketIO(httpServer)
 
 httpServer.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
+  startReminderScheduler()
 })
 
 // Graceful shutdown
 const shutdown = () => {
   console.log('Shutting down gracefully...')
+  stopReminderScheduler()
   closeIO().then(() => {
     httpServer.close(() => {
       prisma.$disconnect().then(() => process.exit(0))

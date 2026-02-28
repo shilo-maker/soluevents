@@ -341,6 +341,7 @@ export interface NotificationPayload {
   task_title?: string
   commenter_name?: string
   comment_body?: string
+  reminder_key?: string
   [key: string]: unknown
 }
 

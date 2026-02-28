@@ -257,6 +257,7 @@ model User {
   memberInvitesReceived WorkspaceMemberInvite[] @relation("MemberInviteRecipient")
   memberInvitesSent     WorkspaceMemberInvite[] @relation("MemberInviteSender")
   pushSubscriptions     PushSubscription[]
+  sentReminders         SentReminder[]
 
   // --- SoluCast relations (Group A) ---
   operatedRooms              Room[]
@@ -1192,4 +1193,20 @@ model PushSubscription {
 
   @@index([user_id])
   @@map("push_subscriptions")
+}
+
+model SentReminder {
+  id           String   @id @default(uuid()) @db.Uuid
+  entity_type  String   @db.VarChar(10)
+  entity_id    String   @db.Uuid
+  user_id      String   @db.Uuid
+  reminder_key String   @db.VarChar(20)
+  sent_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([entity_type, entity_id, user_id, reminder_key])
+  @@index([sent_at])
+  @@map("sent_reminders")
 }
