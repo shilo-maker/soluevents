@@ -1,9 +1,10 @@
 import { useState, useEffect, memo } from 'react'
-import { CheckCircle2, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save } from 'lucide-react'
+import { Circle, CheckCircle2, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save } from 'lucide-react'
 import { formatDate, isWithinDays, isPast } from '@/lib/utils'
 import Badge from './Badge'
 import ContactAutocomplete from './ContactAutocomplete'
 import PersonHoverCard from './PersonHoverCard'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import type { Task, TaskPriority, TaskStatus, User } from '@/types'
 
 interface TaskCardProps {
@@ -18,10 +19,11 @@ interface TaskCardProps {
   onUpdateTask?: (taskId: string, data: Partial<Task>) => void
 }
 
-function TaskCard({ task, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
+function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
   const [isEditingLink, setIsEditingLink] = useState(false)
   const [linkValue, setLinkValue] = useState(task.link || '')
   const [isEditingTask, setIsEditingTask] = useState(false)
+  const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null)
 
   // Determine initial assignee name and contact info for the autocomplete
   const initialAssigneeName = task.assignee?.name || task.assignee?.email || task.assignee_contact?.name || task.assignee_contact?.email || ''
@@ -63,6 +65,8 @@ function TaskCard({ task, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps)
       })
       setLinkValue(task.link || '')
     }
+    // Reset optimistic state when server data arrives
+    setOptimisticDone(null)
   }, [task])
 
   const priorityColors = {
@@ -71,10 +75,23 @@ function TaskCard({ task, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps)
     normal: 'default',
   } as const
 
-  const isDone = task.status === 'done'
+  const wsRole = useWorkspaceStore((s) => s.activeWorkspace?.role)
+  const userId = currentUser?.id
+
+  // Permission: assignee, creator, org admin, or workspace admin/planner
+  const isAssignee = !!(userId && (
+    task.assignee_id === userId ||
+    task.assignee?.id === userId ||
+    task.creator_id === userId
+  ))
+  const isPrivileged = currentUser?.org_role === 'admin' || wsRole === 'admin' || wsRole === 'planner'
+  const canToggle = !!onToggle && (isAssignee || isPrivileged)
+  const canEditTask = !!onUpdateTask && (isAssignee || isPrivileged)
+
+
+  const isDone = optimisticDone ?? (task.status === 'done')
   const isOverdue = task.due_at && isPast(task.due_at) && !isDone
   const isDueSoon = task.due_at && isWithinDays(task.due_at, 3) && !isDone
-  const canEditTask = !!onUpdateTask
 
   const handleSaveLink = () => {
     onUpdateLink?.(task.id, linkValue || null)
@@ -240,22 +257,26 @@ function TaskCard({ task, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps)
   }
 
   return (
-    <div className="card hover:shadow-md transition-shadow duration-200">
+    <div className={`card transition-all duration-300 ${isDone ? 'opacity-60 hover:opacity-80' : 'hover:shadow-md'}`}>
       <div className="flex items-start gap-3">
-        <button
-          onClick={() =>
-            onToggle?.(task.id, isDone ? 'not_started' : 'done')
-          }
-          className="mt-1 flex-shrink-0"
-        >
-          <CheckCircle2
-            className={`w-5 h-5 ${
-              isDone
-                ? 'text-green-500 fill-green-500'
-                : 'text-gray-300 hover:text-gray-400'
-            }`}
-          />
-        </button>
+        {canToggle && (
+          <button
+            onClick={() => {
+              const newDone = !isDone
+              setOptimisticDone(newDone)
+              onToggle?.(task.id, newDone ? 'done' : 'not_started')
+            }}
+            className="mt-1 flex-shrink-0 group"
+          >
+            {isDone ? (
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center transition-all duration-300 group-hover:bg-gray-300">
+                <Check className="w-3 h-3 text-white stroke-[3]" />
+              </div>
+            ) : (
+              <Circle className="w-5 h-5 text-gray-300 transition-all duration-300 group-hover:text-green-400 group-hover:scale-110" />
+            )}
+          </button>
+        )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-2">

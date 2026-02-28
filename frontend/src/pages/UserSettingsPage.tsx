@@ -118,7 +118,7 @@ export default function UserSettingsPage() {
       {/* Profile */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <User className="w-5 h-5 text-purple-600" />
+          <User className="w-5 h-5 text-teal-600" />
           <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
         </div>
 
@@ -147,7 +147,7 @@ export default function UserSettingsPage() {
       {/* Email Settings */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <Mail className="w-5 h-5 text-purple-600" />
+          <Mail className="w-5 h-5 text-teal-600" />
           <h2 className="text-lg font-semibold text-gray-900">Email Settings</h2>
         </div>
 
@@ -162,11 +162,11 @@ export default function UserSettingsPage() {
             </p>
 
             <details className="mb-4 group">
-              <summary className="text-sm text-purple-600 cursor-pointer hover:text-purple-700 font-medium">
+              <summary className="text-sm text-teal-600 cursor-pointer hover:text-teal-700 font-medium">
                 Gmail setup instructions
               </summary>
-              <div className="mt-2 p-3 bg-purple-50 rounded-lg text-sm text-gray-700 space-y-1.5">
-                <p><strong>1.</strong> Go to <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-purple-600 underline hover:text-purple-700">myaccount.google.com/security</a></p>
+              <div className="mt-2 p-3 bg-teal-50 rounded-lg text-sm text-gray-700 space-y-1.5">
+                <p><strong>1.</strong> Go to <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-teal-600 underline hover:text-teal-700">myaccount.google.com/security</a></p>
                 <p><strong>2.</strong> Make sure <strong>2-Step Verification</strong> is turned on</p>
                 <p><strong>3.</strong> Search for <strong>"App Passwords"</strong> in your Google Account settings</p>
                 <p><strong>4.</strong> Create a new App Password (name it "SoluPlan" or anything you like)</p>
@@ -211,7 +211,7 @@ export default function UserSettingsPage() {
                   id="smtp-secure"
                   checked={smtpSecure}
                   onChange={(e) => setSmtpSecure(e.target.checked)}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                 />
                 <label htmlFor="smtp-secure" className="text-sm font-medium text-gray-700">
                   Use SSL/TLS (port 465)

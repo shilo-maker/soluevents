@@ -106,7 +106,7 @@ export default function MemberInviteResponsePage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Workspace Invitation</h1>
           <p className="text-gray-600 mb-6">You've been invited to join a workspace</p>
 
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 mb-6">
+          <div className="bg-gradient-to-br from-teal-50 to-teal-50 rounded-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-3">{invite.workspace.name}</h2>
             <div className="space-y-1 text-sm text-gray-600">
               <p>

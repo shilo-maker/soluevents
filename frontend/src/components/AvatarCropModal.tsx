@@ -68,7 +68,7 @@ export default function AvatarCropModal({ imageUrl, onConfirm, onCancel }: Avata
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-purple-600"
+            className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-teal-600"
           />
           <ZoomIn className="w-4 h-4 text-gray-400 flex-shrink-0" />
         </div>
@@ -85,7 +85,7 @@ export default function AvatarCropModal({ imageUrl, onConfirm, onCancel }: Avata
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
           >
             <Check className="w-4 h-4" />
             Apply

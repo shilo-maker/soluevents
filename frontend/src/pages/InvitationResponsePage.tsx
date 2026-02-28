@@ -78,7 +78,7 @@ export default function InvitationResponsePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
       </div>
     )
   }
@@ -92,7 +92,7 @@ export default function InvitationResponsePage() {
           <p className="text-gray-600 mb-4">{error || 'This invitation link is invalid.'}</p>
           <button
             onClick={fetchInvitation}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-600 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try again
@@ -111,10 +111,10 @@ export default function InvitationResponsePage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 max-w-lg w-full overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 px-8 py-6 text-center border-b border-gray-100">
+        <div className="bg-gradient-to-br from-teal-50 to-teal-50 px-8 py-6 text-center border-b border-gray-100">
           <div className="flex items-center justify-center gap-2 mb-1">
             <img src={logoSm} alt="SoluPlan" className="w-5 h-5 rounded" />
-            <h1 className="text-sm font-semibold text-purple-600">SoluPlan</h1>
+            <h1 className="text-sm font-semibold text-teal-600">SoluPlan</h1>
           </div>
           <h2 className="text-2xl font-bold text-gray-900">{invitation.event.title}</h2>
         </div>
@@ -147,7 +147,7 @@ export default function InvitationResponsePage() {
             <ul className="space-y-1">
               {invitation.roles_summary.map((r, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 flex-shrink-0" />
                   {r.source === 'team' ? (
                     <span><strong>{r.team_name}</strong> — {r.role}</span>
                   ) : (
@@ -200,7 +200,7 @@ export default function InvitationResponsePage() {
                 <button
                   onClick={() => handleRespond(invitation.status === 'confirmed' ? 'declined' : 'confirmed')}
                   disabled={!!respondingAs}
-                  className="text-purple-600 hover:text-purple-800 font-medium underline"
+                  className="text-teal-600 hover:text-teal-800 font-medium underline"
                 >
                   {invitation.status === 'confirmed' ? 'Decline instead' : 'Confirm instead'}
                 </button>

@@ -4,8 +4,14 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 text-gray-900;
+    @apply bg-gradient-to-br from-gray-50 via-teal-50/30 to-cyan-50/30 text-gray-900;
     min-height: 100vh;
+    caret-color: transparent;
+  }
+
+  /* Re-enable caret in actual input elements */
+  input, textarea, select, [contenteditable="true"] {
+    caret-color: auto;
   }
 }
 
@@ -15,7 +21,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 focus:ring-blue-400;
+    @apply btn bg-gradient-to-r from-teal-600 to-cyan-600 text-white hover:from-teal-700 hover:to-cyan-700 focus:ring-teal-400;
   }
 
   .btn-secondary {
@@ -23,11 +29,11 @@
   }
 
   .btn-danger {
-    @apply btn bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700 focus:ring-red-400;
+    @apply btn bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 focus:ring-red-400;
   }
 
   .input {
-    @apply block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-400 focus:border-blue-500 transition-all duration-200 bg-white;
+    @apply block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-teal-400 focus:border-teal-500 transition-all duration-200 bg-white;
   }
 
   .card {
@@ -35,6 +41,17 @@
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent cursor-default;
   }
+
+  .gradient-animate {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease infinite;
+  }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
 }

@@ -908,8 +908,8 @@ export default function NewEventWizard() {
                   onClick={() => setFormData({ ...formData, type: type.value as EventType })}
                   className={`p-6 rounded-2xl border-2 text-left transition-all duration-300 ${
                     formData.type === type.value
-                      ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50 shadow-xl scale-105'
-                      : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-lg'
+                      ? 'border-teal-500 bg-gradient-to-br from-teal-50 to-blue-50 shadow-xl scale-105'
+                      : 'border-gray-200 bg-white hover:border-teal-300 hover:shadow-lg'
                   }`}
                 >
                   <div className="text-4xl mb-3">{type.icon}</div>
@@ -956,7 +956,7 @@ export default function NewEventWizard() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Venue *
               </label>
-              <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500">
+              <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-teal-500">
                 <VenueAutocomplete
                   value={formData.location_name}
                   venueId={formData.venue_id || undefined}
@@ -1134,7 +1134,7 @@ export default function NewEventWizard() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingPreEventItem(null)}
-                                    className="text-xs text-purple-600 hover:text-purple-800 font-semibold"
+                                    className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                   >
                                     Done
                                   </button>
@@ -1143,7 +1143,7 @@ export default function NewEventWizard() {
                                 <button
                                   type="button"
                                   onClick={() => setEditingPreEventItem(index)}
-                                  className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                  className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                 >
                                   <div className="font-semibold">{item.item || 'Click to edit'}</div>
                                   {item.notes && (
@@ -1483,7 +1483,7 @@ export default function NewEventWizard() {
                                               newSchedule[index].has_ministry_team = e.target.checked
                                               setFormData({ ...formData, program_schedule: newSchedule })
                                             }}
-                                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                                            className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                                           />
                                           <span className="ml-1.5 text-xs font-medium text-gray-700">Ministry Team</span>
                                         </label>
@@ -1493,7 +1493,7 @@ export default function NewEventWizard() {
                                     <button
                                       type="button"
                                       onClick={() => setEditingProgramItem(null)}
-                                      className="text-xs text-purple-600 hover:text-purple-800 font-semibold"
+                                      className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                     >
                                       Done
                                     </button>
@@ -1502,7 +1502,7 @@ export default function NewEventWizard() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingProgramItem(index)}
-                                    className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                    className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                   >
                                     <div className="font-semibold">{item.title || 'Click to edit'}</div>
                                     {getDetailsElements().length > 0 && (
@@ -1563,7 +1563,7 @@ export default function NewEventWizard() {
                     type="checkbox"
                     checked={formData.has_post_event_schedule}
                     onChange={(e) => setFormData({ ...formData, has_post_event_schedule: e.target.checked })}
-                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                    className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
                   />
                   <span className="ml-2 text-sm font-semibold text-gray-700">Include Post-Event Schedule</span>
                 </label>
@@ -1641,7 +1641,7 @@ export default function NewEventWizard() {
                                     <button
                                       type="button"
                                       onClick={() => setEditingPostEventItem(null)}
-                                      className="text-xs text-purple-600 hover:text-purple-800 font-semibold"
+                                      className="text-xs text-teal-600 hover:text-teal-800 font-semibold"
                                     >
                                       Done
                                     </button>
@@ -1650,7 +1650,7 @@ export default function NewEventWizard() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingPostEventItem(index)}
-                                    className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                    className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                   >
                                     <div className="font-semibold">{item.item || 'Click to edit'}</div>
                                     {item.notes && (
@@ -1760,7 +1760,7 @@ export default function NewEventWizard() {
                               newTeam[memberIndex].eDrums = e.target.checked
                               setFormData({ ...formData, worship_team: newTeam })
                             }}
-                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                            className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                           />
                           <span className="ml-2 text-sm font-semibold text-gray-900">E-Drums</span>
                         </label>
@@ -1775,7 +1775,7 @@ export default function NewEventWizard() {
                         <button
                           type="button"
                           onClick={() => setEditingNeedsIndex(editingNeedsIndex === memberIndex ? null : memberIndex)}
-                          className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                          className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
                         >
                           {editingNeedsIndex === memberIndex ? 'Done' : 'Edit'}
                         </button>
@@ -1886,7 +1886,7 @@ export default function NewEventWizard() {
                     type="checkbox"
                     checked={formData.has_prayer_leader}
                     onChange={(e) => setFormData({ ...formData, has_prayer_leader: e.target.checked })}
-                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                    className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
                   />
                   <span className="ml-2 text-sm font-semibold text-gray-700">Include Prayer Leader</span>
                 </label>
@@ -1943,7 +1943,7 @@ export default function NewEventWizard() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Production Team</h3>
               <div className="space-y-4">
                 {/* Soundman */}
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-purple-200">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Soundman</h4>
                   <div className="space-y-3">
                     <div>
@@ -1986,7 +1986,7 @@ export default function NewEventWizard() {
                 </div>
 
                 {/* Projection */}
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-purple-200">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Projection</h4>
                   <div className="space-y-3">
                     <div>
@@ -2029,7 +2029,7 @@ export default function NewEventWizard() {
                 </div>
 
                 {/* Host */}
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-purple-200">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl border border-teal-200">
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Host</h4>
                   <div className="space-y-3">
                     <div>
@@ -2082,7 +2082,7 @@ export default function NewEventWizard() {
               <h2 className="text-3xl font-bold gradient-text mb-2">Review & Confirm</h2>
               <p className="text-gray-600">Check your event details before creating</p>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 space-y-4">
+            <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-6 space-y-4">
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Event Type</p>
                 <p className="text-lg font-bold text-gray-900 capitalize">{formData.type.replace('_', ' ')}</p>
@@ -2248,7 +2248,7 @@ export default function NewEventWizard() {
                       currentStep > step.id
                         ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
                         : currentStep === step.id
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl scale-110'
+                        ? 'bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-xl scale-110'
                         : 'bg-gray-200 text-gray-500'
                     } ${isEditMode && step.id > 1 ? 'cursor-pointer hover:scale-105' : ''}`}
                   >

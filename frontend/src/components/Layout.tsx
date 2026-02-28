@@ -42,7 +42,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-2xl">
+      <div className="fixed inset-y-0 left-0 w-64 bg-gradient-to-br from-teal-800 via-teal-600 to-cyan-500 gradient-animate shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3 h-16 px-6 border-b border-white/20">
@@ -60,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
                   to={item.href}
                   className={`flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'bg-white text-purple-700 shadow-lg transform scale-105'
+                      ? 'bg-white text-teal-700 shadow-lg transform scale-105'
                       : 'text-white/90 hover:bg-white/20 hover:text-white'
                   }`}
                 >
@@ -107,9 +107,8 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex items-center h-16 px-8 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+        <div className="sticky top-0 z-10 flex items-center justify-between h-16 px-8 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm select-none">
           <WorkspaceSwitcher />
-          <div className="flex-1"></div>
           <NotificationBell />
         </div>
 

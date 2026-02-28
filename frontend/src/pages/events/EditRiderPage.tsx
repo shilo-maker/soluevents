@@ -216,7 +216,7 @@ export default function EditRiderPage() {
                         updated[memberIndex].eDrums = e.target.checked
                         setWorshipTeam(updated)
                       }}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                     />
                     <span className="ml-2 text-sm font-semibold text-gray-900">E-Drums</span>
                   </label>
@@ -231,7 +231,7 @@ export default function EditRiderPage() {
                   <button
                     type="button"
                     onClick={() => setEditingNeedsIndex(editingNeedsIndex === memberIndex ? null : memberIndex)}
-                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
+                    className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
                   >
                     {editingNeedsIndex === memberIndex ? 'Done' : 'Edit'}
                   </button>
@@ -350,21 +350,21 @@ export default function EditRiderPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <label className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg cursor-pointer">
+            <label className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg cursor-pointer">
               <input
                 type="checkbox"
                 checked={soundmanNeeded}
                 onChange={(e) => setSoundmanNeeded(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
               />
               <span className="ml-2 text-sm font-semibold text-gray-700">Soundman Needed</span>
             </label>
-            <label className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg cursor-pointer">
+            <label className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg cursor-pointer">
               <input
                 type="checkbox"
                 checked={projectionNeeded}
                 onChange={(e) => setProjectionNeeded(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
               />
               <span className="ml-2 text-sm font-semibold text-gray-700">Projection Needed</span>
             </label>

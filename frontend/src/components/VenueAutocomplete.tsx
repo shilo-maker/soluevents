@@ -140,8 +140,8 @@ export default function VenueAutocomplete({
               key={venue.id}
               type="button"
               onClick={() => handleSelect(venue)}
-              className={`w-full text-left px-4 py-2 hover:bg-purple-50 transition-colors ${
-                index === selectedIndex ? 'bg-purple-50' : ''
+              className={`w-full text-left px-4 py-2 hover:bg-teal-50 transition-colors ${
+                index === selectedIndex ? 'bg-teal-50' : ''
               }`}
             >
               <div className="flex items-center gap-2">

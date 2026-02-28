@@ -273,7 +273,7 @@ export default function ContactAutocomplete({
             )}
             <div title={isUser ? "Registered User" : "Contact"}>
               {isUser ? (
-                <Shield className="h-5 w-5 text-purple-600" />
+                <Shield className="h-5 w-5 text-teal-600" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
@@ -291,7 +291,7 @@ export default function ContactAutocomplete({
           >
             <div className="flex items-center gap-2 mb-1.5">
               {linkedContact.isUser ? (
-                <Shield className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                <Shield className="h-4 w-4 text-teal-600 flex-shrink-0" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
@@ -382,8 +382,8 @@ export default function ContactAutocomplete({
               key={contact.id}
               type="button"
               onClick={() => handleSelectContact(contact)}
-              className={`w-full text-left px-4 py-2 hover:bg-purple-50 transition-colors ${
-                index === selectedIndex ? 'bg-purple-50' : ''
+              className={`w-full text-left px-4 py-2 hover:bg-teal-50 transition-colors ${
+                index === selectedIndex ? 'bg-teal-50' : ''
               }`}
             >
               <div className="flex items-start justify-between">
@@ -391,7 +391,7 @@ export default function ContactAutocomplete({
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-gray-900">{contact.name}</span>
                     {contact.isUser && (
-                      <Shield className="h-3 w-3 text-purple-600" />
+                      <Shield className="h-3 w-3 text-teal-600" />
                     )}
                   </div>
                   {contact.email && (

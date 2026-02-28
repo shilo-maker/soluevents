@@ -133,7 +133,7 @@ export default function WorkspaceSwitcher() {
         }}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-teal-50 hover:text-teal-700 transition-all duration-200"
       >
         <WorkspaceIcon type={activeWorkspace.workspaceType} />
         <span className="max-w-[180px] truncate">{activeWorkspace.name}</span>
@@ -152,7 +152,7 @@ export default function WorkspaceSwitcher() {
               role="menuitem"
               className={`flex items-center justify-between w-full px-3 py-2 rounded-lg cursor-pointer transition-colors text-left ${
                 ws.is_active
-                  ? 'bg-purple-50 text-purple-700'
+                  ? 'bg-teal-50 text-teal-700'
                   : 'text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => handleSwitch(ws)}
@@ -183,7 +183,7 @@ export default function WorkspaceSwitcher() {
                         navigate('/workspace/settings')
                       }
                     }}
-                    className="p-1 rounded hover:bg-purple-100 text-gray-400 hover:text-purple-600 transition-colors"
+                    className="p-1 rounded hover:bg-teal-100 text-gray-400 hover:text-teal-600 transition-colors"
                     title={ws.role === 'admin' ? 'Workspace settings' : 'Workspace members'}
                   >
                     {ws.role === 'admin' ? <Settings className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
@@ -195,7 +195,7 @@ export default function WorkspaceSwitcher() {
                     tabIndex={0}
                     onClick={(e) => handleInvite(e, ws.id)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleInvite(e as any, ws.id) }}
-                    className="p-1 rounded hover:bg-purple-100 text-gray-400 hover:text-purple-600 transition-colors"
+                    className="p-1 rounded hover:bg-teal-100 text-gray-400 hover:text-teal-600 transition-colors"
                     title={copiedId === ws.id ? 'Copied!' : 'Copy invite link'}
                   >
                     {inviteMutation.isPending && inviteMutation.variables === ws.id ? (
@@ -205,7 +205,7 @@ export default function WorkspaceSwitcher() {
                     )}
                   </span>
                 )}
-                {ws.is_active && <Check className="w-4 h-4 text-purple-600" />}
+                {ws.is_active && <Check className="w-4 h-4 text-teal-600" />}
               </div>
             </button>
           ))}
@@ -227,13 +227,13 @@ export default function WorkspaceSwitcher() {
                   }}
                   placeholder="Workspace name..."
                   maxLength={100}
-                  className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleCreate}
                     disabled={!newName.trim() || createMutation.isPending}
-                    className="flex-1 text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    className="flex-1 text-xs px-3 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
                   >
                     {createMutation.isPending ? 'Creating...' : 'Create'}
                   </button>

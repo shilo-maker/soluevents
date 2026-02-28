@@ -39,7 +39,6 @@ export default function NotificationBell() {
   const { data: notifications } = useNotifications(open)
   const { data: counts } = useNotificationCounts()
   const unreadCount = counts?.count ?? 0
-  const totalCount = counts?.total ?? 0
   const markAllMutation = useMarkAllAsRead()
   const clearMutation = useClearNotifications()
   const deleteMutation = useDeleteNotification()
@@ -47,6 +46,13 @@ export default function NotificationBell() {
   const teamInviteMutation = useRespondToTeamInvite()
 
   const closeDropdown = useCallback(() => setOpen(false), [])
+
+  // Auto-mark notifications as read when dropdown is opened
+  useEffect(() => {
+    if (open && unreadCount > 0) {
+      markAllMutation.mutateAsync().catch(() => {})
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return
@@ -161,7 +167,7 @@ export default function NotificationBell() {
     // Clickable event link helper
     const eventLink = payload.event_id ? (
       <Link to={`/events/${payload.event_id}`} onClick={closeDropdown}
-        className="font-bold text-purple-600 hover:text-purple-700 hover:underline">
+        className="font-bold text-teal-600 hover:text-teal-700 hover:underline">
         {payload.event_title || 'an event'}
       </Link>
     ) : <strong>{payload.event_title || 'an event'}</strong>
@@ -174,12 +180,12 @@ export default function NotificationBell() {
         ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
         : isTeamInvite
           ? 'from-teal-500 to-green-500'
-          : 'from-purple-500 to-blue-500'
+          : 'from-teal-500 to-cyan-500'
     const bgHighlight = isUnread
       ? isTeamRemoved ? 'bg-red-50/50'
         : isTeamResponse ? (payload.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50')
         : isTeamInvite ? 'bg-teal-50/50'
-        : 'bg-purple-50/50'
+        : 'bg-teal-50/50'
       : ''
 
     return (
@@ -247,7 +253,7 @@ export default function NotificationBell() {
           </div>
           <div className="flex items-center gap-2 shrink-0 mt-1">
             {isUnread && (
-              <div className="w-2 h-2 rounded-full bg-purple-500" />
+              <div className="w-2 h-2 rounded-full bg-teal-500" />
             )}
             <button
               onClick={() => deleteMutation.mutate(n.id)}
@@ -267,16 +273,12 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-3 text-gray-600 hover:text-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-200"
+        className="relative p-3 text-gray-600 hover:text-teal-600 rounded-xl hover:bg-teal-50 transition-all duration-200"
       >
         <Bell className="w-5 h-5" />
-        {totalCount > 0 && (
-          <span className={`absolute top-2 right-2 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold text-white rounded-full px-1 ${
-            unreadCount > 0
-              ? 'bg-gradient-to-r from-red-500 to-pink-500'
-              : 'bg-gray-400'
-          }`}>
-            {totalCount > 9 ? '9+' : totalCount}
+        {unreadCount > 0 && (
+          <span className="absolute top-2 right-2 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold text-white rounded-full px-1 bg-gradient-to-r from-red-500 to-pink-500">
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
@@ -290,7 +292,7 @@ export default function NotificationBell() {
                 <button
                   onClick={handleMarkAllRead}
                   disabled={markAllMutation.isPending}
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                  className="text-xs text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
                   Mark all read

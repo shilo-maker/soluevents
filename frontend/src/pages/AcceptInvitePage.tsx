@@ -33,7 +33,7 @@ export default function AcceptInvitePage() {
   if (acceptInvite.isPending) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
         <p className="text-gray-600">Joining workspace...</p>
       </div>
     )
@@ -58,7 +58,7 @@ export default function AcceptInvitePage() {
         <p className="text-gray-600">{msg}</p>
         <button
           onClick={() => navigate('/', { replace: true })}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
         >
           Go to Dashboard
         </button>
@@ -69,7 +69,7 @@ export default function AcceptInvitePage() {
   // Idle state (brief moment before effect fires)
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+      <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
       <p className="text-gray-600">Preparing...</p>
     </div>
   )

@@ -35,7 +35,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-800 via-teal-600 to-cyan-500 gradient-animate py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 space-y-8 border border-white/20">
           <div className="text-center">
@@ -118,7 +118,7 @@ export default function LoginPage() {
               <Link
                 to="/register"
                 state={{ from: redirectTo !== '/' ? redirectTo : undefined }}
-                className="text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+                className="text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
               >
                 Don't have an account? <span className="underline">Sign up</span>
               </Link>

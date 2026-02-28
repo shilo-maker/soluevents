@@ -265,7 +265,7 @@ export default function WorkspaceSettingsPage() {
       {/* Add Member — admin only */}
       {isOrgAdmin && <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <UserPlus className="w-5 h-5 text-purple-600" />
+          <UserPlus className="w-5 h-5 text-teal-600" />
           <h2 className="text-lg font-semibold text-gray-900">Add Member</h2>
         </div>
 
@@ -354,7 +354,7 @@ export default function WorkspaceSettingsPage() {
       {/* Members */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-purple-600" />
+          <Users className="w-5 h-5 text-teal-600" />
           <h2 className="text-lg font-semibold text-gray-900">Members</h2>
           <span className="text-sm text-gray-500">({data?.members.length || 0})</span>
         </div>
@@ -382,7 +382,7 @@ export default function WorkspaceSettingsPage() {
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {displayName}
                       {isCurrentUser && (
-                        <span className="ml-2 text-xs text-purple-600 font-semibold">You</span>
+                        <span className="ml-2 text-xs text-teal-600 font-semibold">You</span>
                       )}
                     </div>
                     <div className="text-xs text-gray-500 truncate">{member.user.email}</div>
@@ -488,7 +488,7 @@ export default function WorkspaceSettingsPage() {
       {isOrgAdmin && <div className="card">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Link className="w-5 h-5 text-purple-600" />
+            <Link className="w-5 h-5 text-teal-600" />
             <h2 className="text-lg font-semibold text-gray-900">Invite Links</h2>
           </div>
           <button
@@ -540,7 +540,7 @@ export default function WorkspaceSettingsPage() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => handleCopyToken(inv.token)}
-                    className="p-1.5 text-gray-400 hover:text-purple-600 transition-colors"
+                    className="p-1.5 text-gray-400 hover:text-teal-600 transition-colors"
                     title={copiedToken === inv.token ? 'Copied!' : 'Copy link'}
                   >
                     <Copy className="w-4 h-4" />

@@ -60,7 +60,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
     <>
       <Link
         to={`/events/${event.id}`}
-        className="group relative block card hover:scale-[1.02] transition-all duration-300 cursor-pointer border-l-4 border-purple-500"
+        className="group relative block card hover:scale-[1.02] transition-all duration-300 cursor-pointer border-l-4 border-teal-500"
       >
         {/* 3-dot menu — hidden for team-only members who can't edit */}
         {canEdit && (
@@ -127,7 +127,7 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
 
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
               {event.title}
             </h3>
             <div className="flex items-center gap-2 flex-wrap">
@@ -154,8 +154,8 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
           </div>
 
           {event.location_name && (
-            <div className="flex items-center bg-purple-50/50 rounded-lg px-3 py-2">
-              <MapPin className="w-4 h-4 mr-2 text-purple-600" />
+            <div className="flex items-center bg-teal-50/50 rounded-lg px-3 py-2">
+              <MapPin className="w-4 h-4 mr-2 text-teal-600" />
               <span className="font-medium">{event.location_name}</span>
             </div>
           )}

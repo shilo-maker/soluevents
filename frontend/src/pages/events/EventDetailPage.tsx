@@ -62,7 +62,7 @@ function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) 
     <TaskCard
       task={task}
       currentUser={currentUser}
-      onToggle={readOnly ? undefined : handleToggle}
+      onToggle={handleToggle}
       onUpdateLink={readOnly ? undefined : handleUpdateLink}
       onUpdateTask={readOnly ? undefined : handleUpdateTask}
     />
@@ -304,7 +304,7 @@ export default function EventDetailPage() {
               <button
                 onClick={() => setShowSendInvitations(true)}
                 disabled={sendInvitations.isPending}
-                className="btn-secondary text-purple-600 hover:bg-purple-50 hover:border-purple-300"
+                className="btn-secondary text-teal-600 hover:bg-teal-50 hover:border-teal-300"
               >
                 <Mail className="w-4 h-4 mr-2" />
                 {sendInvitations.isPending ? 'Sending...' : 'Send Invitations'}
@@ -352,10 +352,15 @@ export default function EventDetailPage() {
                 </span>
 
                 {event.location_name && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([event.location_name, event.address].filter(Boolean).join(', '))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-teal-600 transition-colors"
+                  >
                     <MapPin className="w-4 h-4 text-gray-400" />
-                    {event.location_name}{event.address ? `, ${event.address}` : ''}
-                  </span>
+                    <span className="hover:underline">{event.location_name}{event.address ? `, ${event.address}` : ''}</span>
+                  </a>
                 )}
 
                 {event.est_attendance && (
@@ -401,13 +406,13 @@ export default function EventDetailPage() {
                 {!event.program_agenda && (
                   <Link
                     to={`/events/${id}/schedule`}
-                    className="group card flex items-center gap-4 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer"
+                    className="group card flex items-center gap-4 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
                       <Clock className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
                         Create Schedule
                       </h4>
                       <p className="text-xs text-gray-500">
@@ -671,7 +676,7 @@ export default function EventDetailPage() {
                   <div className="pt-2">
                     <Link
                       to={`/events/${id}/schedule`}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                      className="text-sm text-teal-600 hover:text-teal-700 font-semibold"
                     >
                       Edit Schedule →
                     </Link>
@@ -685,7 +690,7 @@ export default function EventDetailPage() {
             {(event.flow_service_id || event.setlist_id) && (
               <div className="card">
                 <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {(event.flow_service_id && linkedService?.code ? 1 : 0) + (event.setlist_id && linkedSetlist?.shareCode ? 1 : 0)}
                   </span>
                   <h3 className="text-lg font-semibold text-gray-900">Resources</h3>
@@ -704,7 +709,7 @@ export default function EventDetailPage() {
                     )}
                     {event.setlist_id && linkedSetlist?.shareCode && (
                       <div className="relative group">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-lg border border-indigo-200 cursor-default">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 text-teal-700 text-sm font-semibold rounded-lg border border-teal-200 cursor-default">
                           <Monitor className="w-4 h-4" />
                           SoluCast
                         </div>
@@ -911,7 +916,7 @@ export default function EventDetailPage() {
 
                           {member.role === 'Drums' && member.eDrums && (
                             <div className="mb-2">
-                              <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-md">
+                              <span className="inline-flex items-center px-2 py-1 bg-teal-100 text-teal-700 text-xs font-semibold rounded-md">
                                 E-Drums
                               </span>
                             </div>
@@ -924,7 +929,7 @@ export default function EventDetailPage() {
                             <ul className="space-y-1">
                               {(member.role === 'Drums' && member.eDrums ? member.eDrumsNeeds : member.needs)?.map((need, needIdx) => (
                                 <li key={needIdx} className="text-sm text-gray-700 flex items-start">
-                                  <span className="text-purple-500 mr-2">•</span>
+                                  <span className="text-teal-500 mr-2">•</span>
                                   <span>{need}</span>
                                 </li>
                               ))}
@@ -1037,12 +1042,12 @@ export default function EventDetailPage() {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
+                    <div className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg">
                       <span className="text-sm font-semibold text-gray-700">
                         Soundman: {event.rider_details.soundman_needed ? '✓ Yes' : '✗ No'}
                       </span>
                     </div>
-                    <div className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
+                    <div className="flex items-center p-3 bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg">
                       <span className="text-sm font-semibold text-gray-700">
                         Projection: {event.rider_details.projection_needed ? '✓ Yes' : '✗ No'}
                       </span>
@@ -1143,8 +1148,8 @@ export default function EventDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Mail className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
+                <Mail className="w-6 h-6 text-teal-600" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Send Invitations</h3>
@@ -1191,7 +1196,7 @@ export default function EventDetailPage() {
                   }
                 }}
                 disabled={sendInvitations.isPending}
-                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 bg-teal-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {sendInvitations.isPending ? (
                   <><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Sending...</>

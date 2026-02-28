@@ -226,7 +226,7 @@ export default function UsersPage() {
       {/* Users List */}
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
-          <UsersIcon className="w-5 h-5 text-purple-600" />
+          <UsersIcon className="w-5 h-5 text-teal-600" />
           <h2 className="text-xl font-semibold text-gray-900">All Users</h2>
           <span className="text-sm text-gray-500">({users?.length || 0})</span>
         </div>
@@ -236,14 +236,14 @@ export default function UsersPage() {
             {users.map((user) => (
               <div
                 key={user.id}
-                className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:shadow-md transition-shadow"
+                className="p-4 bg-gradient-to-br from-teal-50 to-blue-50 rounded-lg border border-teal-200 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3 flex-1">
                     <Avatar src={user.avatar_url} name={user.name} size="md" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">{user.name}</h3>
-                      <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full capitalize mt-1">
+                      <span className="inline-block px-2 py-0.5 text-xs font-semibold bg-teal-100 text-teal-700 rounded-full capitalize mt-1">
                         {user.org_role}
                       </span>
                     </div>
@@ -280,8 +280,8 @@ export default function UsersPage() {
                 )}
 
                 {user.id === currentUser?.id && (
-                  <div className="mt-2 pt-2 border-t border-purple-200">
-                    <span className="text-xs font-semibold text-purple-600">You</span>
+                  <div className="mt-2 pt-2 border-t border-teal-200">
+                    <span className="text-xs font-semibold text-teal-600">You</span>
                   </div>
                 )}
               </div>

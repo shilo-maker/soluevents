@@ -731,13 +731,13 @@ export default function EditSchedulePage() {
                               className="input text-sm"
                               placeholder="Notes (optional)"
                             />
-                            <button type="button" onClick={() => setEditingPreEventItem(null)} className="text-xs text-purple-600 hover:text-purple-800 font-semibold">Done</button>
+                            <button type="button" onClick={() => setEditingPreEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
                           </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => setEditingPreEventItem(index)}
-                            className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                            className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                           >
                             <div className="font-semibold">{item.item || 'Click to edit'}</div>
                             {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}
@@ -1290,20 +1290,20 @@ export default function EditSchedulePage() {
                                         updated[index].has_ministry_team = e.target.checked
                                         setProgramSchedule(updated)
                                       }}
-                                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                                      className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
                                     />
                                     <span className="ml-1.5 text-xs font-medium text-gray-700">Ministry Team</span>
                                   </label>
                                 </div>
                               )}
 
-                              <button type="button" onClick={() => setEditingProgramItem(null)} className="text-xs text-purple-600 hover:text-purple-800 font-semibold">Done</button>
+                              <button type="button" onClick={() => setEditingProgramItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setEditingProgramItem(index)}
-                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
                               <div className="font-semibold">{item.title || 'Click to edit'}</div>
                               {getItemDetails(item).length > 0 && (
@@ -1354,14 +1354,14 @@ export default function EditSchedulePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-indigo-500" />
+              <Monitor className="w-5 h-5 text-teal-500" />
               <h3 className="text-lg font-semibold text-gray-900">SoluCast Presentation</h3>
             </div>
             {!event?.setlist_id && (
               <button
                 onClick={handleGenerateSolucast}
                 disabled={generatingSolucast}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors disabled:opacity-50"
               >
                 {generatingSolucast ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1374,18 +1374,18 @@ export default function EditSchedulePage() {
           </div>
 
           {event?.setlist_id && linkedSetlist && (
-            <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Monitor className="w-4 h-4 text-indigo-600" />
-                  <span className="text-sm font-semibold text-indigo-900">SoluCast Linked</span>
-                  <span className="text-xs text-indigo-600">({linkedSetlist.itemCount} items)</span>
+                  <Monitor className="w-4 h-4 text-teal-700" />
+                  <span className="text-sm font-semibold text-teal-900">SoluCast Linked</span>
+                  <span className="text-xs text-teal-700">({linkedSetlist.itemCount} items)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleSyncSolucast}
                     disabled={syncing}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition-colors disabled:opacity-50"
                     title="Sync setlist with current schedule"
                   >
                     {syncing ? (
@@ -1407,12 +1407,12 @@ export default function EditSchedulePage() {
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs text-gray-600">Share code:</span>
-                <code className="px-2 py-0.5 bg-white rounded border border-indigo-200 text-sm font-mono font-bold text-indigo-800 tracking-wider">
+                <code className="px-2 py-0.5 bg-white rounded border border-teal-200 text-sm font-mono font-bold text-teal-800 tracking-wider">
                   {linkedSetlist.shareCode}
                 </code>
                 <button
                   onClick={() => copyShareCode(linkedSetlist.shareCode)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-teal-700 hover:text-teal-800 hover:bg-teal-100 rounded transition-colors"
                 >
                   {codeCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   {codeCopied ? 'Copied' : 'Copy'}
@@ -1422,7 +1422,7 @@ export default function EditSchedulePage() {
                 href={`https://solucast.app/open/${linkedSetlist.shareCode}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                className="inline-flex items-center gap-1 text-xs text-teal-700 hover:text-teal-800 hover:underline"
               >
                 Open in SoluCast
                 <ExternalLink className="w-3 h-3" />
@@ -1454,7 +1454,7 @@ export default function EditSchedulePage() {
               type="checkbox"
               checked={hasPostEvent}
               onChange={(e) => setHasPostEvent(e.target.checked)}
-              className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+              className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500"
             />
             <span className="ml-2 text-sm font-semibold text-gray-700">Include Post-Event Schedule</span>
           </label>
@@ -1519,13 +1519,13 @@ export default function EditSchedulePage() {
                                 className="input text-sm"
                                 placeholder="Notes (optional)"
                               />
-                              <button type="button" onClick={() => setEditingPostEventItem(null)} className="text-xs text-purple-600 hover:text-purple-800 font-semibold">Done</button>
+                              <button type="button" onClick={() => setEditingPostEventItem(null)} className="text-xs text-teal-600 hover:text-teal-800 font-semibold">Done</button>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setEditingPostEventItem(index)}
-                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
                               <div className="font-semibold">{item.item || 'Click to edit'}</div>
                               {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}

@@ -165,7 +165,7 @@ export default function EventsPage() {
             <div>
               <button
                 onClick={() => setShowPastEvents(!showPastEvents)}
-                className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-purple-600 transition-colors mb-4"
+                className="flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-teal-600 transition-colors mb-4"
               >
                 {showPastEvents ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                 Past Events ({pastEvents.length})
