@@ -80,6 +80,9 @@ export const getTasks = async (
           assignee: {
             select: { id: true, name: true, email: true },
           },
+          assignee_contact: {
+            select: { id: true, name: true, email: true, phone: true },
+          },
           creator: {
             select: { id: true, name: true, email: true },
           },
@@ -122,6 +125,9 @@ export const getTask = async (
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
+        },
+        assignee_contact: {
+          select: { id: true, name: true, email: true, phone: true },
         },
         creator: {
           select: { id: true, name: true, email: true },
@@ -186,7 +192,8 @@ export const createTask = async (
   try {
     const {
       title, description, priority, status, due_at,
-      event_id, tour_id, assignee_id, parent_task_id, link,
+      event_id, tour_id, assignee_id, assignee_contact_id, assignee_is_user,
+      parent_task_id, link,
     } = req.body
 
     // Verify workspace access on parent event/tour
@@ -228,6 +235,11 @@ export const createTask = async (
       }
     }
 
+    // Determine assignee fields: if assignee_is_user is false, use contact; otherwise use user
+    const isUserAssignee = assignee_is_user !== false
+    const finalAssigneeId = isUserAssignee ? (assignee_id || null) : null
+    const finalContactId = !isUserAssignee ? (assignee_contact_id || null) : null
+
     const task = await prisma.task.create({
       data: {
         title,
@@ -238,13 +250,18 @@ export const createTask = async (
         link,
         event_id,
         tour_id,
-        assignee_id,
+        assignee_id: finalAssigneeId,
+        assignee_contact_id: finalContactId,
+        assignee_is_user: isUserAssignee,
         creator_id: req.user!.id,
         parent_task_id,
       },
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
+        },
+        assignee_contact: {
+          select: { id: true, name: true, email: true, phone: true },
         },
         creator: {
           select: { id: true, name: true, email: true },
@@ -301,7 +318,7 @@ export const updateTask = async (
     }
 
     // Whitelist allowed fields
-    const { title, description, priority, status, due_at, assignee_id, link } = req.body
+    const { title, description, priority, status, due_at, assignee_id, assignee_contact_id, assignee_is_user, link } = req.body
 
     const updateData: Record<string, any> = {}
     if (title !== undefined) updateData.title = title
@@ -309,8 +326,23 @@ export const updateTask = async (
     if (priority !== undefined) updateData.priority = priority
     if (status !== undefined) updateData.status = status
     if (due_at !== undefined) updateData.due_at = due_at ? new Date(due_at) : null
-    if (assignee_id !== undefined) updateData.assignee_id = assignee_id
     if (link !== undefined) updateData.link = link
+
+    // Handle assignee swap: when one type is set, clear the other
+    if (assignee_is_user !== undefined) {
+      updateData.assignee_is_user = assignee_is_user
+      if (assignee_is_user) {
+        updateData.assignee_id = assignee_id || null
+        updateData.assignee_contact_id = null
+      } else {
+        updateData.assignee_id = null
+        updateData.assignee_contact_id = assignee_contact_id || null
+      }
+    } else if (assignee_id !== undefined) {
+      updateData.assignee_id = assignee_id
+    } else if (assignee_contact_id !== undefined) {
+      updateData.assignee_contact_id = assignee_contact_id
+    }
 
     const task = await prisma.task.update({
       where: { id },
@@ -318,6 +350,9 @@ export const updateTask = async (
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
+        },
+        assignee_contact: {
+          select: { id: true, name: true, email: true, phone: true },
         },
         creator: {
           select: { id: true, name: true, email: true },

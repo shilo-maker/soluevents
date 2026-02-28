@@ -160,12 +160,14 @@ export interface Event {
   event_teams?: Array<{
     name: string
     members: Array<{
+      member_id?: string
       role: string
       contact_id: string
       is_user: boolean
       name: string
       email?: string
       phone?: string
+      status?: 'pending' | 'confirmed' | 'declined'
     }>
   }>
   rider_details?: {
@@ -198,6 +200,9 @@ export interface Event {
     special_requirements?: string
   }
   invitations?: EventInvitation[]
+  workspace_id?: string
+  team_member_status?: 'pending' | 'confirmed' | 'declined' | null
+  can_edit?: boolean
   created_by: string
   created_at: string
   updated_at: string
@@ -253,6 +258,8 @@ export interface Task {
   event_id?: string
   tour_id?: string
   assignee_id?: string
+  assignee_contact_id?: string
+  assignee_is_user?: boolean
   creator_id: string
   parent_task_id?: string
   created_at: string
@@ -318,6 +325,14 @@ export interface NotificationPayload {
   message?: string
   responded?: boolean
   response_action?: 'accept' | 'decline'
+  event_id?: string
+  event_title?: string
+  member_id?: string
+  team_name?: string
+  team_role?: string
+  removed_by_name?: string
+  member_name?: string
+  action?: 'accept' | 'decline'
   [key: string]: unknown
 }
 

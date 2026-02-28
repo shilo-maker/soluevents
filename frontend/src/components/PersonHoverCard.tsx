@@ -1,7 +1,6 @@
 import { useState, useRef, useMemo, useLayoutEffect } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts } from '@/hooks/useContacts'
-import { Shield } from 'lucide-react'
 import Avatar from './Avatar'
 
 interface PersonHoverCardProps {
@@ -48,7 +47,7 @@ export default function PersonHoverCard({
 
   return (
     <span
-      className={`relative inline-flex items-center gap-1 ${person ? 'cursor-default' : ''} ${className}`}
+      className={`relative inline-flex items-center gap-1.5 ${person ? 'cursor-default' : ''} ${className}`}
       onMouseEnter={() => {
         if (person) {
           timeout.current = setTimeout(() => { setPopupPos(null); setShow(true) }, 400)
@@ -59,36 +58,32 @@ export default function PersonHoverCard({
         setShow(false)
       }}
     >
-      {name}
-      {person && (
-        <span className="inline-flex items-center" title={person.isUser ? 'Member' : 'Contact'}>
-          {person.isUser ? (
-            <Shield className="h-3.5 w-3.5 text-purple-600" />
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          )}
-        </span>
+      {person ? (
+        <Avatar src={person.avatar_url} name={person.name} size="xs" />
+      ) : (
+        <Avatar name={name} size="xs" />
       )}
+      {name}
       {show && person && (
         <span
           ref={popupRef}
-          className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 pointer-events-none whitespace-nowrap ${popupPos ? '' : 'invisible'} ${popupPos?.flipY ? 'bottom-full mb-1' : 'top-full mt-1'} ${popupPos?.flipX ? 'right-0' : 'left-0'}`}
+          className={`absolute z-50 bg-white border border-gray-200 rounded-xl shadow-xl p-4 pointer-events-none whitespace-nowrap ${popupPos ? '' : 'invisible'} ${popupPos?.flipY ? 'bottom-full mb-1' : 'top-full mt-1'} ${popupPos?.flipX ? 'right-0' : 'left-0'}`}
         >
-          <span className="flex items-center gap-2 mb-1">
-            <Avatar src={person.avatar_url} name={person.name} size="sm" />
-            <span className="font-semibold text-sm text-gray-900">{person.name}</span>
-            <span className="text-xs text-gray-400">{person.isUser ? 'Member' : 'Contact'}</span>
+          <span className="flex items-center gap-3 mb-2">
+            <Avatar src={person.avatar_url} name={person.name} size="lg" />
+            <span className="flex flex-col">
+              <span className="font-semibold text-sm text-gray-900">{person.name}</span>
+              <span className="text-xs text-gray-400">{person.isUser ? 'Member' : 'Contact'}</span>
+            </span>
           </span>
           {person.email && (
-            <span className="block text-xs text-gray-600 ml-6">{person.email}</span>
+            <span className="block text-xs text-gray-600 mt-1">{person.email}</span>
           )}
           {person.phone && (
-            <span className="block text-xs text-gray-600 ml-6">{person.phone}</span>
+            <span className="block text-xs text-gray-600">{person.phone}</span>
           )}
           {person.role && (
-            <span className="block text-xs text-gray-500 ml-6 capitalize">{person.role}</span>
+            <span className="block text-xs text-gray-500 capitalize">{person.role}</span>
           )}
         </span>
       )}

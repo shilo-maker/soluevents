@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
+import logo from '@/assets/logo.png'
 import type { AuthResponse, RegisterData } from '@/types'
 
 export default function RegisterPage() {
@@ -37,11 +38,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h1 className="text-center text-3xl font-bold text-primary-600">
+        <div className="text-center">
+          <img src={logo} alt="SoluPlan" className="w-16 h-16 mx-auto mb-3 rounded-2xl shadow-lg" />
+          <h1 className="text-3xl font-bold text-primary-600">
             SoluPlan
           </h1>
-          <h2 className="mt-6 text-center text-2xl font-semibold text-gray-900">
+          <h2 className="mt-4 text-2xl font-semibold text-gray-900">
             Create your account
           </h2>
         </div>

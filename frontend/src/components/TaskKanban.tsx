@@ -1,15 +1,19 @@
-import type { Task, TaskStatus } from '@/types'
+import type { Task, TaskStatus, User } from '@/types'
 import TaskCard from './TaskCard'
 
 interface TaskKanbanProps {
   tasks: (Task & {
-    assignee?: { id: string; name: string; email: string }
+    assignee?: { id: string; name: string | null; email: string }
+    assignee_contact?: { id: string; name: string; email?: string; phone?: string }
     event?: { id: string; title: string }
   })[]
+  currentUser?: User | null
   onTaskUpdate: (taskId: string, newStatus: TaskStatus) => void
+  onUpdateTask?: (taskId: string, data: Partial<Task>) => void
+  onUpdateLink?: (taskId: string, link: string | null) => void
 }
 
-export default function TaskKanban({ tasks, onTaskUpdate }: TaskKanbanProps) {
+export default function TaskKanban({ tasks, currentUser, onTaskUpdate, onUpdateTask, onUpdateLink }: TaskKanbanProps) {
   const columns: { id: TaskStatus; label: string }[] = [
     { id: 'not_started', label: 'Not Started' },
     { id: 'in_progress', label: 'In Progress' },
@@ -36,7 +40,14 @@ export default function TaskKanban({ tasks, onTaskUpdate }: TaskKanbanProps) {
             </div>
             <div className="space-y-3 flex-1">
               {columnTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={onTaskUpdate} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  currentUser={currentUser}
+                  onToggle={onTaskUpdate}
+                  onUpdateTask={onUpdateTask}
+                  onUpdateLink={onUpdateLink}
+                />
               ))}
             </div>
           </div>

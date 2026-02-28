@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Check, X, Loader2, Calendar, MapPin, RefreshCw } from 'lucide-react'
 import axios from 'axios'
+import logoSm from '@/assets/logo-sm.png'
 
 interface InvitationData {
   id: string
@@ -111,7 +112,10 @@ export default function InvitationResponsePage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 max-w-lg w-full overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 px-8 py-6 text-center border-b border-gray-100">
-          <h1 className="text-sm font-semibold text-purple-600 mb-1">SoluPlan</h1>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <img src={logoSm} alt="SoluPlan" className="w-5 h-5 rounded" />
+            <h1 className="text-sm font-semibold text-purple-600">SoluPlan</h1>
+          </div>
           <h2 className="text-2xl font-bold text-gray-900">{invitation.event.title}</h2>
         </div>
 

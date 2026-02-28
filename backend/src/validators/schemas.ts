@@ -98,6 +98,8 @@ export const createTaskSchema = z.object({
   event_id: z.string().uuid().optional().nullable(),
   tour_id: z.string().uuid().optional().nullable(),
   assignee_id: z.string().uuid().optional().nullable(),
+  assignee_contact_id: z.string().uuid().optional().nullable(),
+  assignee_is_user: z.boolean().optional(),
   parent_task_id: z.string().uuid().optional().nullable(),
 })
 
@@ -109,6 +111,8 @@ export const updateTaskSchema = z.object({
   due_at: z.string().optional().nullable(),
   link: z.string().url().max(2000).optional().nullable(),
   assignee_id: z.string().uuid().optional().nullable(),
+  assignee_contact_id: z.string().uuid().optional().nullable(),
+  assignee_is_user: z.boolean().optional(),
 })
 
 export const taskQuerySchema = z.object({

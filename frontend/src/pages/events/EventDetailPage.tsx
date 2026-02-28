@@ -27,12 +27,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
 import { createSoluFlowService } from '@/lib/soluflowApi'
 import { buildMergedSchedule, hasSetlistChanged } from '@/lib/scheduleSync'
-import { useEvent, useUpdateEvent, useDeleteEvent, useFlowService, useSetlist } from '@/hooks/useEvents'
+import { useEvent, useUpdateEvent, useDeleteEvent, useFlowService, useSetlist, useRespondToTeamInvite } from '@/hooks/useEvents'
 import { useTasks, useUpdateTask } from '@/hooks/useTasks'
 import { useSendInvitations } from '@/hooks/useInvitations'
 import InvitationStatusBadge from '@/components/InvitationStatusBadge'
 import { useRoleAssignments, useCreateRoleAssignment, useDeleteRoleAssignment } from '@/hooks/useRoleAssignments'
-import { useUsers } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDateTime } from '@/lib/utils'
 import Badge from '@/components/Badge'
@@ -43,17 +42,16 @@ import type { Task } from '@/types'
 type Tab = 'overview' | 'tasks' | 'files' | 'comments'
 
 // Wrapper component to handle task updates
-function TaskCardWrapper({ task }: { task: any }) {
+function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) {
   const updateTask = useUpdateTask(task.id)
   const { user: currentUser } = useAuthStore()
-  const { data: users } = useUsers()
 
   const handleToggle = (_taskId: string, newStatus: 'done' | 'not_started') => {
     updateTask.mutate({ status: newStatus })
   }
 
-  const handleUpdateLink = (_taskId: string, link: string) => {
-    updateTask.mutate({ link })
+  const handleUpdateLink = (_taskId: string, link: string | null) => {
+    updateTask.mutate({ link } as any)
   }
 
   const handleUpdateTask = (_taskId: string, data: Partial<Task>) => {
@@ -64,10 +62,9 @@ function TaskCardWrapper({ task }: { task: any }) {
     <TaskCard
       task={task}
       currentUser={currentUser}
-      users={users}
-      onToggle={handleToggle}
-      onUpdateLink={handleUpdateLink}
-      onUpdateTask={handleUpdateTask}
+      onToggle={readOnly ? undefined : handleToggle}
+      onUpdateLink={readOnly ? undefined : handleUpdateLink}
+      onUpdateTask={readOnly ? undefined : handleUpdateTask}
     />
   )
 }
@@ -75,6 +72,7 @@ function TaskCardWrapper({ task }: { task: any }) {
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user: currentUser } = useAuthStore()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   // TODO: Role management UI state (commented with their handlers)
   // const [showAddRole, setShowAddRole] = useState(false)
@@ -96,14 +94,17 @@ export default function EventDetailPage() {
   const { data: event, isLoading } = useEvent(id!)
   const { data: tasks, isLoading: tasksLoading } = useTasks({ event_id: id })
   useRoleAssignments({ event_id: id })
-  useUsers()
   const createRoleAssignment = useCreateRoleAssignment()
   const deleteRoleAssignment = useDeleteRoleAssignment()
   const deleteEvent = useDeleteEvent()
   const { data: linkedService } = useFlowService(event?.flow_service_id)
   const { data: linkedSetlist } = useSetlist(event?.setlist_id)
   const updateEvent = useUpdateEvent()
+  const respondToTeamInvite = useRespondToTeamInvite()
   const syncedRef = useRef(false)
+
+  // Read-only: user cannot edit unless backend says can_edit
+  const canEdit = event?.can_edit ?? false
 
   // Auto-sync: when linked service has changed songs, update the saved schedule
   useEffect(() => {
@@ -274,35 +275,43 @@ export default function EventDetailPage() {
                 {tag}
               </Badge>
             ))}
+            {event.team_member_status === 'pending' && (
+              <Badge variant="warning" size="sm">Invited</Badge>
+            )}
+            {event.team_member_status === 'confirmed' && (
+              <Badge variant="primary" size="sm">Team Member</Badge>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to={`/events/${id}/edit`} className="btn-secondary">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Link>
-          <button className="btn-secondary">
-            <Archive className="w-4 h-4 mr-2" />
-            Archive
-          </button>
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-300"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </button>
-          {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
-            <button
-              onClick={() => setShowSendInvitations(true)}
-              disabled={sendInvitations.isPending}
-              className="btn-secondary text-purple-600 hover:bg-purple-50 hover:border-purple-300"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              {sendInvitations.isPending ? 'Sending...' : 'Send Invitations'}
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <Link to={`/events/${id}/edit`} className="btn-secondary">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Link>
+            <button className="btn-secondary">
+              <Archive className="w-4 h-4 mr-2" />
+              Archive
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-300"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </button>
+            {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
+              <button
+                onClick={() => setShowSendInvitations(true)}
+                disabled={sendInvitations.isPending}
+                className="btn-secondary text-purple-600 hover:bg-purple-50 hover:border-purple-300"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                {sendInvitations.isPending ? 'Sending...' : 'Send Invitations'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -334,7 +343,7 @@ export default function EventDetailPage() {
             {/* Details Card */}
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Event Details
+                Details
               </h3>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
@@ -368,8 +377,8 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* Action Cards — shown when data is missing */}
-            {(!event.program_agenda || !event.rider_details || !event.event_teams) && (
+            {/* Action Cards — shown when data is missing (hidden for team-only members) */}
+            {canEdit && (!event.program_agenda || !event.rider_details || !event.event_teams) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {!event.event_teams && (
                   <Link
@@ -457,7 +466,7 @@ export default function EventDetailPage() {
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Event Schedule
+                      Schedule
                     </h3>
                     {!showSchedule && (
                       <span className="text-xs text-gray-500 font-normal">
@@ -477,10 +486,10 @@ export default function EventDetailPage() {
                 </button>
 
                 {showSchedule && <div className="mt-4">
-                {/* Pre-Event Schedule */}
+                {/* Pre-Event */}
                 {event.program_agenda.pre_event_schedule && event.program_agenda.pre_event_schedule.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Pre-Event Schedule</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Pre-Event</h4>
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -619,12 +628,12 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
-                {/* Post-Event Schedule */}
+                {/* Post-Event */}
                 {event.program_agenda.has_post_event_schedule &&
                  event.program_agenda.post_event_schedule &&
                  event.program_agenda.post_event_schedule.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Post-Event Schedule</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Post-Event</h4>
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -658,26 +667,28 @@ export default function EventDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="pt-2">
-                  <Link
-                    to={`/events/${id}/schedule`}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
-                  >
-                    Edit Schedule →
-                  </Link>
-                </div>
+                {canEdit && (
+                  <div className="pt-2">
+                    <Link
+                      to={`/events/${id}/schedule`}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                    >
+                      Edit Schedule →
+                    </Link>
+                  </div>
+                )}
                 </div>}
               </div>
             )}
 
-            {/* Event Resources */}
+            {/* Resources */}
             {(event.flow_service_id || event.setlist_id) && (
               <div className="card">
                 <div className="flex items-center gap-3">
                   <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
                     {(event.flow_service_id && linkedService?.code ? 1 : 0) + (event.setlist_id && linkedSetlist?.shareCode ? 1 : 0)}
                   </span>
-                  <h3 className="text-lg font-semibold text-gray-900">Event Resources</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Resources</h3>
                   <div className="flex flex-wrap gap-2 ml-auto">
                     {event.flow_service_id && linkedService?.code && (
                       <a
@@ -770,7 +781,7 @@ export default function EventDetailPage() {
                       )
                     })()}
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Event Teams
+                      Teams
                     </h3>
                     {!showTeams && (
                       <span className="text-xs text-gray-500 font-normal">
@@ -796,31 +807,52 @@ export default function EventDetailPage() {
                       <div key={teamIdx}>
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">{team.name}</h4>
                         <div className="space-y-2">
-                          {team.members?.filter((m: any) => m.name?.trim()).map((member: any, memberIdx: number) => (
-                            <div key={memberIdx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-teal-50 rounded-xl border border-gray-200">
-                              <div className="flex-1">
-                                <span className="text-sm font-bold text-gray-900">{member.role || 'No role'}</span>
+                          {team.members?.filter((m: any) => m.name?.trim()).map((member: any, memberIdx: number) => {
+                            const isOwnPending = member.is_user && member.contact_id === currentUser?.id && member.status === 'pending' && member.member_id
+                            const status = member.status
+                              || (member.email && invitationStatusMap.byEmail.get(member.email.toLowerCase()))
+                              || (member.contact_id && invitationStatusMap.byId.get(member.contact_id))
+                              || invitationStatusMap.byName.get(member.name?.toLowerCase())
+                            return (
+                              <div key={memberIdx} className={`flex items-center gap-3 p-3 rounded-xl border ${isOwnPending ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200' : 'bg-gradient-to-r from-gray-50 to-teal-50 border-gray-200'}`}>
+                                <div className="flex-1">
+                                  <span className="text-sm font-bold text-gray-900">{member.role || 'No role'}</span>
+                                </div>
+                                <PersonHoverCard name={member.name} contactId={member.contact_id} isUser={member.is_user} className="text-sm text-gray-700" />
+                                {isOwnPending ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      onClick={() => respondToTeamInvite.mutate({ eventId: event.id, memberId: member.member_id, action: 'accept' })}
+                                      disabled={respondToTeamInvite.isPending}
+                                      className="text-xs px-2.5 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 font-medium"
+                                    >
+                                      Accept
+                                    </button>
+                                    <button
+                                      onClick={() => respondToTeamInvite.mutate({ eventId: event.id, memberId: member.member_id, action: 'decline' })}
+                                      disabled={respondToTeamInvite.isPending}
+                                      className="text-xs px-2.5 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 font-medium"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                ) : status ? <InvitationStatusBadge status={status} /> : null}
                               </div>
-                              <PersonHoverCard name={member.name} contactId={member.contact_id} isUser={member.is_user} className="text-sm text-gray-700" />
-                              {(() => {
-                                const status = (member.email && invitationStatusMap.byEmail.get(member.email.toLowerCase()))
-                                  || (member.contact_id && invitationStatusMap.byId.get(member.contact_id))
-                                  || invitationStatusMap.byName.get(member.name?.toLowerCase())
-                                return status ? <InvitationStatusBadge status={status} /> : null
-                              })()}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     ))}
-                    <div className="pt-2">
-                      <Link
-                        to={`/events/${id}/teams`}
-                        className="text-sm text-teal-600 hover:text-teal-700 font-semibold"
-                      >
-                        Edit Teams →
-                      </Link>
-                    </div>
+                    {canEdit && (
+                      <div className="pt-2">
+                        <Link
+                          to={`/events/${id}/teams`}
+                          className="text-sm text-teal-600 hover:text-teal-700 font-semibold"
+                        >
+                          Edit Teams →
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1022,14 +1054,16 @@ export default function EventDetailPage() {
                       <p className="text-sm text-gray-700">{event.rider_details.special_requirements}</p>
                     </div>
                   )}
-                <div className="pt-2">
-                  <Link
-                    to={`/events/${id}/rider`}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
-                  >
-                    Edit Rider →
-                  </Link>
-                </div>
+                {canEdit && (
+                  <div className="pt-2">
+                    <Link
+                      to={`/events/${id}/rider`}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                    >
+                      Edit Rider →
+                    </Link>
+                  </div>
+                )}
                 </div>
                 </div>}
               </div>
@@ -1045,7 +1079,7 @@ export default function EventDetailPage() {
               </div>
             ) : tasks && tasks.length > 0 ? (
               tasks.map((task) => (
-                <TaskCardWrapper key={task.id} task={task} />
+                <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} />
               ))
             ) : (
               <div className="card text-center py-12">

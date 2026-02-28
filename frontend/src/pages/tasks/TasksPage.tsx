@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Plus, Loader2, Search, LayoutGrid, List as ListIcon } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Plus, Loader2, Search, LayoutGrid, List as ListIcon, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTasks } from '@/hooks/useTasks'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,6 +20,14 @@ export default function TasksPage() {
   const [filterAssignee, setFilterAssignee] = useState<string>('me')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+  const [error, setError] = useState('')
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  const showError = useCallback((msg: string) => {
+    setError(msg)
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
+    errorTimerRef.current = setTimeout(() => setError(''), 5000)
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300)
@@ -35,11 +43,29 @@ export default function TasksPage() {
   const handleToggleTask = useCallback((taskId: string, newStatus: TaskStatus) => {
     api.patch(`/tasks/${taskId}`, { status: newStatus }).then(() => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    }).catch(() => {
-      // Refresh to show actual state on failure
+    }).catch((err: any) => {
+      showError(err.response?.data?.message || 'Failed to update task status')
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     })
-  }, [queryClient])
+  }, [queryClient, showError])
+
+  const handleUpdateTask = useCallback((taskId: string, data: Record<string, any>) => {
+    api.patch(`/tasks/${taskId}`, data).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }).catch((err: any) => {
+      showError(err.response?.data?.message || 'Failed to update task')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    })
+  }, [queryClient, showError])
+
+  const handleUpdateLink = useCallback((taskId: string, link: string | null) => {
+    api.patch(`/tasks/${taskId}`, { link }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    }).catch((err: any) => {
+      showError(err.response?.data?.message || 'Failed to update link')
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    })
+  }, [queryClient, showError])
 
   // Filter tasks
   const filteredTasks = useMemo(() => tasks?.filter((task) => {
@@ -158,6 +184,17 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">{error}</span>
+          <button onClick={() => setError('')} className="ml-auto text-red-500 hover:text-red-700 text-sm font-medium">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Tasks Display */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -167,11 +204,17 @@ export default function TasksPage() {
         view === 'list' ? (
           <div className="space-y-3">
             {sortedTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onToggle={handleToggleTask} />
+              <TaskCard key={task.id} task={task} currentUser={_user} onToggle={handleToggleTask} onUpdateTask={handleUpdateTask} onUpdateLink={handleUpdateLink} />
             ))}
           </div>
         ) : (
-          <TaskKanban tasks={sortedTasks} onTaskUpdate={handleToggleTask} />
+          <TaskKanban
+            tasks={sortedTasks}
+            currentUser={_user}
+            onTaskUpdate={handleToggleTask}
+            onUpdateTask={handleUpdateTask}
+            onUpdateLink={handleUpdateLink}
+          />
         )
       ) : (
         <div className="card text-center py-12">

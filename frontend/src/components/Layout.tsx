@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import WorkspaceSwitcher from './WorkspaceSwitcher'
 import NotificationBell from './NotificationBell'
+import logoSm from '@/assets/logo-sm.png'
 import {
   Home,
   Calendar,
@@ -44,8 +45,9 @@ export default function Layout({ children }: LayoutProps) {
       <div className="fixed inset-y-0 left-0 w-64 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center h-16 px-6 border-b border-white/20">
-            <h1 className="text-xl font-bold text-white">✨ SoluPlan</h1>
+          <div className="flex items-center gap-3 h-16 px-6 border-b border-white/20">
+            <img src={logoSm} alt="SoluPlan" className="w-8 h-8 rounded-lg" />
+            <h1 className="text-xl font-bold text-white">SoluPlan</h1>
           </div>
 
           {/* Navigation */}

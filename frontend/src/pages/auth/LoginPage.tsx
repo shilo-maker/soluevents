@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/axios'
+import logo from '@/assets/logo.png'
 import type { AuthResponse, LoginCredentials } from '@/types'
 
 export default function LoginPage() {
@@ -38,9 +39,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 space-y-8 border border-white/20">
           <div className="text-center">
-            <div className="inline-block p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg mb-4">
-              <span className="text-4xl">✨</span>
-            </div>
+            <img src={logo} alt="SoluPlan" className="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-lg" />
             <h1 className="text-4xl font-bold gradient-text mb-2">
               SoluPlan
             </h1>

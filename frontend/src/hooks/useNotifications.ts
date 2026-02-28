@@ -10,6 +10,7 @@ export function useNotifications(enabled = true) {
       return res.data
     },
     refetchInterval: enabled ? 30000 : false,
+    staleTime: 15000,
     enabled,
   })
 }
@@ -22,6 +23,7 @@ export function useNotificationCounts() {
       return res.data
     },
     refetchInterval: 30000, // poll every 30s
+    staleTime: 15000,
   })
 }
 

@@ -8,6 +8,7 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  respondToTeamInvite,
 } from '../controllers/eventController'
 
 const router = Router()
@@ -18,6 +19,7 @@ router.get('/', getEvents)
 router.post('/', validate(createEventSchema), createEvent)
 router.get('/:id', getEvent)
 router.patch('/:id', validate(updateEventSchema), updateEvent)
+router.post('/:eventId/team-invite/:memberId/respond', respondToTeamInvite)
 router.delete('/:id', deleteEvent)
 
 export default router

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useCreateTask } from '@/hooks/useTasks'
 import { useEvents } from '@/hooks/useEvents'
-import { useUsers } from '@/hooks/useUsers'
+import ContactAutocomplete from '@/components/ContactAutocomplete'
 import type { TaskPriority, TaskStatus } from '@/types'
 
 interface CreateTaskModalProps {
@@ -13,7 +13,6 @@ interface CreateTaskModalProps {
 export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
   const createTask = useCreateTask()
   const { data: events } = useEvents()
-  const { data: users } = useUsers()
 
   const [formData, setFormData] = useState({
     title: '',
@@ -22,7 +21,9 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     status: 'not_started' as TaskStatus,
     due_at: '',
     event_id: '',
-    assignee_id: '',
+    assignee_name: '',
+    assignee_contact_id: '',
+    assignee_is_user: true,
   })
 
   const [error, setError] = useState('')
@@ -37,11 +38,21 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
     }
 
     try {
-      const taskData = {
-        ...formData,
+      const taskData: Record<string, any> = {
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        status: formData.status,
         event_id: formData.event_id || undefined,
-        assignee_id: formData.assignee_id || undefined,
         due_at: formData.due_at || undefined,
+        assignee_is_user: formData.assignee_is_user,
+      }
+      if (formData.assignee_contact_id) {
+        if (formData.assignee_is_user) {
+          taskData.assignee_id = formData.assignee_contact_id
+        } else {
+          taskData.assignee_contact_id = formData.assignee_contact_id
+        }
       }
 
       await createTask.mutateAsync(taskData)
@@ -54,7 +65,9 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
         status: 'not_started',
         due_at: '',
         event_id: '',
-        assignee_id: '',
+        assignee_name: '',
+        assignee_contact_id: '',
+        assignee_is_user: true,
       })
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create task')
@@ -165,18 +178,21 @@ export default function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProp
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Assign To
             </label>
-            <select
-              value={formData.assignee_id}
-              onChange={(e) => setFormData({ ...formData, assignee_id: e.target.value })}
+            <ContactAutocomplete
+              value={formData.assignee_name}
+              contactId={formData.assignee_contact_id || undefined}
+              isUser={formData.assignee_is_user}
+              onChange={(name, contactId, isUser) => {
+                setFormData({
+                  ...formData,
+                  assignee_name: name,
+                  assignee_contact_id: contactId || '',
+                  assignee_is_user: isUser ?? true,
+                })
+              }}
+              placeholder="Search people..."
               className="input"
-            >
-              <option value="">Unassigned</option>
-              {users?.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Event */}

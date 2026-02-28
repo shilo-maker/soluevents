@@ -52,8 +52,11 @@ export function useUpdateEvent() {
       return response.data
     },
     onSuccess: (updatedEvent, variables) => {
-      // Optimistic cache update for the detail view
-      queryClient.setQueryData(['events', 'detail', variables.id], updatedEvent)
+      // Merge update response into cached detail (preserves relations like tasks, files, invitations
+      // that aren't included in the PATCH response)
+      queryClient.setQueryData(['events', 'detail', variables.id], (old: any) =>
+        old ? { ...old, ...updatedEvent } : updatedEvent
+      )
       queryClient.invalidateQueries({ queryKey: ['events', 'list'] })
     },
   })
@@ -97,6 +100,21 @@ export function useFlowService(serviceId: string | null | undefined) {
     },
     enabled: !!serviceId,
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useRespondToTeamInvite() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ eventId, memberId, action }: { eventId: string; memberId: string; action: 'accept' | 'decline' }) => {
+      const res = await api.post(`/events/${eventId}/team-invite/${memberId}/respond`, { action })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
   })
 }
 

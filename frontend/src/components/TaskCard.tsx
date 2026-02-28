@@ -1,34 +1,69 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { CheckCircle2, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save } from 'lucide-react'
 import { formatDate, isWithinDays, isPast } from '@/lib/utils'
 import Badge from './Badge'
+import ContactAutocomplete from './ContactAutocomplete'
+import PersonHoverCard from './PersonHoverCard'
 import type { Task, TaskPriority, TaskStatus, User } from '@/types'
 
 interface TaskCardProps {
   task: Task & {
-    assignee?: { id: string; name: string; email: string }
+    assignee?: { id: string; name: string | null; email: string }
+    assignee_contact?: { id: string; name: string; email?: string; phone?: string }
     event?: { id: string; title: string }
   }
   currentUser?: User | null
-  users?: Array<{ id: string; name: string; email: string }>
   onToggle?: (taskId: string, newStatus: 'done' | 'not_started') => void
-  onUpdateLink?: (taskId: string, link: string) => void
+  onUpdateLink?: (taskId: string, link: string | null) => void
   onUpdateTask?: (taskId: string, data: Partial<Task>) => void
 }
 
-function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
+function TaskCard({ task, onToggle, onUpdateLink, onUpdateTask }: TaskCardProps) {
   const [isEditingLink, setIsEditingLink] = useState(false)
   const [linkValue, setLinkValue] = useState(task.link || '')
   const [isEditingTask, setIsEditingTask] = useState(false)
+
+  // Determine initial assignee name and contact info for the autocomplete
+  const initialAssigneeName = task.assignee?.name || task.assignee?.email || task.assignee_contact?.name || task.assignee_contact?.email || ''
+  const initialAssigneeContactId = task.assignee_is_user === false
+    ? task.assignee_contact_id || ''
+    : task.assignee_id || ''
+  const initialAssigneeIsUser = task.assignee_is_user !== false
+
   const [editFormData, setEditFormData] = useState({
     title: task.title,
     description: task.description || '',
     priority: task.priority,
     status: task.status,
-    assignee_id: task.assignee_id || '',
+    assignee_name: initialAssigneeName,
+    assignee_contact_id: initialAssigneeContactId,
+    assignee_is_user: initialAssigneeIsUser,
     due_at: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '',
     link: task.link || '',
   })
+
+  // Sync editFormData when task prop changes (e.g. after refetch)
+  useEffect(() => {
+    if (!isEditingTask) {
+      const name = task.assignee?.name || task.assignee?.email || task.assignee_contact?.name || task.assignee_contact?.email || ''
+      const contactId = task.assignee_is_user === false
+        ? task.assignee_contact_id || ''
+        : task.assignee_id || ''
+      const isUser = task.assignee_is_user !== false
+      setEditFormData({
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority,
+        status: task.status,
+        assignee_name: name,
+        assignee_contact_id: contactId,
+        assignee_is_user: isUser,
+        due_at: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '',
+        link: task.link || '',
+      })
+      setLinkValue(task.link || '')
+    }
+  }, [task])
 
   const priorityColors = {
     critical: 'danger',
@@ -39,10 +74,10 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
   const isDone = task.status === 'done'
   const isOverdue = task.due_at && isPast(task.due_at) && !isDone
   const isDueSoon = task.due_at && isWithinDays(task.due_at, 3) && !isDone
-  const isAdmin = currentUser?.org_role === 'admin' || currentUser?.org_role === 'manager'
+  const canEditTask = !!onUpdateTask
 
   const handleSaveLink = () => {
-    onUpdateLink?.(task.id, linkValue)
+    onUpdateLink?.(task.id, linkValue || null)
     setIsEditingLink(false)
   }
 
@@ -52,15 +87,21 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
   }
 
   const handleSaveTask = () => {
-    onUpdateTask?.(task.id, {
+    const data: Partial<Task> & { assignee_is_user?: boolean } = {
       title: editFormData.title,
-      description: editFormData.description,
+      description: editFormData.description || undefined,
       priority: editFormData.priority,
       status: editFormData.status,
-      assignee_id: editFormData.assignee_id || undefined,
       due_at: editFormData.due_at ? new Date(editFormData.due_at).toISOString() : undefined,
-      link: editFormData.link,
-    })
+      link: editFormData.link || undefined,
+      assignee_is_user: editFormData.assignee_is_user,
+    }
+    if (editFormData.assignee_is_user) {
+      data.assignee_id = editFormData.assignee_contact_id || undefined
+    } else {
+      data.assignee_contact_id = editFormData.assignee_contact_id || undefined
+    }
+    onUpdateTask?.(task.id, data)
     setIsEditingTask(false)
   }
 
@@ -70,7 +111,9 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
       description: task.description || '',
       priority: task.priority,
       status: task.status,
-      assignee_id: task.assignee_id || '',
+      assignee_name: initialAssigneeName,
+      assignee_contact_id: initialAssigneeContactId,
+      assignee_is_user: initialAssigneeIsUser,
       due_at: task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : '',
       link: task.link || '',
     })
@@ -153,18 +196,21 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Assigned To</label>
-              <select
-                value={editFormData.assignee_id}
-                onChange={(e) => setEditFormData({ ...editFormData, assignee_id: e.target.value })}
+              <ContactAutocomplete
+                value={editFormData.assignee_name}
+                contactId={editFormData.assignee_contact_id || undefined}
+                isUser={editFormData.assignee_is_user}
+                onChange={(name, contactId, isUser) => {
+                  setEditFormData({
+                    ...editFormData,
+                    assignee_name: name,
+                    assignee_contact_id: contactId || '',
+                    assignee_is_user: isUser ?? true,
+                  })
+                }}
+                placeholder="Search people..."
                 className="input"
-              >
-                <option value="">Unassigned</option>
-                {users?.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>
@@ -226,7 +272,7 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
               <Badge variant={priorityColors[task.priority]} size="sm">
                 {task.priority}
               </Badge>
-              {isAdmin && onUpdateTask && (
+              {canEditTask && (
                 <button
                   onClick={() => setIsEditingTask(true)}
                   className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -267,9 +313,14 @@ function TaskCard({ task, currentUser, users, onToggle, onUpdateLink, onUpdateTa
               </div>
             )}
 
-            {task.assignee && (
-              <span className="text-gray-500">
-                · Assigned to {task.assignee.name}
+            {(task.assignee || task.assignee_contact) && (
+              <span className="text-gray-500 inline-flex items-center gap-1">
+                ·{' '}
+                <PersonHoverCard
+                  name={task.assignee?.name || task.assignee?.email || task.assignee_contact?.name || task.assignee_contact?.email || ''}
+                  contactId={task.assignee?.id || task.assignee_contact?.id}
+                  isUser={task.assignee_is_user}
+                />
               </span>
             )}
 

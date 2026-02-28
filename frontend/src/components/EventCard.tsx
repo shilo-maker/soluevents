@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, MoreVertical, Pencil, Trash2, Copy } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { useDeleteEvent } from '@/hooks/useEvents'
+import { useAuthStore } from '@/stores/authStore'
 import Badge from './Badge'
 import type { Event } from '@/types'
 
@@ -13,10 +14,12 @@ interface EventCardProps {
 
 function EventCard({ event, onDuplicate }: EventCardProps) {
   const navigate = useNavigate()
+  const { user: currentUser } = useAuthStore()
   const deleteEvent = useDeleteEvent()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const canEdit = event.can_edit ?? (event.created_by === currentUser?.id || currentUser?.org_role === 'admin')
 
   const phaseColors = {
     concept: 'default',
@@ -59,66 +62,68 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
         to={`/events/${event.id}`}
         className="group relative block card hover:scale-[1.02] transition-all duration-300 cursor-pointer border-l-4 border-purple-500"
       >
-        {/* 3-dot menu */}
-        <div
-          ref={menuRef}
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-          onClick={(e) => e.preventDefault()}
-        >
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setMenuOpen(!menuOpen)
-            }}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+        {/* 3-dot menu — hidden for team-only members who can't edit */}
+        {canEdit && (
+          <div
+            ref={menuRef}
+            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            onClick={(e) => e.preventDefault()}
           >
-            <MoreVertical className="w-4 h-4" />
-          </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setMenuOpen(!menuOpen)
+              }}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
 
-          {menuOpen && (
-            <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setMenuOpen(false)
-                  navigate(`/events/${event.id}?edit=true`)
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Edit
-              </button>
-              {onDuplicate && (
+            {menuOpen && (
+              <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                 <button
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     setMenuOpen(false)
-                    onDuplicate(event)
+                    navigate(`/events/${event.id}?edit=true`)
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                  Duplicate
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
                 </button>
-              )}
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setMenuOpen(false)
-                  setShowDeleteConfirm(true)
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
+                {onDuplicate && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setMenuOpen(false)
+                      onDuplicate(event)
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Duplicate
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setMenuOpen(false)
+                    setShowDeleteConfirm(true)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -132,6 +137,12 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
               <Badge variant={statusColors[event.status]} size="sm">
                 {event.status}
               </Badge>
+              {event.team_member_status === 'pending' && (
+                <Badge variant="warning" size="sm">Invited</Badge>
+              )}
+              {event.team_member_status === 'confirmed' && (
+                <Badge variant="primary" size="sm">Team Member</Badge>
+              )}
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Save, Plus, X, ChevronDown, ChevronRight } from 'lu
 import { useEvent, useUpdateEvent } from '@/hooks/useEvents'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import RoleCombobox from '@/components/RoleCombobox'
+import InvitationStatusBadge from '@/components/InvitationStatusBadge'
 
 const VOCALS_COMBINABLE = ['Acoustic Guitar', 'Electric Guitar', 'Bass', 'Keys']
 
@@ -30,13 +31,82 @@ function composeRole(instrument: string, hasVocals: boolean): string {
   return instrument
 }
 
+/** Sub-component for the role column (instrument combobox + vocals checkboxes). */
+function MemberRoleCell({
+  member,
+  teamName,
+  teamMembers,
+  onRoleChange,
+}: {
+  member: TeamMember
+  teamName: string
+  teamMembers: TeamMember[]
+  onRoleChange: (newRole: string) => void
+}) {
+  const { instrument, hasVocals } = parseRole(member.role)
+  const isWorshipTeam = teamName.toLowerCase().includes('worship')
+  const isInstrument = VOCALS_COMBINABLE.includes(instrument)
+  const isVocalsOnly = hasVocals && !instrument
+
+  const existingRoles = teamMembers.map(m => {
+    const p = parseRole(m.role)
+    return p.instrument || (p.hasVocals ? 'Vocals' : m.role)
+  })
+
+  return (
+    <>
+      <RoleCombobox
+        value={isVocalsOnly ? 'Vocals' : instrument}
+        onChange={(val) => {
+          if (val === 'Vocals') {
+            onRoleChange('Vocals')
+          } else {
+            const keepVocals = hasVocals && VOCALS_COMBINABLE.includes(val)
+            onRoleChange(composeRole(val, keepVocals))
+          }
+        }}
+        teamName={teamName}
+        existingRoles={existingRoles}
+      />
+      {isWorshipTeam && isInstrument && (
+        <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hasVocals}
+            onChange={(e) => onRoleChange(composeRole(instrument, e.target.checked))}
+            className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
+          />
+          <span className="text-xs font-medium text-gray-600">+ Vocals</span>
+        </label>
+      )}
+      {isWorshipTeam && isVocalsOnly && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+          {VOCALS_COMBINABLE.map(inst => (
+            <label key={inst} className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={false}
+                onChange={() => onRoleChange(composeRole(inst, true))}
+                className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
+              />
+              <span className="text-xs font-medium text-gray-600">+ {inst}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 interface TeamMember {
+  member_id?: string
   role: string
   contact_id: string
   is_user: boolean
   name: string
   email?: string
   phone?: string
+  status?: 'pending' | 'confirmed' | 'declined'
 }
 
 interface Team {
@@ -91,12 +161,14 @@ export default function EditTeamsPage() {
       const loaded = event.event_teams.map((t: any) => ({
         name: t.name || '',
         members: (t.members || []).map((m: any) => ({
+          member_id: m.member_id || undefined,
           role: m.role || '',
           contact_id: m.contact_id || '',
           is_user: m.is_user || false,
           name: m.name || '',
           email: m.email || '',
           phone: m.phone || '',
+          status: m.status || undefined,
         })),
       }))
       setTeams(loaded)
@@ -108,46 +180,63 @@ export default function EditTeamsPage() {
   }, [event])
 
   const updateTeamName = (teamIndex: number, name: string) => {
-    const updated = [...teams]
-    updated[teamIndex].name = name
-    setTeams(updated)
+    setTeams(prev => prev.map((t, i) =>
+      i === teamIndex ? { ...t, name } : t
+    ))
   }
 
   const updateMember = (teamIndex: number, memberIndex: number, field: keyof TeamMember, value: any) => {
-    const updated = [...teams]
-    ;(updated[teamIndex].members[memberIndex] as any)[field] = value
-    setTeams(updated)
+    setTeams(prev => prev.map((t, i) =>
+      i === teamIndex
+        ? { ...t, members: t.members.map((m, j) => j === memberIndex ? { ...m, [field]: value } : m) }
+        : t
+    ))
   }
 
   const handleMemberContactChange = (teamIndex: number, memberIndex: number, name: string, contactId?: string, isUser?: boolean) => {
-    const updated = [...teams]
-    updated[teamIndex].members[memberIndex] = {
-      ...updated[teamIndex].members[memberIndex],
-      name,
-      contact_id: contactId || '',
-      is_user: isUser || false,
-    }
-    setTeams(updated)
+    setTeams(prev => prev.map((t, i) =>
+      i === teamIndex
+        ? {
+            ...t,
+            members: t.members.map((m, j) => {
+              if (j !== memberIndex) return m
+              const personChanged = contactId !== m.contact_id
+              return {
+                ...m,
+                name,
+                contact_id: contactId || '',
+                is_user: isUser || false,
+                // Clear member_id and status when person changes so backend creates a fresh invite
+                ...(personChanged ? { member_id: undefined, status: undefined } : {}),
+              }
+            }),
+          }
+        : t
+    ))
   }
 
   const addMember = (teamIndex: number) => {
-    const updated = [...teams]
-    updated[teamIndex].members.push({ role: '', contact_id: '', is_user: false, name: '' })
-    setTeams(updated)
+    setTeams(prev => prev.map((t, i) =>
+      i === teamIndex
+        ? { ...t, members: [...t.members, { role: '', contact_id: '', is_user: false, name: '' }] }
+        : t
+    ))
   }
 
   const removeMember = (teamIndex: number, memberIndex: number) => {
-    const updated = [...teams]
-    updated[teamIndex].members = updated[teamIndex].members.filter((_, i) => i !== memberIndex)
-    setTeams(updated)
+    setTeams(prev => prev.map((t, i) =>
+      i === teamIndex
+        ? { ...t, members: t.members.filter((_, j) => j !== memberIndex) }
+        : t
+    ))
   }
 
   const addTeam = () => {
-    setTeams([...teams, { name: '', members: [{ role: '', contact_id: '', is_user: false, name: '' }] }])
+    setTeams(prev => [...prev, { name: '', members: [{ role: '', contact_id: '', is_user: false, name: '' }] }])
   }
 
   const removeTeam = (teamIndex: number) => {
-    setTeams(teams.filter((_, i) => i !== teamIndex))
+    setTeams(prev => prev.filter((_, i) => i !== teamIndex))
   }
 
   const toggleCollapse = (teamIndex: number) => {
@@ -268,58 +357,12 @@ export default function EditTeamsPage() {
                     <div className="grid grid-cols-2 gap-3 flex-1">
                       <div>
                         <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
-                        {(() => {
-                          const { instrument, hasVocals } = parseRole(member.role)
-                          const isWorshipTeam = team.name.toLowerCase().includes('worship')
-                          const isInstrument = VOCALS_COMBINABLE.includes(instrument)
-                          const isVocalsOnly = hasVocals && !instrument
-                          return (
-                            <>
-                              <RoleCombobox
-                                value={isVocalsOnly ? 'Vocals' : instrument}
-                                onChange={(val) => {
-                                  if (val === 'Vocals') {
-                                    updateMember(teamIndex, memberIndex, 'role', 'Vocals')
-                                  } else {
-                                    const keepVocals = hasVocals && VOCALS_COMBINABLE.includes(val)
-                                    updateMember(teamIndex, memberIndex, 'role', composeRole(val, keepVocals))
-                                  }
-                                }}
-                                teamName={team.name}
-                                existingRoles={team.members.map(m => {
-                                  const p = parseRole(m.role)
-                                  return p.instrument || (p.hasVocals ? 'Vocals' : m.role)
-                                })}
-                              />
-                              {isWorshipTeam && isInstrument && (
-                                <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={hasVocals}
-                                    onChange={(e) => updateMember(teamIndex, memberIndex, 'role', composeRole(instrument, e.target.checked))}
-                                    className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
-                                  />
-                                  <span className="text-xs font-medium text-gray-600">+ Vocals</span>
-                                </label>
-                              )}
-                              {isWorshipTeam && isVocalsOnly && (
-                                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
-                                  {VOCALS_COMBINABLE.map(inst => (
-                                    <label key={inst} className="flex items-center gap-1 cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        checked={false}
-                                        onChange={() => updateMember(teamIndex, memberIndex, 'role', composeRole(inst, true))}
-                                        className="w-3.5 h-3.5 text-teal-600 rounded focus:ring-teal-500"
-                                      />
-                                      <span className="text-xs font-medium text-gray-600">+ {inst}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )
-                        })()}
+                        <MemberRoleCell
+                          member={member}
+                          teamName={team.name}
+                          teamMembers={team.members}
+                          onRoleChange={(newRole) => updateMember(teamIndex, memberIndex, 'role', newRole)}
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-600 mb-1">Person</label>
@@ -334,14 +377,19 @@ export default function EditTeamsPage() {
                         />
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeMember(teamIndex, memberIndex)}
-                      className="mt-6 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Remove member"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 mt-6">
+                      {member.status && member.is_user && (
+                        <InvitationStatusBadge status={member.status} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeMember(teamIndex, memberIndex)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        title="Remove member"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

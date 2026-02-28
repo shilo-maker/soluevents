@@ -991,21 +991,25 @@ model Task {
   link           String?
   event_id       String?      @db.Uuid
   tour_id        String?      @db.Uuid
-  assignee_id    String?      @db.Uuid
-  creator_id     String       @db.Uuid
-  parent_task_id String?      @db.Uuid
-  created_at     DateTime     @default(now())
-  updated_at     DateTime     @updatedAt
+  assignee_id            String?      @db.Uuid
+  assignee_contact_id    String?      @db.Uuid
+  assignee_is_user       Boolean      @default(true)
+  creator_id             String       @db.Uuid
+  parent_task_id         String?      @db.Uuid
+  created_at             DateTime     @default(now())
+  updated_at             DateTime     @updatedAt
 
   // Relations
-  event       Event? @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  tour        Tour?  @relation(fields: [tour_id], references: [id], onDelete: Cascade)
-  assignee    User?  @relation("AssignedTasks", fields: [assignee_id], references: [id])
-  creator     User   @relation("CreatedTasks", fields: [creator_id], references: [id])
-  parent_task Task?  @relation("Subtasks", fields: [parent_task_id], references: [id])
-  subtasks    Task[] @relation("Subtasks")
+  event             Event?   @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  tour              Tour?    @relation(fields: [tour_id], references: [id], onDelete: Cascade)
+  assignee          User?    @relation("AssignedTasks", fields: [assignee_id], references: [id])
+  assignee_contact  Contact? @relation("AssignedTasksContact", fields: [assignee_contact_id], references: [id])
+  creator           User     @relation("CreatedTasks", fields: [creator_id], references: [id])
+  parent_task       Task?    @relation("Subtasks", fields: [parent_task_id], references: [id])
+  subtasks          Task[]   @relation("Subtasks")
 
   @@index([assignee_id])
+  @@index([assignee_contact_id])
   @@index([creator_id])
   @@index([event_id])
   @@index([tour_id])
@@ -1098,7 +1102,8 @@ model Contact {
   updated_at DateTime @updatedAt
 
   // Relations
-  creator User @relation("CreatedContacts", fields: [created_by], references: [id])
+  creator        User   @relation("CreatedContacts", fields: [created_by], references: [id])
+  assigned_tasks Task[] @relation("AssignedTasksContact")
 
   @@index([created_by])
   @@map("contacts")
