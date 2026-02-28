@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Bell, Building2, Music, UserX, UserCheck, Check, X, Loader2, CheckCheck, Trash2 } from 'lucide-react'
+import { Bell, Building2, Music, UserX, UserCheck, Check, X, Loader2, CheckCheck, Trash2, MessageCircle, Send } from 'lucide-react'
 import { isAxiosError } from 'axios'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNotifications, useNotificationCounts, useMarkAllAsRead, useClearNotifications, useDeleteNotification } from '@/hooks/useNotifications'
 import { useRespondToMemberInvite } from '@/hooks/useWorkspaces'
 import { useRespondToTeamInvite } from '@/hooks/useEvents'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
+import api from '@/lib/axios'
 import type { Notification } from '@/types'
 
 function errorMessage(error: unknown): string {
@@ -30,10 +32,17 @@ export default function NotificationBell() {
   const navigate = useNavigate()
   const loadWorkspaces = useWorkspaceStore((s) => s.loadWorkspaces)
 
+  const queryClient = useQueryClient()
+
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [actingId, setActingId] = useState<string | null>(null)
   const [errorId, setErrorId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [replySending, setReplySending] = useState(false)
+  const replyInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const { data: notifications } = useNotifications(open)
@@ -45,7 +54,30 @@ export default function NotificationBell() {
   const respondMutation = useRespondToMemberInvite()
   const teamInviteMutation = useRespondToTeamInvite()
 
-  const closeDropdown = useCallback(() => setOpen(false), [])
+  const closeDropdown = useCallback(() => { setOpen(false); setExpanded(false); setReplyingTo(null); setReplyText('') }, [])
+
+  // Auto-focus reply input when opened
+  useEffect(() => {
+    if (replyingTo) replyInputRef.current?.focus()
+  }, [replyingTo])
+
+  const handleReply = async (taskId: string, notificationId: string) => {
+    const body = replyText.trim()
+    if (!body) return
+    setReplySending(true)
+    try {
+      await api.post(`/tasks/${taskId}/comments`, { body })
+      queryClient.invalidateQueries({ queryKey: ['comments', 'task', taskId] })
+      deleteMutation.mutate(notificationId)
+      setReplyingTo(null)
+      setReplyText('')
+    } catch (err) {
+      setErrorId(notificationId)
+      setErrorMsg(errorMessage(err))
+    } finally {
+      setReplySending(false)
+    }
+  }
 
   // Auto-mark notifications as read when dropdown is opened
   useEffect(() => {
@@ -160,6 +192,7 @@ export default function NotificationBell() {
     const isTeamInvite = n.type === 'event_team_invite'
     const isTeamRemoved = n.type === 'event_team_removed'
     const isTeamResponse = n.type === 'event_team_response'
+    const isTaskComment = n.type === 'task_comment'
     const payload = n.payload || {}
     const isActing = actingId === n.id
     const hasActions = isInvite || isTeamInvite
@@ -172,17 +205,28 @@ export default function NotificationBell() {
       </Link>
     ) : <strong>{payload.event_title || 'an event'}</strong>
 
+    // Task title — links to event tasks tab if event_id present
+    const taskLink = isTaskComment && payload.event_id ? (
+      <Link to={`/events/${payload.event_id}?tab=tasks`} onClick={closeDropdown}
+        className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
+        {payload.task_title || 'a task'}
+      </Link>
+    ) : <strong>{payload.task_title || 'a task'}</strong>
+
     // Choose icon + gradient based on notification type
-    const IconComponent = isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
-    const iconGradient = isTeamRemoved
-      ? 'from-red-400 to-orange-400'
-      : isTeamResponse
-        ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
-        : isTeamInvite
-          ? 'from-teal-500 to-green-500'
-          : 'from-teal-500 to-cyan-500'
+    const IconComponent = isTaskComment ? MessageCircle : isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
+    const iconGradient = isTaskComment
+      ? 'from-blue-500 to-indigo-500'
+      : isTeamRemoved
+        ? 'from-red-400 to-orange-400'
+        : isTeamResponse
+          ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
+          : isTeamInvite
+            ? 'from-teal-500 to-green-500'
+            : 'from-teal-500 to-cyan-500'
     const bgHighlight = isUnread
-      ? isTeamRemoved ? 'bg-red-50/50'
+      ? isTaskComment ? 'bg-blue-50/50'
+        : isTeamRemoved ? 'bg-red-50/50'
         : isTeamResponse ? (payload.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50')
         : isTeamInvite ? 'bg-teal-50/50'
         : 'bg-teal-50/50'
@@ -198,7 +242,14 @@ export default function NotificationBell() {
             <IconComponent className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            {isTeamResponse ? (
+            {isTaskComment ? (
+              <p className="text-sm text-gray-900">
+                <strong>{payload.commenter_name || 'Someone'}</strong> commented on {taskLink}
+                {payload.comment_body && (
+                  <span className="text-gray-500">: &ldquo;{payload.comment_body}&rdquo;</span>
+                )}
+              </p>
+            ) : isTeamResponse ? (
               <p className="text-sm text-gray-900">
                 <strong>{payload.member_name || 'Someone'}</strong>{' '}
                 {payload.action === 'accept' ? 'accepted' : 'declined'} the role of{' '}
@@ -225,6 +276,42 @@ export default function NotificationBell() {
               <p className="text-sm text-gray-900">{payload.message || 'You have a new notification'}</p>
             )}
             <p className="text-xs text-gray-500 mt-0.5">{timeAgo(n.created_at)}</p>
+
+            {isTaskComment && payload.task_id && (
+              replyingTo === n.id ? (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <input
+                    ref={replyInputRef}
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(payload.task_id!, n.id) }
+                      if (e.key === 'Escape') { setReplyingTo(null); setReplyText('') }
+                    }}
+                    placeholder="Write a reply..."
+                    disabled={replySending}
+                    className="flex-1 text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 disabled:opacity-50"
+                  />
+                  <button
+                    onClick={() => handleReply(payload.task_id!, n.id)}
+                    disabled={replySending || !replyText.trim()}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                    title="Send"
+                  >
+                    {replySending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setReplyingTo(n.id); setReplyText(''); setErrorId(null) }}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1.5 flex items-center gap-1"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  Reply
+                </button>
+              )
+            )}
 
             {hasActions && (
               <div className="flex gap-2 mt-2">
@@ -313,7 +400,17 @@ export default function NotificationBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {notifications && notifications.length > 0 ? (
-              notifications.map(renderNotification)
+              <>
+                {(expanded ? notifications : notifications.slice(0, 4)).map(renderNotification)}
+                {!expanded && notifications.length > 4 && (
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="w-full py-2.5 text-xs font-medium text-teal-600 hover:text-teal-700 hover:bg-teal-50/50 transition-colors border-t border-gray-100"
+                  >
+                    Show {notifications.length - 4} more
+                  </button>
+                )}
+              </>
             ) : (
               <div className="py-8 text-center">
                 <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
