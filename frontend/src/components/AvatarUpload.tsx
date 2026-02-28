@@ -30,16 +30,18 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
 
     if (!file.type.startsWith('image/')) return
 
-    // Open crop modal instead of compressing immediately
-    setCropFile(file)
-    setCropImageUrl(URL.createObjectURL(file))
+    // Read as data URL (more reliable than blob URLs for react-easy-crop)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setCropFile(file)
+      setCropImageUrl(reader.result as string)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleCropConfirm = async (croppedAreaPixels: Area) => {
     if (!cropFile) return
 
-    // Close modal
-    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl)
     setCropImageUrl(null)
 
     setCompressing(true)
@@ -55,7 +57,6 @@ export default function AvatarUpload({ src, name, onUpload, onRemove, loading }:
   }
 
   const handleCropCancel = () => {
-    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl)
     setCropImageUrl(null)
     setCropFile(null)
   }
