@@ -1,10 +1,12 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from './stores/authStore'
+import { useAuthStore, hasHydrated } from './stores/authStore'
 import { useWorkspaceStore } from './stores/workspaceStore'
 import api from '@/lib/axios'
 import { Loader2 } from 'lucide-react'
 import Layout from './components/Layout'
+import PWAUpdatePrompt from './components/PWAUpdatePrompt'
+import { useAppResume } from './hooks/useAppResume'
 
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'))
@@ -35,6 +37,18 @@ function App() {
   const { isAuthenticated } = useAuthStore()
   const loadWorkspaces = useWorkspaceStore((s) => s.loadWorkspaces)
   const location = useLocation()
+  useAppResume()
+
+  // Wait for Zustand to restore auth from localStorage before rendering.
+  // Prevents a brief flash of the login page on PWA cold launch.
+  const [hydrated, setHydrated] = useState(hasHydrated)
+  useEffect(() => {
+    if (hydrated) return
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+    // In case hydration already completed between the useState and useEffect
+    if (hasHydrated()) setHydrated(true)
+    return unsub
+  }, [hydrated])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,6 +65,10 @@ function App() {
       loadWorkspaces()
     }
   }, [isAuthenticated, loadWorkspaces])
+
+  if (!hydrated) {
+    return <div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>
+  }
 
   if (!isAuthenticated) {
     return (
@@ -78,6 +96,7 @@ function App() {
 
   return (
     <Layout>
+      <PWAUpdatePrompt />
       <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />

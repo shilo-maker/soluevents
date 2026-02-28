@@ -9,7 +9,7 @@ export const generateAccessToken = (payload: object): string => {
 
 export const generateRefreshToken = (payload: object): string => {
   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '90d') as jwt.SignOptions['expiresIn'],
     algorithm: 'HS256',
   })
 }

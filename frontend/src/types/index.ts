@@ -33,6 +33,8 @@ export type EventRole =
 export interface User {
   id: string
   name: string
+  name_he?: string | null
+  name_en?: string | null
   email: string
   org_role: OrgRole
   avatar_url?: string | null

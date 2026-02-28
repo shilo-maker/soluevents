@@ -134,6 +134,8 @@ export const login = async (
       user: {
         id: user.id,
         name: userName,
+        name_he: user.name_he,
+        name_en: user.name_en,
         email: user.email,
         org_role: user.org_role || 'member',
         avatar_url: user.avatar_url,
@@ -183,8 +185,9 @@ export const refreshToken = async (
       org_role: user.org_role || 'member',
     }
     const access_token = generateAccessToken(tokenPayload)
+    const new_refresh_token = generateRefreshToken(tokenPayload)
 
-    res.json({ access_token })
+    res.json({ access_token, refresh_token: new_refresh_token })
   } catch (error) {
     next(error)
   }
@@ -201,6 +204,8 @@ export const me = async (
       select: {
         id: true,
         name: true,
+        name_he: true,
+        name_en: true,
         email: true,
         org_role: true,
         avatar_url: true,
@@ -258,6 +263,8 @@ export const me = async (
     res.json({
       id: user.id,
       name: user.name || user.username || user.email.split('@')[0],
+      name_he: user.name_he,
+      name_en: user.name_en,
       email: user.email,
       org_role: user.org_role || 'member',
       avatar_url: user.avatar_url,

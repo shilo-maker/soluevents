@@ -30,6 +30,8 @@ export const getUsers = async (
         select: {
           id: true,
           name: true,
+          name_he: true,
+          name_en: true,
           username: true,
           email: true,
           org_role: true,
@@ -47,6 +49,8 @@ export const getUsers = async (
       data: users.map(u => ({
         id: u.id,
         name: u.name || u.username || u.email.split('@')[0],
+        name_he: u.name_he,
+        name_en: u.name_en,
         email: u.email,
         org_role: u.org_role || 'member',
         avatar_url: u.avatar_url,
@@ -72,6 +76,8 @@ export const getUser = async (
       select: {
         id: true,
         name: true,
+        name_he: true,
+        name_en: true,
         username: true,
         email: true,
         org_role: true,
@@ -87,6 +93,8 @@ export const getUser = async (
     res.json({
       id: user.id,
       name: user.name || user.username || user.email.split('@')[0],
+      name_he: user.name_he,
+      name_en: user.name_en,
       email: user.email,
       org_role: user.org_role || 'member',
       avatar_url: user.avatar_url,
@@ -161,10 +169,12 @@ export const updateUser = async (
       throw new AppError('Not authorized to modify this user', 403)
     }
 
-    const { name, email, password, org_role, is_active, avatar_url } = req.body
+    const { name, name_he, name_en, email, password, org_role, is_active, avatar_url } = req.body
 
     const updateData: Record<string, any> = {}
     if (name !== undefined) updateData.name = name
+    if (name_he !== undefined) updateData.name_he = name_he
+    if (name_en !== undefined) updateData.name_en = name_en
     if (email !== undefined) updateData.email = email.toLowerCase().trim()
     if (is_active !== undefined) updateData.isActive = is_active
     if (avatar_url !== undefined) updateData.avatar_url = avatar_url
@@ -187,6 +197,8 @@ export const updateUser = async (
       select: {
         id: true,
         name: true,
+        name_he: true,
+        name_en: true,
         username: true,
         email: true,
         org_role: true,
@@ -198,6 +210,8 @@ export const updateUser = async (
     res.json({
       id: user.id,
       name: user.name || user.username || user.email.split('@')[0],
+      name_he: user.name_he,
+      name_en: user.name_en,
       email: user.email,
       org_role: user.org_role || 'member',
       avatar_url: user.avatar_url,

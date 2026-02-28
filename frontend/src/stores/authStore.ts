@@ -15,6 +15,10 @@ interface AuthState {
   clearAuth: () => void
 }
 
+/** True once Zustand has restored state from localStorage */
+let _hydrated = false
+export const hasHydrated = () => _hydrated
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -47,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => () => { _hydrated = true },
     }
   )
 )

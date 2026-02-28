@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useUsers } from '@/hooks/useUsers'
 import { useContacts, useCreateContact, useUpdateContactById } from '@/hooks/useContacts'
-import { Shield, Plus, Check, X, Pencil } from 'lucide-react'
+import { Plus, Check, X, Pencil } from 'lucide-react'
+import Avatar from '@/components/Avatar'
 
 interface ContactAutocompleteProps {
   value: string
@@ -21,6 +22,7 @@ type ContactSuggestion = {
   phone?: string
   role?: string
   isUser: boolean
+  avatar_url?: string | null
 }
 
 export default function ContactAutocomplete({
@@ -62,6 +64,7 @@ export default function ContactAutocomplete({
       email: user.email,
       role: user.org_role,
       isUser: true,
+      avatar_url: user.avatar_url,
     })) || []
 
     const contactSuggestions: ContactSuggestion[] = contacts?.map(contact => ({
@@ -276,7 +279,7 @@ export default function ContactAutocomplete({
             )}
             <div title={isUser ? t('contacts.registeredUser') : t('common.contactLabel')}>
               {isUser ? (
-                <Shield className="h-5 w-5 text-teal-600" />
+                <Avatar src={linkedContact?.avatar_url} name={linkedContact?.name || ''} size="xs" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
@@ -294,7 +297,7 @@ export default function ContactAutocomplete({
           >
             <div className="flex items-center gap-2 mb-1.5">
               {linkedContact.isUser ? (
-                <Shield className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                <Avatar src={linkedContact.avatar_url} name={linkedContact.name} size="xs" />
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
@@ -389,14 +392,12 @@ export default function ContactAutocomplete({
                 index === selectedIndex ? 'bg-teal-50' : ''
               }`}
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                {contact.isUser && (
+                  <Avatar src={contact.avatar_url} name={contact.name} size="xs" />
+                )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-gray-900">{contact.name}</span>
-                    {contact.isUser && (
-                      <Shield className="h-3 w-3 text-teal-600" />
-                    )}
-                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{contact.name}</span>
                   {contact.email && (
                     <div className="text-xs text-gray-500 truncate">{contact.email}</div>
                   )}

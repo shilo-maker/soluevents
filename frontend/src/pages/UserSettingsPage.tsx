@@ -29,6 +29,35 @@ export default function UserSettingsPage() {
   const [avatarLoading, setAvatarLoading] = useState(false)
   const [avatarMsg, setAvatarMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  const [nameHe, setNameHe] = useState('')
+  const [nameEn, setNameEn] = useState('')
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameMsg, setNameMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    if (user) {
+      setNameHe(user.name_he || user.name || '')
+      setNameEn(user.name_en || '')
+    }
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveName = async () => {
+    if (!user) return
+    setNameSaving(true)
+    setNameMsg(null)
+    try {
+      const currentLang = getCurrentLanguage()
+      const displayName = currentLang === 'he' ? (nameHe || nameEn) : (nameEn || nameHe)
+      await api.patch(`/users/${user.id}`, { name_he: nameHe, name_en: nameEn, name: displayName })
+      patchUser({ name_he: nameHe, name_en: nameEn, name: displayName })
+      setNameMsg({ type: 'success', text: t('settings.nameSaved') })
+    } catch (err) {
+      setNameMsg({ type: 'error', text: errorMessage(err) })
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
   const handleAvatarUpload = async (base64: string) => {
     if (!user) return
     setAvatarLoading(true)
@@ -133,8 +162,7 @@ export default function UserSettingsPage() {
             onRemove={handleAvatarRemove}
             loading={avatarLoading}
           />
-          <div className="pt-1">
-            <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
+          <div className="pt-1 flex-1">
             <p className="text-sm text-gray-500">{user?.email}</p>
             <p className="text-xs text-gray-400 capitalize mt-0.5">{user?.org_role}</p>
           </div>
@@ -145,6 +173,50 @@ export default function UserSettingsPage() {
             {avatarMsg.text}
           </p>
         )}
+
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.nameHebrew')}</label>
+              <input
+                type="text"
+                value={nameHe}
+                onChange={(e) => setNameHe(e.target.value)}
+                dir="rtl"
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('settings.nameEnglish')}</label>
+              <input
+                type="text"
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                dir="ltr"
+                className="input w-full"
+              />
+            </div>
+          </div>
+
+          {nameMsg && (
+            <p className={`text-sm ${nameMsg.type === 'error' ? 'text-red-500' : 'text-green-600'}`}>
+              {nameMsg.text}
+            </p>
+          )}
+
+          <button
+            onClick={handleSaveName}
+            disabled={nameSaving}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            {nameSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {t('settings.saveName')}
+          </button>
+        </div>
       </div>
 
       {/* Language */}

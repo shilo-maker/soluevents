@@ -6,7 +6,12 @@
   body {
     @apply bg-gradient-to-br from-gray-50 via-teal-50/30 to-cyan-50/30 text-gray-900;
     min-height: 100vh;
+    min-height: 100dvh;
     caret-color: transparent;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   /* Re-enable caret in actual input elements */

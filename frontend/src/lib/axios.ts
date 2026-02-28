@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
+import { refreshAuth } from './refreshAuth'
 
 const api = axios.create({
   baseURL: '/api',
@@ -22,9 +23,6 @@ api.interceptors.request.use(
   }
 )
 
-// Token refresh dedup — prevent multiple concurrent 401s from triggering parallel refreshes
-let refreshPromise: Promise<string> | null = null
-
 // Response interceptor for token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -35,32 +33,16 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        // Reuse in-flight refresh if one is already running
-        if (!refreshPromise) {
-          refreshPromise = (async () => {
-            const state = useAuthStore.getState()
-            if (!state.isAuthenticated || !state.user || !state.refreshToken) {
-              throw new Error('No user session')
-            }
-            const response = await axios.post('/api/auth/refresh', {
-              refresh_token: state.refreshToken,
-            })
-            const { access_token } = response.data
-            // Re-check auth state — user may have logged out while refresh was in-flight
-            if (!useAuthStore.getState().isAuthenticated) {
-              throw new Error('Logged out during refresh')
-            }
-            useAuthStore.getState().setAuth(state.user, access_token, state.refreshToken)
-            return access_token
-          })().finally(() => { refreshPromise = null })
-        }
-
-        const access_token = await refreshPromise
+        const access_token = await refreshAuth()
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
-      } catch (refreshError) {
-        useAuthStore.getState().clearAuth()
-        window.location.href = '/login'
+      } catch (refreshError: any) {
+        // Only clear auth if the server explicitly rejected the token (401/403).
+        // Network errors (no response) mean we're offline — keep the session.
+        if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+          useAuthStore.getState().clearAuth()
+          window.location.href = '/login'
+        }
         return Promise.reject(refreshError)
       }
     }

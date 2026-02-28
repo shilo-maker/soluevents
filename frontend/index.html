@@ -10,12 +10,20 @@
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#7c3aed" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Event & Tour Management Platform" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>SoluPlan - Event & Tour Management</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash" style="display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#f9fafb,rgba(204,251,241,.3),rgba(207,250,254,.3))">
+        <img src="/logo-192.png" alt="" width="64" height="64" style="animation:pulse 1.5s ease-in-out infinite;border-radius:16px" />
+      </div>
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(.95)}}</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "name_he" TEXT;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "name_en" TEXT;

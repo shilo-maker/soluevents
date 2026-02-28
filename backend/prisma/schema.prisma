@@ -223,6 +223,8 @@ model User {
 
   // --- SoluPlan-owned columns (snake_case, added by Prisma migration) ---
   name       String?
+  name_he    String?           @map("name_he")
+  name_en    String?           @map("name_en")
   org_role   OrgRole?
   avatar_url String?
   phone      String?
