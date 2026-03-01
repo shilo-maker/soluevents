@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { Prisma } from '@prisma/client'
+import multer from 'multer'
 
 export class AppError extends Error {
   statusCode: number
@@ -24,6 +25,18 @@ export const errorHandler = (
       status: 'error',
       message: err.message,
     })
+  }
+
+  // Multer errors (file upload)
+  if (err instanceof multer.MulterError) {
+    const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 500KB)' : err.message
+    return res.status(status).json({ status: 'error', message })
+  }
+
+  // File filter rejection (plain Error from multer fileFilter)
+  if (err.message === 'File type not allowed') {
+    return res.status(400).json({ status: 'error', message: err.message })
   }
 
   // Prisma known errors

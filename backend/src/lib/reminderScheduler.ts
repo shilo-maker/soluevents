@@ -1,4 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron'
+import fs from 'fs/promises'
+import path from 'path'
 import prisma from './prisma'
 import { notify } from './notify'
 
@@ -158,11 +160,49 @@ async function purgeOldReminders(): Promise<void> {
   })
 }
 
+async function purgeExpiredFiles(): Promise<void> {
+  const now = new Date()
+  const uploadsRoot = path.resolve(__dirname, '../../uploads')
+
+  // Find uploaded files whose event or tour has ended and haven't been expired yet
+  const files = await prisma.soluplanFile.findMany({
+    where: {
+      file_type: 'upload',
+      expired_at: null,
+      OR: [
+        { event: { date_end: { lt: now } } },
+        { tour: { end_date: { lt: now } } },
+      ],
+    },
+    select: { id: true, url: true },
+  })
+
+  // Delete all files from disk in parallel (with path traversal guard)
+  await Promise.allSettled(
+    files.map(async (file) => {
+      const cleaned = file.url.replace(/^\/+/, '')
+      const filePath = path.resolve(__dirname, '../..', cleaned)
+      if (!filePath.startsWith(uploadsRoot + path.sep) && filePath !== uploadsRoot) return
+      try { await fs.unlink(filePath) } catch { /* already gone */ }
+    })
+  )
+
+  // Batch-update all expired files at once
+  if (files.length > 0) {
+    await prisma.soluplanFile.updateMany({
+      where: { id: { in: files.map(f => f.id) } },
+      data: { expired_at: now },
+    })
+    console.log(`Purged ${files.length} expired file(s)`)
+  }
+}
+
 async function runReminders(): Promise<void> {
   try {
     await processTaskReminders()
     await processEventReminders()
     await purgeOldReminders()
+    await purgeExpiredFiles()
   } catch (err) {
     console.error('Reminder scheduler error:', err)
   }

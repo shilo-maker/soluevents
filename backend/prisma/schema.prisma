@@ -1045,21 +1045,28 @@ model Comment {
 
 // Renamed to SoluplanFile to avoid collision with built-in File
 model SoluplanFile {
-  id          String   @id @default(uuid()) @db.Uuid
-  event_id    String?  @db.Uuid
-  tour_id     String?  @db.Uuid
-  uploader_id String   @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
+  event_id    String?   @db.Uuid
+  tour_id     String?   @db.Uuid
+  uploader_id String    @db.Uuid
   filename    String
   url         String
-  version     Int      @default(1)
+  version     Int       @default(1)
   notes       String?
-  created_at  DateTime @default(now())
+  file_type   String    @default("link")
+  file_size   Int       @default(0)
+  mime_type   String?
+  category    String?
+  expired_at  DateTime?
+  created_at  DateTime  @default(now())
 
   // Relations
   event    Event? @relation(fields: [event_id], references: [id], onDelete: Cascade)
   tour     Tour?  @relation(fields: [tour_id], references: [id], onDelete: Cascade)
   uploader User   @relation(fields: [uploader_id], references: [id])
 
+  @@index([event_id])
+  @@index([uploader_id])
   @@map("files")
 }
 

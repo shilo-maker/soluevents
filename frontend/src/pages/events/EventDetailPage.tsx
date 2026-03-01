@@ -11,7 +11,6 @@ import {
   Archive,
   Trash2,
   // UserPlus,
-  // X,
   Music,
   ExternalLink,
   Clock,
@@ -40,8 +39,9 @@ import PersonHoverCard from '@/components/PersonHoverCard'
 import TaskCard from '@/components/TaskCard'
 import { useEventRoom } from '@/hooks/useEventRoom'
 import type { Task } from '@/types'
+import FilesTab from '@/components/FilesTab'
 
-type Tab = 'overview' | 'tasks' | 'files' | 'comments'
+type Tab = 'overview' | 'tasks' | 'files'
 
 // Wrapper component to handle task updates
 function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) {
@@ -242,8 +242,7 @@ export default function EventDetailPage() {
   const tabs = [
     { id: 'overview', label: t('events.tabs.overview') },
     { id: 'tasks', label: t('events.tabs.tasks'), count: tasks?.length },
-    { id: 'files', label: t('events.tabs.files'), count: 0 },
-    { id: 'comments', label: t('events.tabs.comments'), count: 0 },
+    { id: 'files', label: t('events.tabs.files') },
   ]
 
   return (
@@ -1164,16 +1163,9 @@ export default function EventDetailPage() {
         )}
 
         {activeTab === 'files' && (
-          <div className="card text-center py-12">
-            <p className="text-sm text-gray-500">{t('events.fileManagementComingSoon')}</p>
-          </div>
+          <FilesTab eventId={id!} canEdit={canEdit} />
         )}
 
-        {activeTab === 'comments' && (
-          <div className="card text-center py-12">
-            <p className="text-sm text-gray-500">{t('events.commentsComingSoon')}</p>
-          </div>
-        )}
       </div>
 
       {/* Delete Confirmation Modal */}

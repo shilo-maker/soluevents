@@ -300,7 +300,9 @@ export interface Comment {
 }
 
 // File
-export interface File {
+export type FileCategory = 'rider' | 'flyer' | 'schedule' | 'contract' | 'media' | 'other'
+
+export interface EventFile {
   id: string
   event_id?: string
   tour_id?: string
@@ -309,7 +311,18 @@ export interface File {
   url: string
   version: number
   notes?: string
+  file_type: 'link' | 'upload'
+  file_size: number
+  mime_type?: string
+  category?: FileCategory
+  expired_at?: string
   created_at: string
+  uploader?: { id: string; name: string | null; email: string }
+}
+
+export interface StorageUsage {
+  used: number
+  limit: number
 }
 
 // Template
