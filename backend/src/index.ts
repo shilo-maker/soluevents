@@ -21,6 +21,7 @@ import userSettingsRoutes from './routes/userSettings'
 import notificationRoutes from './routes/notifications'
 import pushRoutes from './routes/push'
 import fileRoutes from './routes/files'
+import webhookRoutes from './routes/webhooks'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
 import { setupSocketIO, closeIO } from './lib/socket'
@@ -49,7 +50,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 }))
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
@@ -84,6 +85,15 @@ app.use('/api/user', userSettingsRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/files', fileRoutes)
+// Rate limiting on webhook endpoints (prevent brute-force + DoS)
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { status: 'error', message: 'Too many webhook requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+app.use('/api/webhooks', webhookLimiter, webhookRoutes)
 
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {

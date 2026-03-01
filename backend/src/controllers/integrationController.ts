@@ -138,7 +138,9 @@ export const getServiceByCode = async (
       throw new AppError('Invalid service code format', 400)
     }
 
-    const service = await flowServiceService.getFlowServiceByCode(code.toUpperCase())
+    // Try flow_services first, then fall back to SoluFlow's services table
+    // Pass userId so the bridge can auto-create a FlowService if needed
+    const service = await flowServiceService.findOrCreateFlowServiceByCode(code, req.user!.id)
     if (!service) {
       throw new AppError('FlowService not found', 404)
     }
@@ -336,6 +338,228 @@ function generateShareCode(): string {
   return code
 }
 
+/**
+ * Core SoluCast generation logic — callable from both the HTTP handler and the webhook.
+ * Takes an eventId and a userId (for presentation ownership), returns the generated setlist info.
+ */
+export async function generateSolucastInternal(eventId: string, userId: string) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } })
+  if (!event) {
+    throw new AppError('Event not found', 404)
+  }
+
+  const agenda = event.program_agenda as any
+  const schedule = agenda?.program_schedule as any[] | undefined
+  if (!schedule || schedule.length === 0) {
+    throw new AppError('Event has no program schedule', 400)
+  }
+
+  // Separate song IDs by type: numeric (legacy SoluFlow) vs UUID (SoluCast direct)
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const numericSongIds: number[] = []
+  const uuidSongIds: string[] = []
+
+  for (const item of schedule) {
+    if (item.type !== 'song' || !item.soluflow_song_id) continue
+    const rawId = item.soluflow_song_id
+    if (UUID_RE.test(String(rawId))) {
+      uuidSongIds.push(String(rawId).toLowerCase())
+    } else {
+      const num = Number(rawId)
+      if (!Number.isNaN(num)) numericSongIds.push(num)
+    }
+  }
+
+  // Batch-fetch SongMappings for legacy numeric IDs
+  const songMappings = numericSongIds.length > 0
+    ? await prisma.songMapping.findMany({
+        where: { soluflowId: { in: numericSongIds } },
+      })
+    : []
+  const mappingBySoluflowId = new Map(
+    songMappings.map((m) => [m.soluflowId, m.solupresenterId])
+  )
+
+  // Collect all SoluCast song UUIDs we need (from mappings + direct UUIDs)
+  const allSolucastSongIds = [
+    ...songMappings.map((m) => m.solupresenterId).filter((sid): sid is string => !!sid),
+    ...uuidSongIds,
+  ]
+  const songs = allSolucastSongIds.length > 0
+    ? await prisma.song.findMany({
+        where: { id: { in: allSolucastSongIds } },
+      })
+    : []
+  const songById = new Map(songs.map((s) => [s.id.toLowerCase(), s]))
+
+  // Build setlist items in schedule order (use transaction for atomicity)
+  const result = await prisma.$transaction(async (tx) => {
+    // Clean up old Presentation records from previous generation
+    if (event.setlist_id) {
+      const oldSetlist = await tx.setlist.findUnique({
+        where: { id: event.setlist_id },
+        select: { items: true },
+      })
+      if (oldSetlist) {
+        const oldPresIds = (oldSetlist.items as any[] || [])
+          .filter((i: any) => i.type === 'presentation' && i.presentationData?.id)
+          .map((i: any) => i.presentationData.id)
+        if (oldPresIds.length > 0) {
+          await tx.presentation.deleteMany({ where: { id: { in: oldPresIds } } })
+        }
+      }
+    }
+
+    const setlistItems: any[] = []
+    let order = 0
+
+    for (const item of schedule) {
+      if (item.type === 'song' && item.soluflow_song_id) {
+        const rawId = item.soluflow_song_id
+        let solucastSongId: string | undefined
+
+        if (UUID_RE.test(String(rawId))) {
+          solucastSongId = String(rawId).toLowerCase()
+        } else {
+          solucastSongId = mappingBySoluflowId.get(Number(rawId))?.toLowerCase() || undefined
+        }
+
+        if (!solucastSongId) continue
+        const song = songById.get(solucastSongId)
+        if (!song) continue
+
+        setlistItems.push({ type: 'song', song: song.id, order: order++ })
+      } else if (item.type === 'prayer' && item.prayer_points?.length > 0) {
+        const hasTrans = !!item.title_translation ||
+          item.prayer_points.some(
+            (p: any) => p.subtitle_translation || p.description_translation
+          )
+
+        const sharedBibleRef = item.same_verse_for_all && item.shared_bible_ref
+          ? addHebrewRef(typeof item.shared_bible_ref === 'object'
+              ? item.shared_bible_ref
+              : { reference: item.shared_bible_ref })
+          : undefined
+
+        const subtitles = item.prayer_points.map((p: any) => {
+          let bibleRef: any = undefined
+          if (p.bible_ref && typeof p.bible_ref === 'object') {
+            bibleRef = addHebrewRef(p.bible_ref)
+          } else if (p.bible_ref && typeof p.bible_ref === 'string') {
+            bibleRef = addHebrewRef({ reference: p.bible_ref })
+          } else if (sharedBibleRef) {
+            bibleRef = sharedBibleRef
+          }
+          return {
+            subtitle: p.subtitle || '',
+            subtitleTranslation: p.subtitle_translation,
+            description: p.description || '',
+            descriptionTranslation: p.description_translation,
+            bibleRef,
+          }
+        })
+
+        const slides = createPointsSlides({
+          type: 'prayer',
+          title: item.title || 'Prayer',
+          titleTranslation: item.title_translation,
+          generateTranslation: hasTrans,
+          subtitles,
+        })
+
+        const quickModeData = {
+          type: 'prayer',
+          title: item.title || 'Prayer',
+          titleTranslation: item.title_translation || '',
+          subtitles,
+          generateTranslation: hasTrans,
+        }
+
+        const presentation = await tx.presentation.create({
+          data: {
+            title: (item.title || 'Prayer').slice(0, 255),
+            slides: slides as any,
+            createdById: userId,
+            isPublic: false,
+            canvasDimensions: { width: 1920, height: 1080 },
+            backgroundSettings: { type: 'color', value: '#000000' },
+            quickModeData,
+          },
+        })
+
+        setlistItems.push({
+          type: 'presentation',
+          presentationData: {
+            id: presentation.id,
+            title: presentation.title,
+            slides: presentation.slides,
+            canvasDimensions: { width: 1920, height: 1080 },
+            quickModeData,
+          },
+          order: order++,
+        })
+      }
+    }
+
+    if (setlistItems.length === 0) {
+      throw new AppError(
+        'No songs or prayer items could be added. Make sure songs are mapped to SoluCast and prayer items have prayer points.',
+        400
+      )
+    }
+
+    const setlistName = `[Generated] ${event.title}`.slice(0, 255)
+
+    let setlist
+    if (event.setlist_id) {
+      const existingSetlist = await tx.setlist.findUnique({
+        where: { id: event.setlist_id },
+        select: { id: true },
+      })
+      if (existingSetlist) {
+        setlist = await tx.setlist.update({
+          where: { id: event.setlist_id },
+          data: {
+            name: setlistName,
+            items: setlistItems,
+          },
+        })
+      }
+    }
+
+    if (!setlist) {
+      let shareCode = ''
+      for (let i = 0; i < 5; i++) {
+        shareCode = generateShareCode()
+        const existing = await tx.setlist.findUnique({ where: { shareCode } })
+        if (!existing) break
+        if (i === 4) throw new AppError('Failed to generate unique share code', 500)
+      }
+      const shareToken = randomBytes(16).toString('hex')
+
+      setlist = await tx.setlist.create({
+        data: {
+          name: setlistName,
+          items: setlistItems,
+          createdById: userId,
+          isTemporary: false,
+          shareCode,
+          shareToken,
+        },
+      })
+
+      await tx.event.update({
+        where: { id: event.id },
+        data: { setlist_id: setlist.id },
+      })
+    }
+
+    return { setlist, setlistItems }
+  }, { timeout: 30000 })
+
+  return result
+}
+
 export const generateSolucast = async (
   req: AuthRequest,
   res: Response,
@@ -359,230 +583,7 @@ export const generateSolucast = async (
       throw new AppError('Not authorized to generate SoluCast for this event', 403)
     }
 
-    const agenda = event.program_agenda as any
-    const schedule = agenda?.program_schedule as any[] | undefined
-    if (!schedule || schedule.length === 0) {
-      throw new AppError('Event has no program schedule', 400)
-    }
-
-    // Separate song IDs by type: numeric (legacy SoluFlow) vs UUID (SoluCast direct)
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    const numericSongIds: number[] = []
-    const uuidSongIds: string[] = []
-
-    for (const item of schedule) {
-      if (item.type !== 'song' || !item.soluflow_song_id) continue
-      const rawId = item.soluflow_song_id
-      if (UUID_RE.test(String(rawId))) {
-        // Already a SoluCast Song UUID (from FlowService sync)
-        uuidSongIds.push(String(rawId).toLowerCase())
-      } else {
-        const num = Number(rawId)
-        if (!Number.isNaN(num)) numericSongIds.push(num)
-      }
-    }
-
-    // Batch-fetch SongMappings for legacy numeric IDs
-    const songMappings = numericSongIds.length > 0
-      ? await prisma.songMapping.findMany({
-          where: { soluflowId: { in: numericSongIds } },
-        })
-      : []
-    const mappingBySoluflowId = new Map(
-      songMappings.map((m) => [m.soluflowId, m.solupresenterId])
-    )
-
-    // Collect all SoluCast song UUIDs we need (from mappings + direct UUIDs)
-    const allSolucastSongIds = [
-      ...songMappings.map((m) => m.solupresenterId).filter((sid): sid is string => !!sid),
-      ...uuidSongIds,
-    ]
-    const songs = allSolucastSongIds.length > 0
-      ? await prisma.song.findMany({
-          where: { id: { in: allSolucastSongIds } },
-        })
-      : []
-    const songById = new Map(songs.map((s) => [s.id.toLowerCase(), s]))
-
-    // Build setlist items in schedule order (use transaction for atomicity)
-    const result = await prisma.$transaction(async (tx) => {
-      // Clean up old Presentation records from previous generation
-      if (event.setlist_id) {
-        const oldSetlist = await tx.setlist.findUnique({
-          where: { id: event.setlist_id },
-          select: { items: true },
-        })
-        if (oldSetlist) {
-          const oldPresIds = (oldSetlist.items as any[] || [])
-            .filter((i: any) => i.type === 'presentation' && i.presentationData?.id)
-            .map((i: any) => i.presentationData.id)
-          if (oldPresIds.length > 0) {
-            await tx.presentation.deleteMany({ where: { id: { in: oldPresIds } } })
-          }
-        }
-      }
-
-      const setlistItems: any[] = []
-      let order = 0
-
-      for (const item of schedule) {
-        if (item.type === 'song' && item.soluflow_song_id) {
-          const rawId = item.soluflow_song_id
-          let solucastSongId: string | undefined
-
-          if (UUID_RE.test(String(rawId))) {
-            // Direct SoluCast UUID (from FlowService sync)
-            solucastSongId = String(rawId).toLowerCase()
-          } else {
-            // Legacy numeric ID — resolve via SongMapping
-            solucastSongId = mappingBySoluflowId.get(Number(rawId))?.toLowerCase() || undefined
-          }
-
-          if (!solucastSongId) continue
-          const song = songById.get(solucastSongId)
-          if (!song) continue
-
-          // Use SoluCast's native setlist item format (UUID reference)
-          setlistItems.push({ type: 'song', song: song.id, order: order++ })
-        } else if (item.type === 'prayer' && item.prayer_points?.length > 0) {
-          // Determine if bilingual (any translation text present)
-          const hasTrans = !!item.title_translation ||
-            item.prayer_points.some(
-              (p: any) => p.subtitle_translation || p.description_translation
-            )
-
-          // Resolve shared_bible_ref: when same_verse_for_all is set, apply
-          // the shared ref to all points that don't have their own
-          const sharedBibleRef = item.same_verse_for_all && item.shared_bible_ref
-            ? addHebrewRef(typeof item.shared_bible_ref === 'object'
-                ? item.shared_bible_ref
-                : { reference: item.shared_bible_ref })
-            : undefined
-
-          // Convert prayer_points (snake_case) to camelCase subtitles for createPointsSlides
-          const subtitles = item.prayer_points.map((p: any) => {
-            let bibleRef: any = undefined
-            if (p.bible_ref && typeof p.bible_ref === 'object') {
-              bibleRef = addHebrewRef(p.bible_ref)
-            } else if (p.bible_ref && typeof p.bible_ref === 'string') {
-              bibleRef = addHebrewRef({ reference: p.bible_ref })
-            } else if (sharedBibleRef) {
-              bibleRef = sharedBibleRef
-            }
-            return {
-              subtitle: p.subtitle || '',
-              subtitleTranslation: p.subtitle_translation,
-              description: p.description || '',
-              descriptionTranslation: p.description_translation,
-              bibleRef,
-            }
-          })
-
-          const slides = createPointsSlides({
-            type: 'prayer',
-            title: item.title || 'Prayer',
-            titleTranslation: item.title_translation,
-            generateTranslation: hasTrans,
-            subtitles,
-          })
-
-          // Use camelCase subtitles for quickModeData (desktop expects camelCase)
-          const quickModeData = {
-            type: 'prayer',
-            title: item.title || 'Prayer',
-            titleTranslation: item.title_translation || '',
-            subtitles,
-            generateTranslation: hasTrans,
-          }
-
-          // Create Presentation record in shared DB
-          const presentation = await tx.presentation.create({
-            data: {
-              title: (item.title || 'Prayer').slice(0, 255),
-              slides: slides as any,
-              createdById: req.user!.id,
-              isPublic: false,
-              canvasDimensions: { width: 1920, height: 1080 },
-              backgroundSettings: { type: 'color', value: '#000000' },
-              quickModeData,
-            },
-          })
-
-          // Use SoluCast's expected key name: presentationData
-          setlistItems.push({
-            type: 'presentation',
-            presentationData: {
-              id: presentation.id,
-              title: presentation.title,
-              slides: presentation.slides,
-              canvasDimensions: { width: 1920, height: 1080 },
-              quickModeData,
-            },
-            order: order++,
-          })
-        }
-        // Skip other types (opening, closing, share, ministry, other)
-      }
-
-      if (setlistItems.length === 0) {
-        throw new AppError(
-          'No songs or prayer items could be added. Make sure songs are mapped to SoluCast and prayer items have prayer points.',
-          400
-        )
-      }
-
-      const setlistName = `[Generated] ${event.title}`.slice(0, 255)
-
-      // If event has a linked setlist, try to update; fall back to create if it was deleted
-      let setlist
-      if (event.setlist_id) {
-        const existingSetlist = await tx.setlist.findUnique({
-          where: { id: event.setlist_id },
-          select: { id: true },
-        })
-        if (existingSetlist) {
-          // Update items only — preserve existing shareCode and shareToken
-          setlist = await tx.setlist.update({
-            where: { id: event.setlist_id },
-            data: {
-              name: setlistName,
-              items: setlistItems,
-            },
-          })
-        }
-      }
-
-      if (!setlist) {
-        // New setlist — generate unique share code (retry up to 5 times on collision)
-        let shareCode = ''
-        for (let i = 0; i < 5; i++) {
-          shareCode = generateShareCode()
-          const existing = await tx.setlist.findUnique({ where: { shareCode } })
-          if (!existing) break
-          if (i === 4) throw new AppError('Failed to generate unique share code', 500)
-        }
-        const shareToken = randomBytes(16).toString('hex')
-
-        setlist = await tx.setlist.create({
-          data: {
-            name: setlistName,
-            items: setlistItems,
-            createdById: req.user!.id,
-            isTemporary: false,
-            shareCode,
-            shareToken,
-          },
-        })
-
-        // Link the setlist to the event
-        await tx.event.update({
-          where: { id: event.id },
-          data: { setlist_id: setlist.id },
-        })
-      }
-
-      return { setlist, setlistItems }
-    }, { timeout: 30000 })
+    const result = await generateSolucastInternal(id, req.user!.id)
 
     const solucastUrl = process.env.SOLUCAST_APP_URL || 'https://solucast.app'
 

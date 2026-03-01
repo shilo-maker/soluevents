@@ -902,6 +902,7 @@ model Event {
   @@index([workspace_id])
   @@index([workspace_id, status, date_start])
   @@index([workspace_id, created_by])
+  @@index([flow_service_id])
   @@map("events")
 }
 
