@@ -46,7 +46,8 @@ function MemberRoleCell({
   const vocalsText = t('roles.vocals')
   const vocalsCombinable = VOCALS_COMBINABLE_KEYS.map(k => t(k))
   const { instrument, hasVocals } = parseRole(member.role, vocalsText, vocalsCombinable)
-  const isWorshipTeam = teamName.toLowerCase().includes('worship')
+  const worshipTeamName = t('teams.worshipTeam')
+  const isWorshipTeam = teamName === worshipTeamName || teamName.toLowerCase().includes('worship')
   const isInstrument = vocalsCombinable.includes(instrument)
   const isVocalsOnly = hasVocals && !instrument
 

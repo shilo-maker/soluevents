@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, Music, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check } from 'lucide-react'
+import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight } from 'lucide-react'
+import soluflowLogo from '@/assets/soluflow-logo.png'
+import solucastLogo from '@/assets/solucast-logo.png'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEvent, useUpdateEvent, useFlowService, useFlowServiceByCode, useSetlist } from '@/hooks/useEvents'
 import api from '@/lib/axios'
@@ -428,10 +430,13 @@ export default function EditSchedulePage() {
   }, [linkedService]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-link from ?code= URL param (returned from SoluFlow deep link)
+  const autoLinkRan = useRef(false)
   useEffect(() => {
+    if (!event || autoLinkRan.current) return
     const urlParams = new URLSearchParams(window.location.search)
     const codeParam = urlParams.get('code')
     if (codeParam && !link.serviceId) {
+      autoLinkRan.current = true
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname)
       // Enable SoluFlow section and trigger link
@@ -461,7 +466,7 @@ export default function EditSchedulePage() {
           }))
         })
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [event]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculateTime = useCallback((offsetMinutes: number) => {
     if (!eventTime) return ''
@@ -621,8 +626,8 @@ export default function EditSchedulePage() {
         } as any,
       })
 
-      // Auto-sync SoluCast setlist if SoluFlow is linked (fire-and-forget)
-      if (link.serviceId) {
+      // Auto-generate/sync SoluCast setlist if SoluFlow is linked (fire-and-forget)
+      if (link.serviceId && programSchedule.some(item => item.type === 'song')) {
         api.post(`/integration/events/${id}/generate-solucast`).catch(() => {})
       }
 
@@ -678,6 +683,143 @@ export default function EditSchedulePage() {
         </div>
       )}
 
+      {/* Solu Integrations */}
+      <div className="rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6">
+        <button
+          type="button"
+          onClick={() => setShowSoluFlow(!showSoluFlow)}
+          className="w-full flex items-center gap-3 cursor-pointer select-none"
+        >
+          <img src={soluflowLogo} alt="SoluFlow" className="w-7 h-7 rounded-full" />
+          <span className="text-lg font-semibold text-white">{t('events.schedule.soluflowSetlist')}</span>
+          <span className="text-xs font-medium text-white/50">{t('common.optional')}</span>
+          {!showSoluFlow && link.serviceId && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 text-white text-xs font-semibold rounded-full">
+              <Link2 className="w-3 h-3" />
+              {t('events.schedule.linked')}
+            </span>
+          )}
+          <ChevronRight className={`w-5 h-5 text-white/70 ms-auto transition-transform duration-200 ${showSoluFlow ? 'rotate-90' : ''}`} />
+        </button>
+
+        {showSoluFlow && (
+          <div className="mt-4 space-y-5">
+            {/* SoluFlow Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <img src={soluflowLogo} alt="SoluFlow" className="w-5 h-5 rounded-full" />
+                <h4 className="text-sm font-semibold text-white">SoluFlow</h4>
+              </div>
+              {link.serviceId ? (
+                <div className="flex items-center justify-between p-3 bg-white/15 backdrop-blur-sm border border-white/20 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Link2 className="w-4 h-4 text-white" />
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {t('events.schedule.linkedTo')}{' '}
+                        {linkedService?.code ? (
+                          <a
+                            href={`https://soluflow.app/service/code/${linkedService.code}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-white hover:text-white/80 hover:underline"
+                          >
+                            {link.serviceTitle || t('events.schedule.soluflowService')}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          link.serviceTitle || t('events.schedule.soluflowService')
+                        )}
+                      </p>
+                      <p className="text-xs text-white/70">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefresh}
+                      disabled={link.loading}
+                      className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                      title={t('events.schedule.refreshSongs')}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${link.loading ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                      onClick={handleUnlink}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/20 rounded-lg transition-colors"
+                    >
+                      <Unlink className="w-3.5 h-3.5" />
+                      {t('events.schedule.unlink')}
+                    </button>
+                  </div>
+                </div>
+              ) : soluFlowMode === 'choose' ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-white/70">
+                    {t('events.schedule.linkExistingDesc')}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setSoluFlowMode('link')}
+                      className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-white/30 rounded-lg hover:border-white/60 hover:bg-white/10 transition-colors text-sm font-medium text-white"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      {t('events.schedule.linkExisting')}
+                    </button>
+                    <button
+                      onClick={handleCreateInSoluFlow}
+                      className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-white/30 rounded-lg hover:border-white/60 hover:bg-white/10 transition-colors text-sm font-medium text-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {t('events.schedule.createNew')}
+                    </button>
+                  </div>
+                </div>
+              ) : soluFlowMode === 'link' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-white/70">
+                      {t('events.schedule.pasteCodeDesc')}
+                    </p>
+                    <button
+                      onClick={() => setSoluFlowMode('choose')}
+                      className="text-xs text-white/60 hover:text-white"
+                    >
+                      {t('common.back')}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={link.input}
+                      onChange={(e) => setLink(prev => ({ ...prev, input: e.target.value, error: '' }))}
+                      placeholder={t('events.schedule.flowCodePlaceholder')}
+                      className="text-sm flex-1 px-3 py-2 rounded-lg bg-white/15 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleLink() }}
+                    />
+                    <button
+                      onClick={handleLink}
+                      disabled={link.loading || !link.input.trim()}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {link.loading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-1.5 inline" />{t('events.schedule.linking')}</>
+                      ) : (
+                        <><Link2 className="w-4 h-4 mr-1.5 inline" />{t('events.schedule.link')}</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {link.error && (
+                <p className="text-sm text-red-200 mt-2">{link.error}</p>
+              )}
+            </div>
+
+          </div>
+        )}
+      </div>
+
       {/* Pre-Event Schedule */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.preEventSchedule')}</h3>
@@ -687,8 +829,8 @@ export default function EditSchedulePage() {
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -696,23 +838,6 @@ export default function EditSchedulePage() {
                 <tbody>
                   {preEventSchedule.map((item, index) => (
                     <SortableRow key={`pre-${index}`} id={`pre-${index}`}>
-                      <td className="py-2 px-3 w-24">
-                        <input
-                          type="time"
-                          value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                          onChange={(e) => {
-                            if (!e.target.value) return
-                            const [h, m] = e.target.value.split(':').map(Number)
-                            const [eh, em] = eventTime.split(':').map(Number)
-                            const offset = (h * 60 + m) - (eh * 60 + em)
-                            const updated = [...preEventSchedule]
-                            updated[index].offset_minutes = offset
-                            setPreEventSchedule(updated)
-                          }}
-                          className="input text-sm w-full min-w-0"
-                          placeholder="--:--"
-                        />
-                      </td>
                       <td className="py-2 px-3">
                         {editingPreEventItem === index ? (
                           <div className="space-y-2">
@@ -745,12 +870,29 @@ export default function EditSchedulePage() {
                           <button
                             type="button"
                             onClick={() => setEditingPreEventItem(index)}
-                            className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                            className="text-start w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                           >
                             <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                             {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}
                           </button>
                         )}
+                      </td>
+                      <td className="py-2 px-3 w-24">
+                        <input
+                          type="time"
+                          value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
+                          onChange={(e) => {
+                            if (!e.target.value) return
+                            const [h, m] = e.target.value.split(':').map(Number)
+                            const [eh, em] = eventTime.split(':').map(Number)
+                            const offset = (h * 60 + m) - (eh * 60 + em)
+                            const updated = [...preEventSchedule]
+                            updated[index].offset_minutes = offset
+                            setPreEventSchedule(updated)
+                          }}
+                          className="input text-sm w-full min-w-0"
+                          placeholder="--:--"
+                        />
                       </td>
                       <td className="py-2 px-3 align-top">
                         <button
@@ -781,135 +923,6 @@ export default function EditSchedulePage() {
         </div>
       </div>
 
-      {/* SoluFlow Setlist Toggle */}
-      <div className="card">
-        <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showSoluFlow}
-            onChange={(e) => setShowSoluFlow(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-          />
-          <Music className="w-5 h-5 text-blue-500" />
-          <span className="text-lg font-semibold text-gray-900">{t('events.schedule.soluflowSetlist')}</span>
-          {link.serviceId && !showSoluFlow && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-              <Link2 className="w-3 h-3" />
-              {t('events.schedule.linked')}
-            </span>
-          )}
-        </label>
-
-        {showSoluFlow && (
-          <div className="mt-4">
-            {link.serviceId ? (
-              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Link2 className="w-4 h-4 text-blue-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900">
-                      {t('events.schedule.linkedTo')}{' '}
-                      {linkedService?.code ? (
-                        <a
-                          href={`https://soluflow.app/service/code/${linkedService.code}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          {link.serviceTitle || t('events.schedule.soluflowService')}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      ) : (
-                        link.serviceTitle || t('events.schedule.soluflowService')
-                      )}
-                    </p>
-                    <p className="text-xs text-blue-700">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleRefresh}
-                    disabled={link.loading}
-                    className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
-                    title={t('events.schedule.refreshSongs')}
-                  >
-                    <RefreshCw className={`w-4 h-4 ${link.loading ? 'animate-spin' : ''}`} />
-                  </button>
-                  <button
-                    onClick={handleUnlink}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Unlink className="w-3.5 h-3.5" />
-                    {t('events.schedule.unlink')}
-                  </button>
-                </div>
-              </div>
-            ) : soluFlowMode === 'choose' ? (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  {t('events.schedule.linkExistingDesc')}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setSoluFlowMode('link')}
-                    className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm font-medium text-gray-700"
-                  >
-                    <Link2 className="w-4 h-4" />
-                    {t('events.schedule.linkExisting')}
-                  </button>
-                  <button
-                    onClick={handleCreateInSoluFlow}
-                    className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-sm font-medium text-gray-700"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {t('events.schedule.createNew')}
-                  </button>
-                </div>
-              </div>
-            ) : soluFlowMode === 'link' ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
-                    {t('events.schedule.pasteCodeDesc')}
-                  </p>
-                  <button
-                    onClick={() => setSoluFlowMode('choose')}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                  >
-                    {t('common.back')}
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={link.input}
-                    onChange={(e) => setLink(prev => ({ ...prev, input: e.target.value, error: '' }))}
-                    placeholder={t('events.schedule.flowCodePlaceholder')}
-                    className="input text-sm flex-1"
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleLink() }}
-                  />
-                  <button
-                    onClick={handleLink}
-                    disabled={link.loading || !link.input.trim()}
-                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                  >
-                    {link.loading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin mr-1.5 inline" />{t('events.schedule.linking')}</>
-                    ) : (
-                      <><Link2 className="w-4 h-4 mr-1.5 inline" />{t('events.schedule.link')}</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {link.error && (
-              <p className="text-sm text-red-600 mt-2">{link.error}</p>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Program Schedule */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.programSchedule')}</h3>
@@ -919,8 +932,8 @@ export default function EditSchedulePage() {
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
-                  <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -929,23 +942,6 @@ export default function EditSchedulePage() {
                   {programSchedule.map((item, index) => {
                     return (
                       <SortableRow key={`program-${index}`} id={`program-${index}`}>
-                        <td className="py-2 px-3 w-24">
-                          <input
-                            type="time"
-                            value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(e) => {
-                              if (!e.target.value) return
-                              const [h, m] = e.target.value.split(':').map(Number)
-                              const [eh, em] = eventTime.split(':').map(Number)
-                              const offset = (h * 60 + m) - (eh * 60 + em)
-                              const updated = [...programSchedule]
-                              updated[index].offset_minutes = offset
-                              setProgramSchedule(updated)
-                            }}
-                            className="input text-sm w-full min-w-0"
-                            placeholder="--:--"
-                          />
-                        </td>
                         <td className="py-2 px-3">
                           {editingProgramItem === index ? (
                             <div className="space-y-3">
@@ -1311,7 +1307,7 @@ export default function EditSchedulePage() {
                             <button
                               type="button"
                               onClick={() => setEditingProgramItem(index)}
-                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                              className="text-start w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
                               <div className="font-semibold">{item.title || t('common.clickToEdit')}</div>
                               {getItemDetails(item).length > 0 && (
@@ -1326,6 +1322,23 @@ export default function EditSchedulePage() {
                               )}
                             </button>
                           )}
+                        </td>
+                        <td className="py-2 px-3 w-24">
+                          <input
+                            type="time"
+                            value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
+                            onChange={(e) => {
+                              if (!e.target.value) return
+                              const [h, m] = e.target.value.split(':').map(Number)
+                              const [eh, em] = eventTime.split(':').map(Number)
+                              const offset = (h * 60 + m) - (eh * 60 + em)
+                              const updated = [...programSchedule]
+                              updated[index].offset_minutes = offset
+                              setProgramSchedule(updated)
+                            }}
+                            className="input text-sm w-full min-w-0"
+                            placeholder="--:--"
+                          />
                         </td>
                         <td className="py-2 px-3 align-top">
                           <button
@@ -1357,102 +1370,6 @@ export default function EditSchedulePage() {
         </div>
       </div>
 
-      {/* SoluCast Presentation */}
-      {programSchedule.some(item => item.type === 'song') && (
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-teal-500" />
-              <h3 className="text-lg font-semibold text-gray-900">{t('events.schedule.solucastPresentation')}</h3>
-            </div>
-            {!event?.setlist_id && (
-              <button
-                onClick={handleGenerateSolucast}
-                disabled={generatingSolucast}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors disabled:opacity-50"
-              >
-                {generatingSolucast ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Monitor className="w-3.5 h-3.5" />
-                )}
-                {t('events.schedule.generateSolucast')}
-              </button>
-            )}
-          </div>
-
-          {event?.setlist_id && linkedSetlist && (
-            <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Monitor className="w-4 h-4 text-teal-700" />
-                  <span className="text-sm font-semibold text-teal-900">{t('events.schedule.solucastLinked')}</span>
-                  <span className="text-xs text-teal-700">({linkedSetlist.itemCount} items)</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handleSyncSolucast}
-                    disabled={syncing}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-teal-100 text-teal-700 hover:bg-teal-200 transition-colors disabled:opacity-50"
-                    title={t('events.schedule.syncSongs')}
-                  >
-                    {syncing ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-3 h-3" />
-                    )}
-                    {t('events.schedule.syncSongs')}
-                  </button>
-                  <button
-                    onClick={handleUnlinkSolucast}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors"
-                    title={t('events.schedule.unlinkService')}
-                  >
-                    <Unlink className="w-3 h-3" />
-                    {t('events.schedule.unlink')}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-gray-600">{t('events.schedule.shareCode')}</span>
-                <code className="px-2 py-0.5 bg-white rounded border border-teal-200 text-sm font-mono font-bold text-teal-800 tracking-wider">
-                  {linkedSetlist.shareCode}
-                </code>
-                <button
-                  onClick={() => copyShareCode(linkedSetlist.shareCode)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-teal-700 hover:text-teal-800 hover:bg-teal-100 rounded transition-colors"
-                >
-                  {codeCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {codeCopied ? t('common.copied') : t('events.schedule.copy')}
-                </button>
-              </div>
-              <a
-                href={`https://solucast.app/open/${linkedSetlist.shareCode}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-teal-700 hover:text-teal-800 hover:underline"
-              >
-                {t('events.schedule.openInSolucast')}
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              {syncMessage && (
-                <div className="mt-2 text-xs text-green-700 font-medium">{syncMessage}</div>
-              )}
-            </div>
-          )}
-
-          {!event?.setlist_id && !generatingSolucast && (
-            <p className="mt-2 text-sm text-gray-500">{t('events.schedule.solucastDesc')}</p>
-          )}
-
-          {solucastError && (
-            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{solucastError}</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Post-Event Schedule */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
@@ -1475,8 +1392,8 @@ export default function EditSchedulePage() {
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="w-8"></th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                    <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
+                    <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
                     <th className="w-20"></th>
                   </tr>
                 </thead>
@@ -1484,23 +1401,6 @@ export default function EditSchedulePage() {
                   <tbody>
                     {postEventSchedule.map((item, index) => (
                       <SortableRow key={`post-${index}`} id={`post-${index}`}>
-                        <td className="py-2 px-3 w-24">
-                          <input
-                            type="time"
-                            value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(e) => {
-                              if (!e.target.value) return
-                              const [h, m] = e.target.value.split(':').map(Number)
-                              const [eh, em] = eventTime.split(':').map(Number)
-                              const offset = (h * 60 + m) - (eh * 60 + em)
-                              const updated = [...postEventSchedule]
-                              updated[index].offset_minutes = offset
-                              setPostEventSchedule(updated)
-                            }}
-                            className="input text-sm w-full min-w-0"
-                            placeholder="--:--"
-                          />
-                        </td>
                         <td className="py-2 px-3">
                           {editingPostEventItem === index ? (
                             <div className="space-y-2">
@@ -1533,12 +1433,29 @@ export default function EditSchedulePage() {
                             <button
                               type="button"
                               onClick={() => setEditingPostEventItem(index)}
-                              className="text-left w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                              className="text-start w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
                               <div className="font-semibold">{item.item || t('common.clickToEdit')}</div>
                               {item.notes && <div className="text-xs text-gray-600 mt-1">{item.notes}</div>}
                             </button>
                           )}
+                        </td>
+                        <td className="py-2 px-3 w-24">
+                          <input
+                            type="time"
+                            value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
+                            onChange={(e) => {
+                              if (!e.target.value) return
+                              const [h, m] = e.target.value.split(':').map(Number)
+                              const [eh, em] = eventTime.split(':').map(Number)
+                              const offset = (h * 60 + m) - (eh * 60 + em)
+                              const updated = [...postEventSchedule]
+                              updated[index].offset_minutes = offset
+                              setPostEventSchedule(updated)
+                            }}
+                            className="input text-sm w-full min-w-0"
+                            placeholder="--:--"
+                          />
                         </td>
                         <td className="py-2 px-3 align-top">
                           <button
@@ -1582,6 +1499,7 @@ export default function EditSchedulePage() {
           {updateEvent.isPending ? t('events.schedule.saving') : t('events.schedule.saveSchedule')}
         </button>
       </div>
+
     </div>
   )
 }

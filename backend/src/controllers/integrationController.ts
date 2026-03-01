@@ -531,7 +531,7 @@ export const generateSolucast = async (
         )
       }
 
-      const setlistName = event.title.slice(0, 255)
+      const setlistName = `[Generated] ${event.title}`.slice(0, 255)
 
       // If event has a linked setlist, try to update; fall back to create if it was deleted
       let setlist

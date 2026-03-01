@@ -310,7 +310,7 @@ export default function EventDetailPage() {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
+        <div className="flex gap-4 sm:gap-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -323,7 +323,7 @@ export default function EventDetailPage() {
             >
               {tab.label}
               {tab.count !== undefined && (
-                <span className="ml-2 text-gray-400">({tab.count})</span>
+                <span className="ms-2 text-gray-400">({tab.count})</span>
               )}
             </button>
           ))}
