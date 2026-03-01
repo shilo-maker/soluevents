@@ -274,6 +274,8 @@ export const createEvent = async (
       }))
     }
 
+    const pendingTaskAssignments: { userId: string; taskId: string; taskTitle: string }[] = []
+
     const event = await prisma.$transaction(async (tx) => {
       const created = await tx.event.create({
         data: {
@@ -341,10 +343,15 @@ export const createEvent = async (
           { title: 'Send Technical Rider', assignee_id: rebekahUser?.id, days_before: 4 },
         ]
 
-        await Promise.all(
+        const createdTasks = await Promise.all(
           defaultTasks.map(task => {
             const dueDate = new Date(eventStartDate)
             dueDate.setDate(dueDate.getDate() - task.days_before)
+            // Set assignment_status: confirmed for self-assign, pending for other users, null if no assignee
+            let assignmentStatus: 'pending' | 'confirmed' | null = null
+            if (task.assignee_id) {
+              assignmentStatus = task.assignee_id === req.user!.id ? 'confirmed' : 'pending'
+            }
             return tx.task.create({
               data: {
                 title: task.title,
@@ -353,19 +360,28 @@ export const createEvent = async (
                 due_at: dueDate,
                 event_id: created.id,
                 assignee_id: task.assignee_id,
+                assignee_is_user: !!task.assignee_id,
+                assignment_status: assignmentStatus,
                 creator_id: req.user!.id,
               },
             })
           })
         )
+
+        // Collect pending task assignments for notifications (sent after transaction)
+        for (const ct of createdTasks) {
+          if (ct.assignee_id && ct.assignee_id !== req.user!.id && ct.assignment_status === 'pending') {
+            pendingTaskAssignments.push({ userId: ct.assignee_id, taskId: ct.id, taskTitle: ct.title })
+          }
+        }
       }
 
       return created
     })
 
     // Create notifications for pending team invites (after transaction)
+    const assignerName = event.creator?.name || req.user!.email
     if (pendingInvites.length > 0) {
-      const inviterName = event.creator?.name || req.user!.email
       Promise.all(
         pendingInvites.map((m) =>
           notify(m.contact_id, 'event_team_invite', {
@@ -374,7 +390,21 @@ export const createEvent = async (
             member_id: m.member_id,
             team_name: m.team_name,
             team_role: m.team_role,
-            invited_by_name: inviterName,
+            invited_by_name: assignerName,
+          }).catch(() => {})
+        )
+      ).catch(() => {})
+    }
+
+    // Send task_assignment notifications for default worship tasks
+    if (pendingTaskAssignments.length > 0) {
+      Promise.all(
+        pendingTaskAssignments.map((ta) =>
+          notify(ta.userId, 'task_assignment', {
+            task_id: ta.taskId,
+            task_title: ta.taskTitle,
+            event_id: event.id,
+            assigner_name: assignerName,
           }).catch(() => {})
         )
       ).catch(() => {})
@@ -785,6 +815,19 @@ export const deleteEvent = async (
     await prisma.$transaction([
       // Delete comments on tasks that will cascade-delete
       ...(taskIds.length > 0 ? [prisma.comment.deleteMany({ where: { entity_type: 'task', entity_id: { in: taskIds } } })] : []),
+      // Delete task assignment notifications for tasks that will cascade-delete
+      ...(taskIds.length > 0
+        ? [
+            prisma.notification.deleteMany({
+              where: {
+                type: { in: ['task_assignment', 'task_assignment_response'] },
+                OR: taskIds.map((taskId) => ({
+                  payload: { path: ['task_id'], equals: taskId },
+                })),
+              },
+            }),
+          ]
+        : []),
       // Delete comments on the event itself
       prisma.comment.deleteMany({ where: { entity_type: 'event', entity_id: id } }),
       // Delete team notifications

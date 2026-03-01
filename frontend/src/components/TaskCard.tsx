@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Circle, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save, MessageCircle, Send, Loader2, ChevronDown } from 'lucide-react'
 import { formatDate, formatRelativeTime, isWithinDays, isPast } from '@/lib/utils'
-import Badge from './Badge'
+import InvitationStatusBadge from './InvitationStatusBadge'
 import ContactAutocomplete from './ContactAutocomplete'
 import PersonHoverCard from './PersonHoverCard'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useTaskComments, useAddTaskComment, useDeleteTaskComment } from '@/hooks/useComments'
-import type { Task, TaskPriority, TaskStatus, User } from '@/types'
+import { useRespondToTaskAssignment } from '@/hooks/useTasks'
+import type { Task, TaskStatus, User } from '@/types'
 
 interface TaskCardProps {
   task: Task & {
@@ -21,12 +22,6 @@ interface TaskCardProps {
   onUpdateLink?: (taskId: string, link: string | null) => void
   onUpdateTask?: (taskId: string, data: Partial<Task>) => void
 }
-
-const PRIORITY_COLORS = {
-  critical: 'danger',
-  high: 'warning',
-  normal: 'default',
-} as const
 
 const STATUS_KEYS: { value: TaskStatus; key: string; color: string }[] = [
   { value: 'not_started', key: 'tasks.status.not_started', color: 'bg-gray-100 text-gray-700' },
@@ -90,21 +85,15 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
     }
     // Reset optimistic state when server data arrives
     setOptimisticStatus(null)
-  }, [
-    task.title, task.description, task.priority, task.status, task.due_at, task.link,
-    task.assignee_id, task.assignee_contact_id, task.assignee_is_user,
-    task.assignee?.name, task.assignee?.email,
-    task.assignee_contact?.name, task.assignee_contact?.email,
-    isEditingTask,
-  ])
+  }, [task, isEditingTask])
 
   const wsRole = useWorkspaceStore((s) => s.activeWorkspace?.role)
   const userId = currentUser?.id
 
-  // Permission: assignee, creator, org admin, or workspace admin/planner
+  // Permission: assignee (only if confirmed), creator, org admin, or workspace admin/planner
+  const hasConfirmedAssignment = !task.assignment_status || task.assignment_status === 'confirmed'
   const isAssignee = !!(userId && (
-    task.assignee_id === userId ||
-    task.assignee?.id === userId ||
+    ((task.assignee_id === userId || task.assignee?.id === userId) && hasConfirmedAssignment) ||
     task.creator_id === userId
   ))
   const isPrivileged = currentUser?.org_role === 'admin' || wsRole === 'admin' || wsRole === 'planner'
@@ -129,6 +118,10 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
   const { data: comments, isLoading: commentsLoading, isError: commentsError } = useTaskComments(task.id, commentsOpen)
   const addComment = useAddTaskComment(task.id)
   const deleteCommentMutation = useDeleteTaskComment(task.id)
+
+  // Task assignment response
+  const respondMutation = useRespondToTaskAssignment()
+  const isCurrentUserPendingAssignee = !!(userId && task.assignee_id === userId && task.assignment_status === 'pending')
 
   const handleAddComment = () => {
     const body = commentText.trim()
@@ -188,7 +181,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
 
   if (isEditingTask) {
     return (
-      <div className="card">
+      <div className="card relative z-10">
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-semibold text-gray-900">{t('tasks.editTask')}</h4>
@@ -229,34 +222,19 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.priority')}</label>
-              <select
-                value={editFormData.priority}
-                onChange={(e) => setEditFormData({ ...editFormData, priority: e.target.value as TaskPriority })}
-                className="input"
-              >
-                <option value="normal">{t('tasks.priority.normal')}</option>
-                <option value="high">{t('tasks.priority.high')}</option>
-                <option value="critical">{t('tasks.priority.critical')}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.status')}</label>
-              <select
-                value={editFormData.status}
-                onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as TaskStatus })}
-                className="input"
-              >
-                <option value="not_started">{t('tasks.status.not_started')}</option>
-                <option value="in_progress">{t('tasks.status.in_progress')}</option>
-                <option value="waiting">{t('tasks.status.waiting')}</option>
-                <option value="blocked">{t('tasks.status.blocked')}</option>
-                <option value="done">{t('tasks.status.done')}</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t('common.status')}</label>
+            <select
+              value={editFormData.status}
+              onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as TaskStatus })}
+              className="input"
+            >
+              <option value="not_started">{t('tasks.status.not_started')}</option>
+              <option value="in_progress">{t('tasks.status.in_progress')}</option>
+              <option value="waiting">{t('tasks.status.waiting')}</option>
+              <option value="blocked">{t('tasks.status.blocked')}</option>
+              <option value="done">{t('tasks.status.done')}</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -343,9 +321,6 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
               {task.title}
             </h4>
             <div className="flex items-center gap-2">
-              <Badge variant={PRIORITY_COLORS[task.priority]} size="sm">
-                {task.priority}
-              </Badge>
               {canComment && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setCommentsOpen((o) => !o) }}
@@ -433,7 +408,7 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                 )}
                 <span>
                   {isOverdue && t('tasks.overdue')}
-                  {formatDate(task.due_at)}
+                  {formatDate(task.due_at, 'EEEE, MMM d, HH:mm')}
                 </span>
               </div>
             )}
@@ -446,6 +421,9 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                   contactId={task.assignee?.id || task.assignee_contact?.id}
                   isUser={task.assignee_is_user}
                 />
+                {task.assignment_status && (
+                  <InvitationStatusBadge status={task.assignment_status} />
+                )}
               </span>
             )}
 
@@ -453,6 +431,33 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
               <span className="text-gray-500">· {task.event.title}</span>
             )}
           </div>
+
+          {/* Task Assignment Accept/Decline */}
+          {isCurrentUserPendingAssignee && (
+            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => respondMutation.mutate({ taskId: task.id, action: 'accept' })}
+                  disabled={respondMutation.isPending}
+                  className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  {respondMutation.isPending && respondMutation.variables?.action === 'accept' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  {t('common.accept')}
+                </button>
+                <button
+                  onClick={() => respondMutation.mutate({ taskId: task.id, action: 'decline' })}
+                  disabled={respondMutation.isPending}
+                  className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  {respondMutation.isPending && respondMutation.variables?.action === 'decline' ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                  {t('common.decline')}
+                </button>
+              </div>
+              {respondMutation.isError && (
+                <p className="text-xs text-red-500 mt-1">{t('common.error')}</p>
+              )}
+            </div>
+          )}
 
           {/* Link Section */}
           {(task.link || isEditingLink) && (

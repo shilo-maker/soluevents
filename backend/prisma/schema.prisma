@@ -998,6 +998,7 @@ model Task {
   assignee_id            String?      @db.Uuid
   assignee_contact_id    String?      @db.Uuid
   assignee_is_user       Boolean      @default(true)
+  assignment_status      InvitationStatus?
   creator_id             String       @db.Uuid
   parent_task_id         String?      @db.Uuid
   created_at             DateTime     @default(now())

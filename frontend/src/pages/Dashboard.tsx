@@ -127,6 +127,7 @@ export default function Dashboard() {
               <TaskCard
                 key={task.id}
                 task={task}
+                currentUser={user}
                 onToggle={handleToggleTask}
               />
             ))}

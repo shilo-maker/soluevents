@@ -7,9 +7,37 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNotifications, useNotificationCounts, useMarkAllAsRead, useClearNotifications, useDeleteNotification } from '@/hooks/useNotifications'
 import { useRespondToMemberInvite } from '@/hooks/useWorkspaces'
 import { useRespondToTeamInvite } from '@/hooks/useEvents'
+import { useRespondToTaskAssignment } from '@/hooks/useTasks'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 import api from '@/lib/axios'
 import type { Notification } from '@/types'
+
+import type { NotificationPayload } from '@/types'
+
+type StyleEntry = {
+  icon: typeof Bell
+  gradient: string | ((p: NotificationPayload) => string)
+  highlight: string | ((p: NotificationPayload) => string)
+}
+
+const NOTIFICATION_STYLE: Record<string, StyleEntry> = {
+  task_assignment:          { icon: UserCheck, gradient: 'from-teal-500 to-cyan-500', highlight: 'bg-teal-50/50' },
+  task_assignment_response: { icon: UserCheck,
+    gradient: (p) => p.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400',
+    highlight: (p) => p.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50',
+  },
+  task_deadline_reminder:   { icon: Clock, gradient: 'from-orange-400 to-amber-500', highlight: 'bg-orange-50/50' },
+  event_reminder:           { icon: CalendarClock, gradient: 'from-purple-500 to-indigo-500', highlight: 'bg-purple-50/50' },
+  task_comment:             { icon: MessageCircle, gradient: 'from-blue-500 to-indigo-500', highlight: 'bg-blue-50/50' },
+  event_team_removed:       { icon: UserX, gradient: 'from-red-400 to-orange-400', highlight: 'bg-red-50/50' },
+  event_team_response:      { icon: UserCheck,
+    gradient: (p) => p.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400',
+    highlight: (p) => p.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50',
+  },
+  event_team_invite:        { icon: Music, gradient: 'from-teal-500 to-green-500', highlight: 'bg-teal-50/50' },
+  workspace_invite:         { icon: Building2, gradient: 'from-teal-500 to-cyan-500', highlight: 'bg-teal-50/50' },
+}
+const DEFAULT_STYLE: StyleEntry = { icon: Building2, gradient: 'from-teal-500 to-cyan-500', highlight: 'bg-teal-50/50' }
 
 function errorMessage(error: unknown): string {
   if (isAxiosError(error)) {
@@ -38,7 +66,7 @@ export default function NotificationBell() {
 
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const [actingId, setActingId] = useState<string | null>(null)
+  const [acting, setActing] = useState<{ id: string; action: 'accept' | 'decline' } | null>(null)
   const [errorId, setErrorId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -55,6 +83,7 @@ export default function NotificationBell() {
   const deleteMutation = useDeleteNotification()
   const respondMutation = useRespondToMemberInvite()
   const teamInviteMutation = useRespondToTeamInvite()
+  const taskAssignmentMutation = useRespondToTaskAssignment()
 
   const closeDropdown = useCallback(() => { setOpen(false); setExpanded(false); setReplyingTo(null); setReplyText('') }, [])
 
@@ -106,68 +135,31 @@ export default function NotificationBell() {
     }
   }, [open, closeDropdown])
 
-  const handleAccept = async (notification: Notification) => {
-    const token = notification.payload?.token
-    if (!token) return
-    setActingId(notification.id)
+  const handleRespond = async (notification: Notification, action: 'accept' | 'decline') => {
+    const { payload, type } = notification
+    setActing({ id: notification.id, action })
     setErrorId(null)
     try {
-      await respondMutation.mutateAsync({ token, action: 'accept' })
-      // Backend already deletes the notification on respond — just refresh
-      try { await loadWorkspaces() } catch {}
-      closeDropdown()
-      navigate('/')
+      if (type === 'task_assignment') {
+        if (!payload.task_id) return
+        await taskAssignmentMutation.mutateAsync({ taskId: payload.task_id, action })
+      } else if (type === 'event_team_invite') {
+        if (!payload.event_id || !payload.member_id) return
+        await teamInviteMutation.mutateAsync({ eventId: payload.event_id, memberId: payload.member_id, action })
+      } else if (type === 'workspace_invite') {
+        if (!payload.token) return
+        await respondMutation.mutateAsync({ token: payload.token, action })
+        if (action === 'accept') {
+          try { await loadWorkspaces() } catch {}
+          closeDropdown()
+          navigate('/')
+        }
+      }
     } catch (err) {
       setErrorId(notification.id)
       setErrorMsg(errorMessage(err))
     } finally {
-      setActingId(null)
-    }
-  }
-
-  const handleDecline = async (notification: Notification) => {
-    const token = notification.payload?.token
-    if (!token) return
-    setActingId(notification.id)
-    setErrorId(null)
-    try {
-      await respondMutation.mutateAsync({ token, action: 'decline' })
-      // Backend already deletes the notification on respond
-    } catch (err) {
-      setErrorId(notification.id)
-      setErrorMsg(errorMessage(err))
-    } finally {
-      setActingId(null)
-    }
-  }
-
-  const handleTeamAccept = async (notification: Notification) => {
-    const { event_id, member_id } = notification.payload || {}
-    if (!event_id || !member_id) return
-    setActingId(notification.id)
-    setErrorId(null)
-    try {
-      await teamInviteMutation.mutateAsync({ eventId: event_id, memberId: member_id, action: 'accept' })
-    } catch (err) {
-      setErrorId(notification.id)
-      setErrorMsg(errorMessage(err))
-    } finally {
-      setActingId(null)
-    }
-  }
-
-  const handleTeamDecline = async (notification: Notification) => {
-    const { event_id, member_id } = notification.payload || {}
-    if (!event_id || !member_id) return
-    setActingId(notification.id)
-    setErrorId(null)
-    try {
-      await teamInviteMutation.mutateAsync({ eventId: event_id, memberId: member_id, action: 'decline' })
-    } catch (err) {
-      setErrorId(notification.id)
-      setErrorMsg(errorMessage(err))
-    } finally {
-      setActingId(null)
+      setActing(null)
     }
   }
 
@@ -197,9 +189,11 @@ export default function NotificationBell() {
     const isTaskComment = n.type === 'task_comment'
     const isTaskReminder = n.type === 'task_deadline_reminder'
     const isEventReminder = n.type === 'event_reminder'
+    const isTaskAssignment = n.type === 'task_assignment'
+    const isTaskAssignmentResponse = n.type === 'task_assignment_response'
     const payload = n.payload || {}
-    const isActing = actingId === n.id
-    const hasActions = isInvite || isTeamInvite
+    const isActing = acting?.id === n.id
+    const hasActions = isInvite || isTeamInvite || isTaskAssignment
 
     // Clickable event link helper
     const eventLink = payload.event_id ? (
@@ -218,28 +212,11 @@ export default function NotificationBell() {
     ) : <strong>{payload.task_title || t('notifications.aTask')}</strong>
 
     // Choose icon + gradient based on notification type
-    const IconComponent = isTaskReminder ? Clock : isEventReminder ? CalendarClock : isTaskComment ? MessageCircle : isTeamRemoved ? UserX : isTeamResponse ? UserCheck : isTeamInvite ? Music : Building2
-    const iconGradient = isTaskReminder
-      ? 'from-orange-400 to-amber-500'
-      : isEventReminder
-        ? 'from-purple-500 to-indigo-500'
-        : isTaskComment
-          ? 'from-blue-500 to-indigo-500'
-          : isTeamRemoved
-            ? 'from-red-400 to-orange-400'
-            : isTeamResponse
-              ? payload.action === 'accept' ? 'from-green-500 to-emerald-500' : 'from-orange-400 to-amber-400'
-              : isTeamInvite
-                ? 'from-teal-500 to-green-500'
-                : 'from-teal-500 to-cyan-500'
+    const style = NOTIFICATION_STYLE[n.type] ?? DEFAULT_STYLE
+    const IconComponent = style.icon
+    const iconGradient = typeof style.gradient === 'function' ? style.gradient(payload) : style.gradient
     const bgHighlight = isUnread
-      ? isTaskReminder ? 'bg-orange-50/50'
-        : isEventReminder ? 'bg-purple-50/50'
-        : isTaskComment ? 'bg-blue-50/50'
-        : isTeamRemoved ? 'bg-red-50/50'
-        : isTeamResponse ? (payload.action === 'accept' ? 'bg-green-50/50' : 'bg-orange-50/50')
-        : isTeamInvite ? 'bg-teal-50/50'
-        : 'bg-teal-50/50'
+      ? (typeof style.highlight === 'function' ? style.highlight(payload) : style.highlight)
       : ''
 
     return (
@@ -252,7 +229,31 @@ export default function NotificationBell() {
             <IconComponent className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            {isTaskReminder ? (
+            {isTaskAssignment ? (
+              <p className="text-sm text-gray-900">
+                <strong>{payload.assigner_name || t('notifications.someone')}</strong>{' '}
+                {t('notifications.assignedYouToTask')}{' '}
+                <Link
+                  to={payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks'}
+                  onClick={closeDropdown}
+                  className="font-bold text-teal-600 hover:text-teal-700 hover:underline"
+                >
+                  {payload.task_title || t('notifications.aTask')}
+                </Link>
+              </p>
+            ) : isTaskAssignmentResponse ? (
+              <p className="text-sm text-gray-900">
+                <strong>{payload.assignee_name || t('notifications.someone')}</strong>{' '}
+                {payload.action === 'accept' ? t('notifications.acceptedAssignment') : t('notifications.declinedAssignment')}{' '}
+                <Link
+                  to={payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks'}
+                  onClick={closeDropdown}
+                  className="font-bold text-teal-600 hover:text-teal-700 hover:underline"
+                >
+                  {payload.task_title || t('notifications.aTask')}
+                </Link>
+              </p>
+            ) : isTaskReminder ? (
               <p className="text-sm text-gray-900">
                 <Link
                   to={payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks'}
@@ -352,19 +353,19 @@ export default function NotificationBell() {
             {hasActions && (
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => isTeamInvite ? handleTeamAccept(n) : handleAccept(n)}
+                  onClick={() => handleRespond(n, 'accept')}
                   disabled={isActing}
                   className="text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
-                  {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  {isActing && acting?.action === 'accept' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   {t('common.accept')}
                 </button>
                 <button
-                  onClick={() => isTeamInvite ? handleTeamDecline(n) : handleDecline(n)}
+                  onClick={() => handleRespond(n, 'decline')}
                   disabled={isActing}
                   className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
-                  <X className="w-3 h-3" />
+                  {isActing && acting?.action === 'decline' ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
                   {t('common.decline')}
                 </button>
               </div>

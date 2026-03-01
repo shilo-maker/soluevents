@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useCreateEvent } from '@/hooks/useEvents'
 import { useUpdateVenue } from '@/hooks/useVenues'
@@ -153,9 +154,9 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-semibold text-gray-900">{isDuplicate ? t('events.duplicateEvent') : t('events.createNewEvent')}</h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
@@ -314,6 +315,7 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -8,6 +8,7 @@ import {
   Edit,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuthStore } from '@/stores/authStore'
 import { useTour } from '@/hooks/useTours'
 import { useTasks } from '@/hooks/useTasks'
 import { formatDate } from '@/lib/utils'
@@ -20,6 +21,7 @@ export default function TourDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const { user } = useAuthStore()
 
   const { data: tour, isLoading } = useTour(id!)
   const { data: tasks, isLoading: tasksLoading } = useTasks({ tour_id: id })
@@ -45,7 +47,7 @@ export default function TourDetailPage() {
 
   const tabs = [
     { id: 'overview', label: t('tours.tabs.overview') },
-    { id: 'schedule', label: t('tours.tabs.schedule'), count: (tour as any).tour_days?.length },
+    { id: 'schedule', label: t('tours.tabs.schedule'), count: tour.tour_days?.length },
     { id: 'tasks', label: t('tours.tabs.tasks'), count: tasks?.length },
     { id: 'files', label: t('tours.tabs.files'), count: 0 },
   ]
@@ -126,43 +128,43 @@ export default function TourDetailPage() {
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('tours.teamLeads')}</h3>
               <div className="grid grid-cols-2 gap-4">
-                {(tour as any).director && (
+                {tour.director && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">{t('tours.director')}</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {(tour as any).director.name}
+                      {tour.director.name}
                     </p>
                   </div>
                 )}
-                {(tour as any).logistics && (
+                {tour.logistics && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">{t('tours.logistics')}</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {(tour as any).logistics.name}
+                      {tour.logistics.name}
                     </p>
                   </div>
                 )}
-                {(tour as any).comms && (
+                {tour.comms && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">{t('tours.communications')}</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {(tour as any).comms.name}
+                      {tour.comms.name}
                     </p>
                   </div>
                 )}
-                {(tour as any).media && (
+                {tour.media && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">{t('tours.media')}</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {(tour as any).media.name}
+                      {tour.media.name}
                     </p>
                   </div>
                 )}
-                {(tour as any).hospitality && (
+                {tour.hospitality && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">{t('tours.hospitality')}</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {(tour as any).hospitality.name}
+                      {tour.hospitality.name}
                     </p>
                   </div>
                 )}
@@ -185,7 +187,7 @@ export default function TourDetailPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
               </div>
             ) : tasks && tasks.length > 0 ? (
-              tasks.map((task) => <TaskCard key={task.id} task={task} />)
+              tasks.map((task) => <TaskCard key={task.id} task={task} currentUser={user} />)
             ) : (
               <div className="card text-center py-12">
                 <p className="text-sm text-gray-500">{t('tours.noTasksForTour')}</p>

@@ -79,3 +79,18 @@ export function useDeleteTask() {
     },
   })
 }
+
+export function useRespondToTaskAssignment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ taskId, action }: { taskId: string; action: 'accept' | 'decline' }) => {
+      const response = await api.post(`/tasks/${taskId}/respond`, { action })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+  })
+}

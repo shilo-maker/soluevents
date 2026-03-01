@@ -8,6 +8,7 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  respondToTaskAssignment,
 } from '../controllers/taskController'
 import {
   getComments,
@@ -23,6 +24,7 @@ router.get('/', getTasks)
 router.post('/', validate(createTaskSchema), createTask)
 router.get('/:id', getTask)
 router.patch('/:id', validate(updateTaskSchema), updateTask)
+router.post('/:id/respond', respondToTaskAssignment)
 router.delete('/:id', deleteTask)
 
 // Nested comment routes

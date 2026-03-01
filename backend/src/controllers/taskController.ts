@@ -3,7 +3,9 @@ import { AppError } from '../middleware/errorHandler'
 import { AuthRequest } from '../middleware/auth'
 import prisma from '../lib/prisma'
 import { checkWorkspaceMembership, getWorkspaceMemberRole } from '../services/workspaceService'
+import type { InvitationStatus } from '@prisma/client'
 import { emitEventUpdate } from '../lib/emitEvent'
+import { notify } from '../lib/notify'
 
 export const getTasks = async (
   req: AuthRequest,
@@ -263,6 +265,12 @@ export const createTask = async (
     const finalAssigneeId = isUserAssignee ? (assignee_id || null) : null
     const finalContactId = !isUserAssignee ? (assignee_contact_id || null) : null
 
+    // Determine assignment_status: pending if assigned to a different user, confirmed if self-assign, null otherwise
+    let assignmentStatus: InvitationStatus | null = null
+    if (isUserAssignee && finalAssigneeId) {
+      assignmentStatus = finalAssigneeId === req.user!.id ? 'confirmed' : 'pending'
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
@@ -276,6 +284,7 @@ export const createTask = async (
         assignee_id: finalAssigneeId,
         assignee_contact_id: finalContactId,
         assignee_is_user: isUserAssignee,
+        assignment_status: assignmentStatus,
         creator_id: req.user!.id,
         parent_task_id,
       },
@@ -291,6 +300,16 @@ export const createTask = async (
         },
       },
     })
+
+    // Send task_assignment notification if assigned to a different user
+    if (isUserAssignee && finalAssigneeId && finalAssigneeId !== req.user!.id) {
+      notify(finalAssigneeId, 'task_assignment', {
+        task_id: task.id,
+        task_title: title,
+        event_id: event_id || undefined,
+        assigner_name: task.creator?.name || task.creator?.email || '',
+      }).catch(() => {})
+    }
 
     if (event_id) emitEventUpdate(event_id, 'task:created', { taskId: task.id })
 
@@ -314,9 +333,11 @@ export const updateTask = async (
       throw new AppError('Task not found', 404)
     }
 
-    // Authorization: creator, assignee, workspace member of parent event, tour role user, or org admin
+    // Authorization: creator, confirmed assignee, workspace member of parent event, tour role user, or org admin
+    const isConfirmedAssignee = existing.assignee_id === req.user!.id &&
+      (!existing.assignment_status || existing.assignment_status === 'confirmed')
     let canModify = existing.creator_id === req.user!.id ||
-      existing.assignee_id === req.user!.id ||
+      isConfirmedAssignee ||
       req.user!.org_role === 'admin'
     if (!canModify && existing.event_id) {
       const event = await prisma.event.findUnique({
@@ -354,19 +375,43 @@ export const updateTask = async (
     if (link !== undefined) updateData.link = link
 
     // Handle assignee swap: when one type is set, clear the other
+    let newUserAssigneeId: string | null | undefined = undefined // track the resolved user assignee
     if (assignee_is_user !== undefined) {
       updateData.assignee_is_user = assignee_is_user
       if (assignee_is_user) {
         updateData.assignee_id = assignee_id || null
         updateData.assignee_contact_id = null
+        newUserAssigneeId = assignee_id || null
       } else {
         updateData.assignee_id = null
         updateData.assignee_contact_id = assignee_contact_id || null
+        // External contact — no invitation flow
+        updateData.assignment_status = null
+        newUserAssigneeId = null
       }
     } else if (assignee_id !== undefined) {
       updateData.assignee_id = assignee_id
+      updateData.assignee_contact_id = null
+      updateData.assignee_is_user = true
+      newUserAssigneeId = assignee_id || null
     } else if (assignee_contact_id !== undefined) {
       updateData.assignee_contact_id = assignee_contact_id
+      updateData.assignee_id = null
+      updateData.assignee_is_user = false
+      updateData.assignment_status = null
+      newUserAssigneeId = null
+    }
+
+    // Determine assignment_status when user assignee changes
+    if (newUserAssigneeId !== undefined) {
+      if (!newUserAssigneeId) {
+        // Assignee cleared
+        updateData.assignment_status = null
+      } else if (newUserAssigneeId !== existing.assignee_id) {
+        // New assignee — set pending (or confirmed if self-assign)
+        updateData.assignment_status = newUserAssigneeId === req.user!.id ? 'confirmed' : 'pending'
+      }
+      // If same assignee, don't reset status
     }
 
     const task = await prisma.task.update({
@@ -384,6 +429,31 @@ export const updateTask = async (
         },
       },
     })
+
+    // Clean up old assignee's pending notification and send new one if assignee changed
+    if (newUserAssigneeId !== undefined && newUserAssigneeId !== existing.assignee_id) {
+      // Clean up old assignee's notification
+      if (existing.assignee_id) {
+        prisma.notification.deleteMany({
+          where: {
+            user_id: existing.assignee_id,
+            type: 'task_assignment',
+            payload: { path: ['task_id'], equals: id },
+          },
+        }).catch(() => {})
+      }
+
+      // Send notification to new assignee (if not self-assigning)
+      if (newUserAssigneeId && newUserAssigneeId !== req.user!.id) {
+        const assigner = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } })
+        notify(newUserAssigneeId, 'task_assignment', {
+          task_id: id,
+          task_title: task.title,
+          event_id: existing.event_id || undefined,
+          assigner_name: assigner?.name || assigner?.email || '',
+        }).catch(() => {})
+      }
+    }
 
     if (existing.event_id) emitEventUpdate(existing.event_id, 'task:updated', { taskId: id })
 
@@ -439,6 +509,15 @@ export const deleteTask = async (
     const allTaskIds = [id, ...subtaskIds]
 
     await prisma.$transaction([
+      // Delete task_assignment notifications for this task and its subtasks
+      prisma.notification.deleteMany({
+        where: {
+          type: { in: ['task_assignment', 'task_assignment_response'] },
+          OR: allTaskIds.map((taskId) => ({
+            payload: { path: ['task_id'], equals: taskId },
+          })),
+        },
+      }),
       // Delete comments on this task and all its subtasks
       prisma.comment.deleteMany({ where: { entity_type: 'task', entity_id: { in: allTaskIds } } }),
       // Delete subtasks first (FK constraint)
@@ -450,6 +529,70 @@ export const deleteTask = async (
     if (existing.event_id) emitEventUpdate(existing.event_id, 'task:deleted', { taskId: id })
 
     res.status(204).send()
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const respondToTaskAssignment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params
+    const { action } = req.body
+
+    if (!action || !['accept', 'decline'].includes(action)) {
+      throw new AppError('action must be "accept" or "decline"', 400)
+    }
+
+    const newStatus = action === 'accept' ? 'confirmed' : 'declined'
+
+    // Use interactive transaction with row-level lock to prevent TOCTOU race
+    const result = await prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<any[]>`SELECT * FROM tasks WHERE id = ${id}::uuid FOR UPDATE`
+      const task = rows[0]
+      if (!task) throw new AppError('Task not found', 404)
+      if (task.assignee_id !== req.user!.id) throw new AppError('Not authorized', 403)
+      if (task.assignment_status !== 'pending') throw new AppError('Assignment already responded to', 400)
+
+      await tx.task.update({
+        where: { id },
+        data: { assignment_status: newStatus },
+      })
+
+      // Delete the related task_assignment notification
+      await tx.notification.deleteMany({
+        where: {
+          user_id: req.user!.id,
+          type: 'task_assignment',
+          payload: { path: ['task_id'], equals: id },
+        },
+      })
+
+      return {
+        creator_id: task.creator_id as string,
+        title: task.title as string,
+        event_id: task.event_id as string | null,
+      }
+    })
+
+    // Notify task creator about the response
+    if (result.creator_id !== req.user!.id) {
+      const responder = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } })
+      notify(result.creator_id, 'task_assignment_response', {
+        task_id: id,
+        task_title: result.title,
+        event_id: result.event_id || undefined,
+        assignee_name: responder?.name || responder?.email || '',
+        action,
+      }).catch(() => {})
+    }
+
+    if (result.event_id) emitEventUpdate(result.event_id, 'task:updated', { taskId: id })
+
+    res.json({ success: true, status: newStatus })
   } catch (error) {
     next(error)
   }

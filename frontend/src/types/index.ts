@@ -222,6 +222,12 @@ export interface Tour {
   comms_user_id?: string
   media_user_id?: string
   hospitality_user_id?: string
+  director?: { id: string; name: string | null; email: string } | null
+  logistics?: { id: string; name: string | null; email: string } | null
+  comms?: { id: string; name: string | null; email: string } | null
+  media?: { id: string; name: string | null; email: string } | null
+  hospitality?: { id: string; name: string | null; email: string } | null
+  tour_days?: TourDay[]
   created_at: string
   updated_at: string
 }
@@ -262,6 +268,7 @@ export interface Task {
   assignee_id?: string
   assignee_contact_id?: string
   assignee_is_user?: boolean
+  assignment_status?: 'pending' | 'confirmed' | 'declined'
   creator_id: string
   parent_task_id?: string
   comment_count?: number
@@ -339,6 +346,8 @@ export interface NotificationPayload {
   action?: 'accept' | 'decline'
   task_id?: string
   task_title?: string
+  assigner_name?: string
+  assignee_name?: string
   commenter_name?: string
   comment_body?: string
   reminder_key?: string

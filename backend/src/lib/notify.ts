@@ -56,6 +56,18 @@ function buildPushContent(type: string, payload: Record<string, any>): PushConte
         url: payload.event_id ? `/events/${payload.event_id}` : '/',
       }
     }
+    case 'task_assignment':
+      return {
+        title: 'שיבוץ למשימה',
+        body: `${payload.assigner_name || ''} שיבץ אותך למשימה: ${payload.task_title || ''}`,
+        url: payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks',
+      }
+    case 'task_assignment_response':
+      return {
+        title: 'תגובה לשיבוץ',
+        body: `${payload.assignee_name || ''} ${payload.action === 'accept' ? 'אישר/ה' : 'דחה/תה'} את השיבוץ למשימה: ${payload.task_title || ''}`,
+        url: payload.event_id ? `/events/${payload.event_id}?tab=tasks` : '/tasks',
+      }
     default:
       return {
         title: 'SoluPlan',

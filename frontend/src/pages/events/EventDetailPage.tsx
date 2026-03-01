@@ -90,6 +90,7 @@ export default function EventDetailPage() {
   const [showSchedule, setShowSchedule] = useState(false)
   const [showRider, setShowRider] = useState(false)
   const [showTeams, setShowTeams] = useState(false)
+  const [showPlanFurther, setShowPlanFurther] = useState(true)
   const [soluflowServiceUrl] = useState<string | null>(null)
   const [serviceError] = useState<string | null>(null)
   const [solucastCopied, setSolucastCopied] = useState(false)
@@ -376,82 +377,105 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* Action Cards — shown when data is missing (hidden for team-only members) */}
+            {/* Plan Further — expandable group for missing action cards */}
             {canEdit && (!event.program_agenda || !event.rider_details || !event.event_teams) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {!event.event_teams && (
-                  <Link
-                    to={`/events/${id}/teams`}
-                    className="group card flex items-center gap-4 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
-                      <Users className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                        {t('events.createTeams')}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        {t('events.createTeamsDesc')}
-                      </p>
-                    </div>
-                  </Link>
-                )}
-                {!event.program_agenda && (
-                  <Link
-                    to={`/events/${id}/schedule`}
-                    className="group card flex items-center gap-4 hover:border-teal-300 hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
-                      <Clock className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors">
-                        {t('events.createSchedule')}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        {t('events.createScheduleDesc')}
-                      </p>
-                    </div>
-                  </Link>
-                )}
-                {!event.rider_details && (() => {
-                  const hasWorshipTeam = event.event_teams?.some((t: any) =>
-                    t.name?.toLowerCase().includes('worship') && t.members?.some((m: any) => m.name?.trim())
-                  )
-                  return hasWorshipTeam ? (
-                    <Link
-                      to={`/events/${id}/rider`}
-                      className="group card flex items-center gap-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                        <Mic2 className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                          {t('events.createRider')}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {t('events.createRiderDesc')}
-                        </p>
-                      </div>
-                    </Link>
+              <div className="rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6">
+                <button
+                  onClick={() => setShowPlanFurther(!showPlanFurther)}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      {[!event.event_teams, !event.program_agenda, !event.rider_details].filter(Boolean).length}
+                    </span>
+                    <h3 className="text-lg font-semibold text-white">
+                      {t('events.planFurther')}
+                    </h3>
+                  </div>
+                  {showPlanFurther ? (
+                    <ChevronDown className="w-5 h-5 text-white/70" />
                   ) : (
-                    <div className="card flex items-center gap-4 opacity-40 cursor-not-allowed">
-                      <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center">
-                        <Mic2 className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-400">
-                          {t('events.createRider')}
-                        </h4>
-                        <p className="text-xs text-gray-400">
-                          {t('events.createRiderFirst')}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })()}
+                    <ChevronRight className="w-5 h-5 text-white/70" />
+                  )}
+                </button>
+
+                {showPlanFurther && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {!event.event_teams && (
+                      <Link
+                        to={`/events/${id}/teams`}
+                        className="group flex items-center gap-4 p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                          <Users className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">
+                            {t('events.createTeams')}
+                          </h4>
+                          <p className="text-xs text-white/70">
+                            {t('events.createTeamsDesc')}
+                          </p>
+                        </div>
+                      </Link>
+                    )}
+                    {!event.program_agenda && (
+                      <Link
+                        to={`/events/${id}/schedule`}
+                        className="group flex items-center gap-4 p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                          <Clock className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">
+                            {t('events.createSchedule')}
+                          </h4>
+                          <p className="text-xs text-white/70">
+                            {t('events.createScheduleDesc')}
+                          </p>
+                        </div>
+                      </Link>
+                    )}
+                    {!event.rider_details && (() => {
+                      const hasWorshipTeam = event.event_teams?.some((t: any) =>
+                        t.name?.toLowerCase().includes('worship') && t.members?.some((m: any) => m.name?.trim())
+                      )
+                      return hasWorshipTeam ? (
+                        <Link
+                          to={`/events/${id}/rider`}
+                          className="group flex items-center gap-4 p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                            <Mic2 className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-white">
+                              {t('events.createRider')}
+                            </h4>
+                            <p className="text-xs text-white/70">
+                              {t('events.createRiderDesc')}
+                            </p>
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 opacity-40 cursor-not-allowed">
+                          <div className="w-12 h-12 rounded-xl bg-white/10 text-white/50 flex items-center justify-center">
+                            <Mic2 className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-white/50">
+                              {t('events.createRider')}
+                            </h4>
+                            <p className="text-xs text-white/50">
+                              {t('events.createRiderFirst')}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </div>
             )}
 
