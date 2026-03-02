@@ -271,9 +271,15 @@ export default function EventDetailPage() {
                 {event.team_member_status === 'pending' && (
                   <Badge variant="warning" size="sm">{t('events.invited')}</Badge>
                 )}
-                {event.team_member_status === 'confirmed' && (
-                  <Badge variant="primary" size="sm">{t('events.teamMember')}</Badge>
-                )}
+                {event.team_member_status === 'confirmed' && (() => {
+                  const isEventMgr = (event.event_teams as any[])?.some((team: any) =>
+                    team.members?.some((m: any) =>
+                      m.is_user && m.contact_id === currentUser?.id &&
+                      (m.role || '').toLowerCase() === t('roles.eventManager').toLowerCase()
+                    )
+                  )
+                  return <Badge variant="primary" size="sm">{isEventMgr ? t('events.eventManager') : t('events.teamMember')}</Badge>
+                })()}
               </>
             )}
           </div>
