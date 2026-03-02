@@ -533,20 +533,25 @@ export const sendMemberInvite = async (
       declineUrl: `${baseUrl}?action=decline`,
     })
 
+    let emailSent = false
     try {
       await sendEmail(
         { to: normalizedEmail, subject: `You're invited to join ${workspace.name} on SoluPlan`, html },
         req.user!.id
       )
+      emailSent = true
     } catch (emailError: any) {
       console.error('Email send failed:', emailError)
-      // Delete the invite if email fails
-      try {
-        await prisma.workspaceMemberInvite.delete({ where: { id: invite.id } })
-      } catch (deleteError) {
-        console.error('Failed to clean up invite after email failure:', deleteError)
+      if (!targetUser) {
+        // No account = no notification fallback, must fail
+        try {
+          await prisma.workspaceMemberInvite.delete({ where: { id: invite.id } })
+        } catch (deleteError) {
+          console.error('Failed to clean up invite after email failure:', deleteError)
+        }
+        throw new AppError('Failed to send invitation email. Check your SMTP settings.', 500)
       }
-      throw new AppError('Failed to send invitation email. Check your SMTP settings.', 500)
+      // User exists → continue to in-app notification fallback
     }
 
     // Create in-app notification + push for existing users (non-blocking)
