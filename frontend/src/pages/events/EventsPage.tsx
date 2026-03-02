@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Plus, Loader2, Search, Calendar as CalendarIcon, ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { Plus, Loader2, Search, Calendar as CalendarIcon, ChevronDown, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useEvents } from '@/hooks/useEvents'
 import EventCard from '@/components/EventCard'
@@ -16,6 +16,19 @@ export default function EventsPage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showPastEvents, setShowPastEvents] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filtersRef = useRef<HTMLDivElement>(null)
+
+  const hasActiveFilters = filterType !== 'all' || filterStatus !== 'all'
+
+  useEffect(() => {
+    if (!filtersOpen) return
+    const handle = (e: MouseEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) setFiltersOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [filtersOpen])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300)
@@ -98,9 +111,9 @@ export default function EventsPage() {
       </div>
 
       {/* Filters */}
-      <div className="card">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-0 sm:min-w-[240px]">
+      <div className="card relative z-20 overflow-visible">
+        <div className="flex gap-2 sm:gap-4">
+          <div className="flex-1 min-w-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -113,7 +126,58 @@ export default function EventsPage() {
             </div>
           </div>
 
-          <div>
+          {/* Mobile: filter icon with dropdown */}
+          <div className="relative sm:hidden" ref={filtersRef}>
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              className={`p-2.5 rounded-lg border transition-colors ${hasActiveFilters ? 'border-teal-300 bg-teal-50 text-teal-600' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+            </button>
+            {filtersOpen && (
+              <div className="absolute end-0 top-full mt-1 w-56 bg-white rounded-xl shadow-lg border border-gray-200 p-3 z-30 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('common.type')}</label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="input w-full"
+                  >
+                    <option value="all">{t('events.allTypes')}</option>
+                    <option value="worship">{t('events.types.worship')}</option>
+                    <option value="in_house">{t('events.types.inHouse')}</option>
+                    <option value="film">{t('events.types.film')}</option>
+                    <option value="tour_child">{t('events.types.tourEvent')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('common.status')}</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="input w-full"
+                  >
+                    <option value="all">{t('events.allStatus')}</option>
+                    <option value="planned">{t('events.status.planned')}</option>
+                    <option value="confirmed">{t('events.status.confirmed')}</option>
+                    <option value="canceled">{t('events.status.canceled')}</option>
+                    <option value="archived">{t('events.status.archived')}</option>
+                  </select>
+                </div>
+                {hasActiveFilters && (
+                  <button
+                    onClick={() => { setFilterType('all'); setFilterStatus('all') }}
+                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    {t('events.clearFilters')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: inline selects */}
+          <div className="hidden sm:flex gap-4">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -125,9 +189,6 @@ export default function EventsPage() {
               <option value="film">{t('events.types.film')}</option>
               <option value="tour_child">{t('events.types.tourEvent')}</option>
             </select>
-          </div>
-
-          <div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
