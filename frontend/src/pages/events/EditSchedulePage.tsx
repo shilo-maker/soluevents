@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEvent, useUpdateEvent, useFlowService, useFlowServiceByCode, useSetlist } from '@/hooks/useEvents'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
+import TimeInput from '@/components/TimeInput'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
@@ -832,7 +833,7 @@ export default function EditSchedulePage() {
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
                   <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
-                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -879,13 +880,11 @@ export default function EditSchedulePage() {
                           </button>
                         )}
                       </td>
-                      <td className="py-2 px-3 w-24">
-                        <input
-                          type="time"
+                      <td className="py-2 px-3 w-32">
+                        <TimeInput
                           value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                          onChange={(e) => {
-                            if (!e.target.value) return
-                            const [h, m] = e.target.value.split(':').map(Number)
+                          onChange={(v) => {
+                            const [h, m] = v.split(':').map(Number)
                             const [eh, em] = eventTime.split(':').map(Number)
                             const offset = (h * 60 + m) - (eh * 60 + em)
                             const updated = [...preEventSchedule]
@@ -893,7 +892,6 @@ export default function EditSchedulePage() {
                             setPreEventSchedule(updated)
                           }}
                           className="input text-sm w-full min-w-0"
-                          placeholder="--:--"
                         />
                       </td>
                       <td className="py-2 px-3 align-top">
@@ -935,7 +933,7 @@ export default function EditSchedulePage() {
                 <tr className="border-b-2 border-gray-200">
                   <th className="w-8"></th>
                   <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
-                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                  <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                   <th className="w-20"></th>
                 </tr>
               </thead>
@@ -1326,12 +1324,10 @@ export default function EditSchedulePage() {
                           )}
                         </td>
                         <td className="py-2 px-3 w-24">
-                          <input
-                            type="time"
+                          <TimeInput
                             value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(e) => {
-                              if (!e.target.value) return
-                              const [h, m] = e.target.value.split(':').map(Number)
+                            onChange={(v) => {
+                              const [h, m] = v.split(':').map(Number)
                               const [eh, em] = eventTime.split(':').map(Number)
                               const offset = (h * 60 + m) - (eh * 60 + em)
                               const updated = [...programSchedule]
@@ -1339,7 +1335,6 @@ export default function EditSchedulePage() {
                               setProgramSchedule(updated)
                             }}
                             className="input text-sm w-full min-w-0"
-                            placeholder="--:--"
                           />
                         </td>
                         <td className="py-2 px-3 align-top">
@@ -1395,7 +1390,7 @@ export default function EditSchedulePage() {
                   <tr className="border-b-2 border-gray-200">
                     <th className="w-8"></th>
                     <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
-                    <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                    <th className="text-start py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                     <th className="w-20"></th>
                   </tr>
                 </thead>
@@ -1443,12 +1438,10 @@ export default function EditSchedulePage() {
                           )}
                         </td>
                         <td className="py-2 px-3 w-24">
-                          <input
-                            type="time"
+                          <TimeInput
                             value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(e) => {
-                              if (!e.target.value) return
-                              const [h, m] = e.target.value.split(':').map(Number)
+                            onChange={(v) => {
+                              const [h, m] = v.split(':').map(Number)
                               const [eh, em] = eventTime.split(':').map(Number)
                               const offset = (h * 60 + m) - (eh * 60 + em)
                               const updated = [...postEventSchedule]
@@ -1456,7 +1449,6 @@ export default function EditSchedulePage() {
                               setPostEventSchedule(updated)
                             }}
                             className="input text-sm w-full min-w-0"
-                            placeholder="--:--"
                           />
                         </td>
                         <td className="py-2 px-3 align-top">

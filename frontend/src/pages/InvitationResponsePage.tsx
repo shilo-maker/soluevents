@@ -109,7 +109,7 @@ export default function InvitationResponsePage() {
   const tz = invitation.event.timezone || undefined
   const locale = getCurrentLanguage() === 'he' ? 'he-IL' : 'en-US'
   const dateStr = eventDate.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz })
-  const timeStr = eventDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: tz })
+  const timeStr = eventDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

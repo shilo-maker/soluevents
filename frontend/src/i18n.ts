@@ -21,17 +21,20 @@ i18n
     },
   })
 
+// Map i18n language codes to BCP 47 locale tags for correct browser behavior (e.g. 24-hour time)
+const localeMap: Record<string, string> = { he: 'he-IL', en: 'en-US' }
+
 // Set document direction and lang on language change
 i18n.on('languageChanged', (lng) => {
   const dir = lng === 'he' ? 'rtl' : 'ltr'
   document.documentElement.dir = dir
-  document.documentElement.lang = lng
+  document.documentElement.lang = localeMap[lng] || lng
 })
 
 // Apply initial direction
 const initLng = i18n.language || 'he'
 document.documentElement.dir = initLng === 'he' ? 'rtl' : 'ltr'
-document.documentElement.lang = initLng
+document.documentElement.lang = localeMap[initLng] || initLng
 
 export function changeLanguage(lng: string) {
   return i18n.changeLanguage(lng)

@@ -576,7 +576,7 @@ export default function EventDetailPage() {
                             return (
                               <tr key={idx} className="border-b border-gray-100">
                                 <td className="py-2 px-3 text-sm text-gray-600 w-24">
-                                  {itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                 </td>
                                 <td className="py-2 px-3">
                                   <div className="font-semibold text-sm text-gray-900">{item.item}</div>
@@ -675,7 +675,7 @@ export default function EventDetailPage() {
                             return (
                               <tr key={idx} className="border-b border-gray-100">
                                 <td className="py-2 px-3 text-sm text-gray-600 w-24">
-                                  {itemTime ? itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}
+                                  {itemTime ? itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '--'}
                                 </td>
                                 <td className="py-2 px-3">
                                   <div className="font-semibold text-sm text-gray-900">{item.title || t('common.untitled')}</div>
@@ -720,7 +720,7 @@ export default function EventDetailPage() {
                             return (
                               <tr key={idx} className="border-b border-gray-100">
                                 <td className="py-2 px-3 text-sm text-gray-600 w-24">
-                                  {itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {itemTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                                 </td>
                                 <td className="py-2 px-3">
                                   <div className="font-semibold text-sm text-gray-900">{item.item}</div>

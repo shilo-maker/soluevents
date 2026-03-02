@@ -8,6 +8,7 @@ import { useContacts } from '@/hooks/useContacts'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
 import { useUpdateVenue } from '@/hooks/useVenues'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
+import TimeInput from '@/components/TimeInput'
 import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import type { EventType, EventPhase, EventStatus } from '@/types'
@@ -948,10 +949,9 @@ export default function NewEventWizard() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {t('events.startTime')} *
                 </label>
-                <input
-                  type="time"
+                <TimeInput
                   value={formData.event_time}
-                  onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                  onChange={(v) => setFormData({ ...formData, event_time: v })}
                   className="input"
                 />
               </div>
@@ -1077,7 +1077,7 @@ export default function NewEventWizard() {
                     <thead>
                       <tr className="border-b-2 border-gray-200">
                         <th className="w-8"></th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                         <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                         <th className="w-20"></th>
                       </tr>
@@ -1089,24 +1089,20 @@ export default function NewEventWizard() {
                       <tbody>
                         {formData.pre_event_schedule.map((item, index) => (
                           <SortableRow key={`pre-${index}`} id={`pre-${index}`}>
-                            <td className="py-2 px-3 w-24">
-                              <input
-                                type="time"
+                            <td className="py-2 px-3 w-32">
+                              <TimeInput
                                 value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                onChange={(e) => {
-                                  if (!e.target.value) return
-                                  const [hours, minutes] = e.target.value.split(':').map(Number)
+                                onChange={(v) => {
+                                  const [hours, minutes] = v.split(':').map(Number)
                                   const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                   const totalMinutes = hours * 60 + minutes
                                   const eventTotalMinutes = eventHours * 60 + eventMinutes
                                   const offset = totalMinutes - eventTotalMinutes
-
                                   const newSchedule = [...formData.pre_event_schedule]
                                   newSchedule[index].offset_minutes = offset
                                   setFormData({ ...formData, pre_event_schedule: newSchedule })
                                 }}
                                 className="input text-sm w-full min-w-0"
-                                placeholder="--:--"
                               />
                             </td>
                             <td className="py-2 px-3">
@@ -1206,7 +1202,7 @@ export default function NewEventWizard() {
                     <thead>
                       <tr className="border-b-2 border-gray-200">
                         <th className="w-8"></th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                         <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                         <th className="w-20"></th>
                       </tr>
@@ -1240,23 +1236,19 @@ export default function NewEventWizard() {
                           return (
                             <SortableRow key={`program-${index}`} id={`program-${index}`}>
                               <td className="py-2 px-3 w-24">
-                                <input
-                                  type="time"
+                                <TimeInput
                                   value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                  onChange={(e) => {
-                                    if (!e.target.value) return
-                                    const [hours, minutes] = e.target.value.split(':').map(Number)
+                                  onChange={(v) => {
+                                    const [hours, minutes] = v.split(':').map(Number)
                                     const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                     const totalMinutes = hours * 60 + minutes
                                     const eventTotalMinutes = eventHours * 60 + eventMinutes
                                     const offset = totalMinutes - eventTotalMinutes
-
                                     const newSchedule = [...formData.program_schedule]
                                     newSchedule[index].offset_minutes = offset
                                     setFormData({ ...formData, program_schedule: newSchedule })
                                   }}
                                   className="input text-sm w-full min-w-0"
-                                  placeholder="--:--"
                                 />
                               </td>
                               <td className="py-2 px-3">
@@ -1584,7 +1576,7 @@ export default function NewEventWizard() {
                       <thead>
                         <tr className="border-b-2 border-gray-200">
                           <th className="w-8"></th>
-                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-24">{t('common.time')}</th>
+                          <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-32">{t('common.time')}</th>
                           <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">{t('common.item')}</th>
                           <th className="w-20"></th>
                         </tr>
@@ -1597,23 +1589,19 @@ export default function NewEventWizard() {
                           {formData.post_event_schedule.map((item, index) => (
                             <SortableRow key={`post-${index}`} id={`post-${index}`}>
                               <td className="py-2 px-3 w-24">
-                                <input
-                                  type="time"
+                                <TimeInput
                                   value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                  onChange={(e) => {
-                                    if (!e.target.value) return
-                                    const [hours, minutes] = e.target.value.split(':').map(Number)
+                                  onChange={(v) => {
+                                    const [hours, minutes] = v.split(':').map(Number)
                                     const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                     const totalMinutes = hours * 60 + minutes
                                     const eventTotalMinutes = eventHours * 60 + eventMinutes
                                     const offset = totalMinutes - eventTotalMinutes
-
                                     const newSchedule = [...formData.post_event_schedule]
                                     newSchedule[index].offset_minutes = offset
                                     setFormData({ ...formData, post_event_schedule: newSchedule })
                                   }}
                                   className="input text-sm w-full min-w-0"
-                                  placeholder="--:--"
                                 />
                               </td>
                               <td className="py-2 px-3">

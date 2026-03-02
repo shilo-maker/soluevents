@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import { useCreateEvent } from '@/hooks/useEvents'
 import { useUpdateVenue } from '@/hooks/useVenues'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
+import TimeInput from '@/components/TimeInput'
 import type { EventType, EventPhase, EventStatus } from '@/types'
 
 interface InitialEventData {
@@ -206,10 +207,9 @@ export default function CreateEventDialog({ isOpen, onClose, initialData }: Crea
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.startTime')} *</label>
-              <input
-                type="time"
+              <TimeInput
                 value={formData.event_time}
-                onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                onChange={(v) => setFormData({ ...formData, event_time: v })}
                 className="input"
               />
             </div>

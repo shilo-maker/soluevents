@@ -5,7 +5,7 @@ export function formatDate(date: string | Date, formatStr: string = 'MMM d, yyyy
 }
 
 export function formatDateTime(date: string | Date) {
-  return format(new Date(date), 'MMM d, yyyy h:mm a')
+  return format(new Date(date), 'MMM d, yyyy HH:mm')
 }
 
 export function formatRelativeTime(date: string | Date) {
