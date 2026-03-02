@@ -11,6 +11,7 @@ import {
   Archive,
   Trash2,
   // UserPlus,
+  MoreVertical,
   Music,
   ExternalLink,
   Clock,
@@ -87,6 +88,8 @@ export default function EventDetailPage() {
   // const [selectedUserId, setSelectedUserId] = useState('')
   // const [selectedRole, setSelectedRole] = useState<EventRole>('contributor')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
   const [showSchedule, setShowSchedule] = useState(false)
   const [showRider, setShowRider] = useState(false)
   const [showTeams, setShowTeams] = useState(false)
@@ -173,6 +176,16 @@ export default function EventDetailPage() {
     const timer = setTimeout(() => setInvitationResult(null), 8000)
     return () => clearTimeout(timer)
   }, [invitationResult])
+
+  // Close actions menu on outside click
+  useEffect(() => {
+    if (!actionsOpen) return
+    const handle = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) setActionsOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [actionsOpen])
 
   // Build invitation status maps keyed by email, name, and contact/user ID
   const invitationStatusMap = useMemo(() => {
@@ -285,31 +298,48 @@ export default function EventDetailPage() {
           </div>
         </div>
         {canEdit && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Link to={`/events/${id}/edit`} className="btn-secondary">
-              <Edit className="w-4 h-4 mr-2" />
-              {t('common.edit')}
-            </Link>
-            <button className="btn-secondary">
-              <Archive className="w-4 h-4 mr-2" />
-              {t('common.archive')}
-            </button>
+          <div className="relative" ref={actionsRef}>
             <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-300"
+              onClick={() => setActionsOpen(o => !o)}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {t('common.delete')}
+              <MoreVertical className="w-5 h-5" />
             </button>
-            {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
-              <button
-                onClick={() => setShowSendInvitations(true)}
-                disabled={sendInvitations.isPending}
-                className="btn-secondary text-teal-600 hover:bg-teal-50 hover:border-teal-300"
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                {sendInvitations.isPending ? t('events.sending') : t('events.sendInvitations')}
-              </button>
+            {actionsOpen && (
+              <div className="absolute end-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-30">
+                <Link
+                  to={`/events/${id}/edit`}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setActionsOpen(false)}
+                >
+                  <Edit className="w-4 h-4" />
+                  {t('common.edit')}
+                </Link>
+                {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
+                  <button
+                    onClick={() => { setActionsOpen(false); setShowSendInvitations(true) }}
+                    disabled={sendInvitations.isPending}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {sendInvitations.isPending ? t('events.sending') : t('events.sendInvitations')}
+                  </button>
+                )}
+                <button
+                  onClick={() => { setActionsOpen(false) }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <Archive className="w-4 h-4" />
+                  {t('common.archive')}
+                </button>
+                <button
+                  onClick={() => { setActionsOpen(false); setShowDeleteConfirm(true) }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {t('common.delete')}
+                </button>
+              </div>
             )}
           </div>
         )}
