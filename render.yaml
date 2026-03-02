@@ -36,6 +36,10 @@ services:
       - key: SOLUCAST_APP_URL
         value: https://solucast.app
 
+      # Webhook auth key — shared with SoluPresenter for SoluFlow sync
+      - key: INTEGRATION_API_KEY
+        sync: false
+
       # Google Maps API Key (optional, for venue location picker)
       - key: VITE_GOOGLE_MAPS_API_KEY
         sync: false
