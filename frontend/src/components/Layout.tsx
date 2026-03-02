@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
@@ -33,6 +33,17 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { user, clearAuth } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const handle = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [userMenuOpen])
 
   const navigation = [
     { name: t('nav.dashboard'), href: '/', icon: Home },
@@ -146,7 +157,40 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             <WorkspaceSwitcher />
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(o => !o)}
+                className="p-1.5 rounded-full hover:ring-2 hover:ring-teal-200 transition-all"
+              >
+                <Avatar src={user?.avatar_url} name={user?.name || ''} size="sm" />
+              </button>
+              {userMenuOpen && (
+                <div className="absolute end-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-30">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
+                  <Link
+                    to="/user/settings"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Settings className="w-4 h-4" />
+                    {t('nav.userSettings')}
+                  </Link>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); clearAuth() }}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t('nav.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Page content */}
