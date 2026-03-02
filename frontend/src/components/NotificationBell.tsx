@@ -408,7 +408,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute end-0 top-full mt-1 w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200/60 z-50 overflow-hidden">
+        <div className="fixed inset-x-4 top-16 sm:absolute sm:inset-x-auto sm:end-0 sm:top-full sm:mt-1 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200/60 z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900">{t('notifications.title')}</h3>
             <div className="flex items-center gap-3">
@@ -435,7 +435,7 @@ export default function NotificationBell() {
             </div>
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[calc(100vh-10rem)] sm:max-h-96 overflow-y-auto">
             {notifications && notifications.length > 0 ? (
               <>
                 {(expanded ? notifications : notifications.slice(0, 4)).map(renderNotification)}
