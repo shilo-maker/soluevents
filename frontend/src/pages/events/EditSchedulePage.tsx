@@ -626,9 +626,11 @@ export default function EditSchedulePage() {
         } as any,
       })
 
-      // Auto-generate/sync SoluCast setlist if SoluFlow is linked (fire-and-forget)
+      // Auto-generate/sync SoluCast setlist if SoluFlow is linked
       if (link.serviceId && programSchedule.some(item => item.type === 'song')) {
-        api.post(`/integration/events/${id}/generate-solucast`).catch(() => {})
+        try {
+          await api.post(`/integration/events/${id}/generate-solucast`)
+        } catch { /* setlist generation is best-effort */ }
       }
 
       navigate(`/events/${id}`)

@@ -63,25 +63,46 @@ export default function EditRiderPage() {
       // Pre-fill from event_teams if available
       const teams = (event as any).event_teams as any[] | undefined
       if (teams && Array.isArray(teams)) {
-        const worshipTeamData = teams.find((t: any) => t.name?.toLowerCase().includes('worship'))
+        const worshipName = t('teams.worshipTeam')
+        const worshipTeamData = teams.find((team: any) => team.name === worshipName || team.name?.toLowerCase().includes('worship'))
         if (worshipTeamData?.members?.length) {
+          // Map both English and translated role names to equipment needs
+          const guitarNeeds = [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')]
+          const keysNeeds = [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')]
+          const drumsNeeds = [t('rider.defaults.micdDrumSet')]
+          const bassNeeds = [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')]
+          const vocalsNeeds = [t('rider.defaults.micStandXLR')]
+          const percussionNeeds = [t('rider.defaults.micStand')]
+          const stringNeeds = [t('rider.defaults.connectedDI'), t('rider.defaults.musicStand')]
           const needsMap: Record<string, string[]> = {
-            'acoustic guitar': [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')],
-            'electric guitar': [t('rider.defaults.connectedDI'), t('rider.defaults.micStand2XLR'), t('rider.defaults.guitarStand')],
-            'keys': [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')],
-            'keys#2': [t('rider.defaults.keyboardStand'), t('rider.defaults.micStandXLR'), t('rider.defaults.fiveXLR'), t('rider.defaults.computerStand')],
-            'drums': [t('rider.defaults.micdDrumSet')],
-            'bass': [t('rider.defaults.connectedDI'), t('rider.defaults.guitarStand')],
-            'vocals': [t('rider.defaults.micStandXLR')],
-            'percussion': [t('rider.defaults.micStand')],
-            'violin': [t('rider.defaults.connectedDI'), t('rider.defaults.musicStand')],
-            'cello': [t('rider.defaults.connectedDI'), t('rider.defaults.musicStand')],
+            [t('roles.acousticGuitar').toLowerCase()]: guitarNeeds,
+            [t('roles.electricGuitar').toLowerCase()]: guitarNeeds,
+            [t('roles.keys').toLowerCase()]: keysNeeds,
+            [t('roles.drums').toLowerCase()]: drumsNeeds,
+            [t('roles.bass').toLowerCase()]: bassNeeds,
+            [t('roles.vocals').toLowerCase()]: vocalsNeeds,
+            [t('roles.percussion').toLowerCase()]: percussionNeeds,
+            [t('roles.violin').toLowerCase()]: stringNeeds,
+            [t('roles.cello').toLowerCase()]: stringNeeds,
+            'acoustic guitar': guitarNeeds,
+            'electric guitar': guitarNeeds,
+            'keys': keysNeeds,
+            'keys#2': keysNeeds,
+            'drums': drumsNeeds,
+            'bass': bassNeeds,
+            'vocals': vocalsNeeds,
+            'percussion': percussionNeeds,
+            'violin': stringNeeds,
+            'cello': stringNeeds,
           }
+          const vocalsText = t('roles.vocals')
+          const drumsText = t('roles.drums')
           setWorshipTeam(worshipTeamData.members
             .filter((m: any) => m.name?.trim())
             .map((m: any) => {
-              const baseRole = m.role?.replace(/\s*\+\s*Vocals$/, '').toLowerCase() || ''
-              const isDrums = baseRole === 'drums'
+              // Strip "+ Vocals" / "+ שירה" suffix to get the base role
+              const baseRole = m.role?.replace(/\s*\+\s*.+$/, '').toLowerCase() || ''
+              const isDrums = baseRole === 'drums' || baseRole === drumsText.toLowerCase()
               return {
                 role: m.role || '',
                 person: m.name || '',
