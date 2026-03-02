@@ -35,7 +35,6 @@ import InvitationStatusBadge from '@/components/InvitationStatusBadge'
 import { useRoleAssignments, useCreateRoleAssignment, useDeleteRoleAssignment } from '@/hooks/useRoleAssignments'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDateTime } from '@/lib/utils'
-import Badge from '@/components/Badge'
 import PersonHoverCard from '@/components/PersonHoverCard'
 import TaskCard from '@/components/TaskCard'
 import { useEventRoom } from '@/hooks/useEventRoom'
@@ -262,75 +261,86 @@ export default function EventDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          to="/events"
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            {event.tags?.map((tag) => (
-              <Badge key={tag} variant="default" size="sm">
-                {tag}
-              </Badge>
-            ))}
-            {event.created_by === currentUser?.id ? (
-              <Badge variant="primary" size="sm">{t('events.eventManager')}</Badge>
-            ) : (
-              <>
-                {event.team_member_status === 'pending' && (
-                  <Badge variant="warning" size="sm">{t('events.invited')}</Badge>
-                )}
-                {event.team_member_status === 'confirmed' && (() => {
-                  const isEventMgr = (event.event_teams as any[])?.some((team: any) =>
-                    team.members?.some((m: any) =>
-                      m.is_user && m.contact_id === currentUser?.id &&
-                      (m.role || '').toLowerCase() === t('roles.eventManager').toLowerCase()
+      <div className="relative rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-5 sm:p-6 overflow-hidden">
+        {/* Animated waves */}
+        <svg className="absolute bottom-0 left-0 w-[200%] h-24 sm:h-32 opacity-[0.12] animate-wave-slow" viewBox="0 0 1440 100" preserveAspectRatio="none">
+          <path d="M0,50 Q180,90 360,50 Q540,10 720,50 Q900,90 1080,50 Q1260,10 1440,50 L1440,100 L0,100Z" fill="white" />
+        </svg>
+        <svg className="absolute bottom-0 left-0 w-[200%] h-20 sm:h-28 opacity-[0.09] animate-wave-mid" viewBox="0 0 1440 100" preserveAspectRatio="none">
+          <path d="M0,50 Q120,85 240,50 Q360,15 480,50 Q600,85 720,50 Q840,15 960,50 Q1080,85 1200,50 Q1320,15 1440,50 L1440,100 L0,100Z" fill="white" />
+        </svg>
+        <svg className="absolute bottom-0 left-0 w-[200%] h-16 sm:h-24 opacity-[0.07] animate-wave-fast" viewBox="0 0 1440 100" preserveAspectRatio="none">
+          <path d="M0,50 Q90,80 180,50 Q270,20 360,50 Q450,80 540,50 Q630,20 720,50 Q810,80 900,50 Q990,20 1080,50 Q1170,80 1260,50 Q1350,20 1440,50 L1440,100 L0,100Z" fill="white" />
+        </svg>
+        <div className="relative z-10 flex items-center gap-4">
+          <Link
+            to="/events"
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-white truncate">{event.title}</h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {event.tags?.map((tag) => (
+                <span key={tag} className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/20 text-white/90">
+                  {tag}
+                </span>
+              ))}
+              {event.created_by === currentUser?.id ? (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/25 text-white">{t('events.eventManager')}</span>
+              ) : (
+                <>
+                  {event.team_member_status === 'pending' && (
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-400/30 text-amber-100">{t('events.invited')}</span>
+                  )}
+                  {event.team_member_status === 'confirmed' && (() => {
+                    const isEventMgr = (event.event_teams as any[])?.some((team: any) =>
+                      team.members?.some((m: any) =>
+                        m.is_user && m.contact_id === currentUser?.id &&
+                        (m.role || '').toLowerCase() === t('roles.eventManager').toLowerCase()
+                      )
                     )
-                  )
-                  return <Badge variant="primary" size="sm">{isEventMgr ? t('events.eventManager') : t('events.teamMember')}</Badge>
-                })()}
-              </>
-            )}
+                    return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/25 text-white">{isEventMgr ? t('events.eventManager') : t('events.teamMember')}</span>
+                  })()}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-        {canEdit && (
-          <div className="relative" ref={actionsRef}>
-            <button
-              onClick={() => setActionsOpen(o => !o)}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
-            >
-              <MoreVertical className="w-5 h-5" />
-            </button>
-            {actionsOpen && (
-              <div className="absolute end-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-30">
-                <Link
-                  to={`/events/${id}/edit`}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => setActionsOpen(false)}
-                >
-                  <Edit className="w-4 h-4" />
-                  {t('common.edit')}
-                </Link>
-                {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
+          {canEdit && (
+            <div className="relative" ref={actionsRef}>
+              <button
+                onClick={() => setActionsOpen(o => !o)}
+                className="p-2 rounded-lg hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+              {actionsOpen && (
+                <div className="absolute end-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-30">
+                  <Link
+                    to={`/events/${id}/edit`}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setActionsOpen(false)}
+                  >
+                    <Edit className="w-4 h-4" />
+                    {t('common.edit')}
+                  </Link>
+                  {!!(event.event_teams?.length || event.program_agenda?.program_schedule?.length) && (
+                    <button
+                      onClick={() => { setActionsOpen(false); setShowSendInvitations(true) }}
+                      disabled={sendInvitations.isPending}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Mail className="w-4 h-4" />
+                      {sendInvitations.isPending ? t('events.sending') : t('events.sendInvitations')}
+                    </button>
+                  )}
                   <button
-                    onClick={() => { setActionsOpen(false); setShowSendInvitations(true) }}
-                    disabled={sendInvitations.isPending}
+                    onClick={() => { setActionsOpen(false) }}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    <Mail className="w-4 h-4" />
-                    {sendInvitations.isPending ? t('events.sending') : t('events.sendInvitations')}
-                  </button>
-                )}
-                <button
-                  onClick={() => { setActionsOpen(false) }}
-                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <Archive className="w-4 h-4" />
-                  {t('common.archive')}
+                    <Archive className="w-4 h-4" />
+                    {t('common.archive')}
                 </button>
                 <button
                   onClick={() => { setActionsOpen(false); setShowDeleteConfirm(true) }}
@@ -343,6 +353,7 @@ export default function EventDetailPage() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Tabs */}

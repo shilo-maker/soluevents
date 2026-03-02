@@ -78,3 +78,12 @@
   50% { background-position: 100% 100%; }
   100% { background-position: 0% 0%; }
 }
+
+@keyframes wave-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-wave-slow { animation: wave-drift 14s linear infinite; }
+.animate-wave-mid  { animation: wave-drift 10s linear infinite; }
+.animate-wave-fast { animation: wave-drift 7s linear infinite; }
