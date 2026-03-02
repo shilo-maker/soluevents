@@ -21,6 +21,7 @@ import userSettingsRoutes from './routes/userSettings'
 import notificationRoutes from './routes/notifications'
 import pushRoutes from './routes/push'
 import fileRoutes from './routes/files'
+import documentRoutes from './routes/documents'
 import webhookRoutes from './routes/webhooks'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
@@ -58,7 +59,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 // Rate limiting on auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: process.env.NODE_ENV === 'production' ? 20 : 100,
   message: { status: 'error', message: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -85,6 +86,7 @@ app.use('/api/user', userSettingsRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/files', fileRoutes)
+app.use('/api/documents', documentRoutes)
 // Rate limiting on webhook endpoints (prevent brute-force + DoS)
 const webhookLimiter = rateLimit({
   windowMs: 60 * 1000,

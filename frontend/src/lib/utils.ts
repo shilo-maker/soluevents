@@ -1,15 +1,22 @@
 import { format, formatDistanceToNow, isAfter, isBefore, addDays } from 'date-fns'
+import { he } from 'date-fns/locale/he'
+import { enUS } from 'date-fns/locale/en-US'
+import i18n from '@/i18n'
 
-export function formatDate(date: string | Date, formatStr: string = 'MMM d, yyyy') {
-  return format(new Date(date), formatStr)
+function getDateLocale() {
+  return i18n.language === 'he' ? he : enUS
+}
+
+export function formatDate(date: string | Date, formatStr: string = 'PPP') {
+  return format(new Date(date), formatStr, { locale: getDateLocale() })
 }
 
 export function formatDateTime(date: string | Date) {
-  return format(new Date(date), 'MMM d, yyyy HH:mm')
+  return format(new Date(date), 'PPP HH:mm', { locale: getDateLocale() })
 }
 
 export function formatRelativeTime(date: string | Date) {
-  return formatDistanceToNow(new Date(date), { addSuffix: true })
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: getDateLocale() })
 }
 
 export function isUpcoming(date: string | Date) {

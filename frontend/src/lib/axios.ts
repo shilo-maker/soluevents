@@ -37,9 +37,10 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${access_token}`
         return api(originalRequest)
       } catch (refreshError: any) {
-        // Only clear auth if the server explicitly rejected the token (401/403).
-        // Network errors (no response) mean we're offline — keep the session.
-        if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+        const status = refreshError.response?.status
+        // Clear auth if the server rejected the token or we're being rate-limited
+        // (429 during refresh means we can't recover — avoid retry loop)
+        if (status === 401 || status === 403 || status === 429) {
           useAuthStore.getState().clearAuth()
           window.location.href = '/login'
         }
