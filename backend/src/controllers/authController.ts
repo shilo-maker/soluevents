@@ -158,7 +158,12 @@ export const refreshToken = async (
   try {
     const { refresh_token } = req.body
 
-    const decoded = verifyRefreshToken(refresh_token)
+    let decoded: import('jsonwebtoken').JwtPayload
+    try {
+      decoded = verifyRefreshToken(refresh_token)
+    } catch {
+      throw new AppError('Invalid refresh token', 401)
+    }
 
     const userId = decoded.id || decoded.userId
     if (!userId) {
