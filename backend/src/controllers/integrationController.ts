@@ -8,6 +8,7 @@ import * as songService from '../services/songService'
 import * as flowServiceService from '../services/flowServiceService'
 import * as setlistService from '../services/setlistService'
 import * as workspaceService from '../services/workspaceService'
+import { checkWorkspaceMembership } from '../services/workspaceService'
 
 // ── Songs ──────────────────────────────────────────────────────
 
@@ -180,9 +181,44 @@ export const getSetlist = async (
       throw new AppError('Setlist not found', 404)
     }
 
-    // Authorization: must be the setlist creator or an admin
+    // Authorization: setlist creator, org admin, or member of a linked event
     if (setlist.createdById !== req.user!.id && req.user!.org_role !== 'admin') {
-      throw new AppError('Not authorized to view this setlist', 403)
+      const linkedEvent = await prisma.event.findFirst({
+        where: { setlist_id: id },
+        select: {
+          created_by: true,
+          workspace_id: true,
+          event_teams: true,
+          role_assignments: { where: { user_id: req.user!.id }, select: { id: true } },
+        },
+      })
+
+      let hasAccess = false
+      if (linkedEvent) {
+        if (linkedEvent.created_by === req.user!.id) {
+          hasAccess = true
+        } else if (linkedEvent.role_assignments.length > 0) {
+          hasAccess = true
+        } else if (Array.isArray(linkedEvent.event_teams)) {
+          // Any non-declined team member can view
+          for (const team of linkedEvent.event_teams as any[]) {
+            for (const m of team.members || []) {
+              if (m.is_user && m.contact_id === req.user!.id && m.status !== 'declined') {
+                hasAccess = true
+                break
+              }
+            }
+            if (hasAccess) break
+          }
+        }
+        if (!hasAccess && linkedEvent.workspace_id) {
+          hasAccess = await checkWorkspaceMembership(linkedEvent.workspace_id, req.user!.id)
+        }
+      }
+
+      if (!hasAccess) {
+        throw new AppError('Not authorized to view this setlist', 403)
+      }
     }
 
     const items = Array.isArray(setlist.items) ? setlist.items : []

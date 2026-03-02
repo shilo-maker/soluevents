@@ -23,6 +23,22 @@ function getUserTeamMemberStatus(eventTeams: any, userId: string): 'pending' | '
   return best
 }
 
+const EVENT_MANAGER_ROLES = ['event manager', 'מנהל אירוע']
+
+/** Returns true if user is a confirmed Event Manager in event_teams. */
+function isConfirmedEventManager(eventTeams: any, userId: string): boolean {
+  if (!Array.isArray(eventTeams)) return false
+  for (const team of eventTeams) {
+    for (const m of (team.members || [])) {
+      if (!m.is_user || m.contact_id !== userId) continue
+      const status = m.status || 'confirmed' // pre-feature members treated as confirmed
+      if (status !== 'confirmed') continue
+      if (EVENT_MANAGER_ROLES.includes((m.role || '').toLowerCase())) return true
+    }
+  }
+  return false
+}
+
 export const getEvents = async (
   req: AuthRequest,
   res: Response,
@@ -128,7 +144,7 @@ export const getEvents = async (
       data: events.map(e => ({
         ...e,
         team_member_status: getUserTeamMemberStatus(e.event_teams, userId),
-        can_edit: e.created_by === userId || isAdmin || isWsEditor || e.role_assignments.some((ra: any) => ra.user_id === userId),
+        can_edit: e.created_by === userId || isAdmin || isWsEditor || e.role_assignments.some((ra: any) => ra.user_id === userId) || isConfirmedEventManager(e.event_teams, userId),
       })),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     })
@@ -193,8 +209,8 @@ export const getEvent = async (
     const hasRoleAssignment = event.role_assignments.some(ra => ra.user_id === userId)
     const teamStatus = getUserTeamMemberStatus(event.event_teams, userId)
 
-    // can_edit: creator, org admin, role assignment, or workspace admin/planner
-    let canEdit = isCreator || isAdmin || hasRoleAssignment
+    // can_edit: creator, org admin, role assignment, confirmed event manager in teams, or workspace admin/planner
+    let canEdit = isCreator || isAdmin || hasRoleAssignment || isConfirmedEventManager(event.event_teams, userId)
     let authorized = canEdit
 
     if (event.workspace_id) {
@@ -430,6 +446,9 @@ export const updateEvent = async (
       throw new AppError('Event not found', 404)
     }
     let canModify = existing.created_by === req.user!.id || req.user!.org_role === 'admin'
+    if (!canModify) {
+      canModify = isConfirmedEventManager(existing.event_teams, req.user!.id)
+    }
     if (!canModify && existing.workspace_id) {
       const wsRole = await getWorkspaceMemberRole(existing.workspace_id, req.user!.id)
       canModify = wsRole === 'admin' || wsRole === 'planner'
