@@ -75,7 +75,6 @@ const STALE_TIME = 2 * 60 * 1000 // 2 minutes
 export default function DebriefTab({ eventId, canEdit }: Props) {
   const { t, i18n } = useTranslation()
   const isHe = i18n.language === 'he'
-  const queryClient = useQueryClient()
 
   const [view, setView] = useState<'form' | 'summary' | 'byPerson'>('form')
   const [expandedPersons, setExpandedPersons] = useState<Set<string>>(new Set())

@@ -1352,7 +1352,7 @@ export default function NewEventWizard() {
                                             placeholder={t('events.itemLabels.leader')}
                                             className="input text-sm"
                                           />
-                                        />
+                                        </div>
                                       </div>
                                     )}
 
