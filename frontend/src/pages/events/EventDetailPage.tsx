@@ -113,7 +113,7 @@ export default function EventDetailPage() {
   useEventRoom(id)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user: currentUser } = useAuthStore()
+  const { user: currentUser, accessToken } = useAuthStore()
   const initialTab = (searchParams.get('tab') as Tab) || 'overview'
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   // TODO: Role management UI state (commented with their handlers)
@@ -980,9 +980,12 @@ export default function EventDetailPage() {
                         </div>
                         <div className="absolute right-0 bottom-full pb-1 hidden group-hover:flex flex-col z-10 min-w-[140px]"><div className="bg-white rounded-lg shadow-lg border border-gray-200 py-1">
                           <a
-                            href={linkedService.editToken
-                              ? `https://soluflow.app/service/edit/${linkedService.editToken}`
-                              : `https://soluflow.app/service/code/${linkedService.code}`}
+                            href={(() => {
+                              const base = linkedService.editToken
+                                ? `https://soluflow.app/service/edit/${linkedService.editToken}`
+                                : `https://soluflow.app/service/code/${linkedService.code}`
+                              return accessToken ? `${base}?token=${accessToken}` : base
+                            })()}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"

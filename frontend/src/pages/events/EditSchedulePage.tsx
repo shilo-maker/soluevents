@@ -849,9 +849,12 @@ export default function EditSchedulePage() {
                     <div className="flex items-center gap-2">
                       {(linkedService?.editToken || linkedService?.code) && (
                         <a
-                          href={linkedService.editToken
-                            ? `https://soluflow.app/service/edit/${linkedService.editToken}`
-                            : `https://soluflow.app/service/code/${linkedService.code}`}
+                          href={(() => {
+                            const base = linkedService.editToken
+                              ? `https://soluflow.app/service/edit/${linkedService.editToken}`
+                              : `https://soluflow.app/service/code/${linkedService.code}`
+                            return accessToken ? `${base}?token=${accessToken}` : base
+                          })()}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 rounded-lg transition-colors"
