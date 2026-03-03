@@ -339,6 +339,7 @@
   "events.schedule.setlistOverseer": "Setlist Overseer",
   "events.schedule.assignOverseer": "Assign overseer",
   "events.schedule.openInSoluflow": "Open in SoluFlow",
+  "events.schedule.openSetlistSchedule": "Edit Setlist",
   "events.schedule.untitled": "Untitled",
   "events.rider.itemName": "Item",
   "events.rider.saveRider": "Save Rider",

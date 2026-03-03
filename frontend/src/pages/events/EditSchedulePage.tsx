@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight, Lock, User } from 'lucide-react'
 import soluflowLogo from '@/assets/soluflow-logo.png'
 import solucastLogo from '@/assets/solucast-logo.png'
@@ -160,7 +160,10 @@ export default function EditSchedulePage() {
   const [eventTime, setEventTime] = useState('19:00')
   const [error, setError] = useState('')
 
-  const [showSoluFlow, setShowSoluFlow] = useState(false)
+  const [searchParams] = useSearchParams()
+  const soluFlowHighlight = searchParams.get('highlight') === 'soluflow'
+  const [showSoluFlow, setShowSoluFlow] = useState(soluFlowHighlight)
+  const soluFlowRef = useRef<HTMLDivElement>(null)
   const [soluFlowMode, setSoluFlowMode] = useState<'choose' | 'link'>('choose')
   const [link, setLink] = useState<LinkState>({
     serviceId: null, serviceTitle: null, songCount: 0,
@@ -170,6 +173,15 @@ export default function EditSchedulePage() {
   const [editingPreEventItem, setEditingPreEventItem] = useState<number | null>(null)
   const [editingProgramItem, setEditingProgramItem] = useState<number | null>(null)
   const [editingPostEventItem, setEditingPostEventItem] = useState<number | null>(null)
+
+  // Auto-scroll to SoluFlow section when highlighted
+  useEffect(() => {
+    if (soluFlowHighlight && soluFlowRef.current) {
+      setTimeout(() => {
+        soluFlowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
+  }, [soluFlowHighlight])
 
   // SoluCast state
   const [generatingSolucast, setGeneratingSolucast] = useState(false)
@@ -766,7 +778,7 @@ export default function EditSchedulePage() {
       )}
 
       {/* Solu Integrations */}
-      <div className="rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6 overflow-visible relative z-10">
+      <div ref={soluFlowRef} className={`rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6 overflow-visible relative z-10 transition-all duration-700 ${soluFlowHighlight ? 'gold-glow-border' : ''}`}>
         <button
           type="button"
           onClick={() => setShowSoluFlow(!showSoluFlow)}

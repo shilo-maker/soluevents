@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { Circle, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save, MessageCircle, Send, Loader2, ChevronDown } from 'lucide-react'
+import { Circle, Clock, AlertCircle, Link as LinkIcon, Edit2, X, Check, Save, MessageCircle, Send, Loader2, ChevronDown, Music } from 'lucide-react'
 import { formatDate, formatRelativeTime, isWithinDays, isPast } from '@/lib/utils'
 import InvitationStatusBadge from './InvitationStatusBadge'
 import ContactAutocomplete from './ContactAutocomplete'
@@ -321,6 +321,15 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
               {task.title}
             </h4>
             <div className="flex items-center gap-2">
+              {/setlist|סט ליסט|רשימת שירים/i.test(task.title) && task.event_id && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/events/${task.event_id}/schedule?highlight=soluflow`) }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 shadow-sm transition-colors"
+                >
+                  <Music className="w-3.5 h-3.5" />
+                  {t('events.schedule.openSetlistSchedule')}
+                </button>
+              )}
               {canComment && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setCommentsOpen((o) => !o) }}

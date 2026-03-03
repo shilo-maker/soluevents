@@ -115,10 +115,10 @@ function EventCard({ event, onDuplicate }: EventCardProps) {
 
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
-              {event.title}
-            </h3>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <h3 className="text-xl font-bold text-gray-900 group-hover:text-teal-600 transition-colors">
+                {event.title}
+              </h3>
               {event.created_by === currentUser?.id ? (
                 <Badge variant="primary" size="sm">{t('events.eventManager')}</Badge>
               ) : (

@@ -48,11 +48,20 @@ const DebriefTab = lazy(() => import('@/pages/events/DebriefTab'))
 type Tab = 'overview' | 'tasks' | 'files' | 'summaries' | 'debrief'
 
 // Wrapper component to handle task updates
-function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) {
+function TaskCardWrapper({ task, readOnly, highlighted, onHighlightDone }: { task: any; readOnly?: boolean; highlighted?: boolean; onHighlightDone?: () => void }) {
   const updateTask = useUpdateTask(task.id)
   const updateTaskRef = useRef(updateTask)
   updateTaskRef.current = updateTask
   const { user: currentUser } = useAuthStore()
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (highlighted && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const timer = setTimeout(() => onHighlightDone?.(), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [highlighted, onHighlightDone])
 
   const handleToggle = useCallback((_taskId: string, newStatus: 'done' | 'not_started') => {
     updateTaskRef.current.mutate({ status: newStatus })
@@ -67,13 +76,15 @@ function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) 
   }, [])
 
   return (
-    <TaskCard
-      task={task}
-      currentUser={currentUser}
-      onToggle={handleToggle}
-      onUpdateLink={readOnly ? undefined : handleUpdateLink}
-      onUpdateTask={handleUpdateTask}
-    />
+    <div ref={cardRef} className={`transition-all duration-700 rounded-xl ${highlighted ? 'ring-2 ring-teal-400 shadow-lg shadow-teal-100' : ''}`}>
+      <TaskCard
+        task={task}
+        currentUser={currentUser}
+        onToggle={handleToggle}
+        onUpdateLink={readOnly ? undefined : handleUpdateLink}
+        onUpdateTask={handleUpdateTask}
+      />
+    </div>
   )
 }
 
@@ -109,6 +120,8 @@ export default function EventDetailPage() {
   // const [showAddRole, setShowAddRole] = useState(false)
   // const [selectedUserId, setSelectedUserId] = useState('')
   // const [selectedRole, setSelectedRole] = useState<EventRole>('contributor')
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null)
+  const clearHighlight = useCallback(() => setHighlightedTaskId(null), [])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const actionsRef = useRef<HTMLDivElement>(null)
@@ -140,6 +153,7 @@ export default function EventDetailPage() {
 
   // Read-only: user cannot edit unless backend says can_edit
   const canEdit = event?.can_edit ?? false
+  const canEditSchedule = event?.can_edit_schedule ?? canEdit
 
   // Auto-sync: when linked service has changed songs, update the saved schedule
   useEffect(() => {
@@ -576,28 +590,33 @@ export default function EventDetailPage() {
                       </div>
                     )}
 
-                    {/* Tasks summary */}
+                    {/* Tasks */}
                     {myTasks.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                           {t('events.myTasks')}
                         </p>
-                        <div className="flex items-center gap-3">
-                          {openTasks.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {openTasks.map((task: any) => (
                             <button
-                              onClick={() => setActiveTab('tasks')}
+                              key={task.id}
+                              onClick={() => { setHighlightedTaskId(task.id); setActiveTab('tasks') }}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
                             >
                               <ClipboardList className="w-3.5 h-3.5" />
-                              {openTasks.length} {t('events.tasksOpen')}
+                              {task.title}
                             </button>
-                          )}
-                          {doneTasks.length > 0 && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium bg-green-50 border border-green-200 text-green-700">
+                          ))}
+                          {doneTasks.map((task: any) => (
+                            <button
+                              key={task.id}
+                              onClick={() => { setHighlightedTaskId(task.id); setActiveTab('tasks') }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium bg-green-50 border border-green-200 text-green-700 line-through opacity-60 hover:opacity-80 transition-colors cursor-pointer"
+                            >
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              {doneTasks.length} {t('events.tasksDone')}
-                            </span>
-                          )}
+                              {task.title}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -930,7 +949,7 @@ export default function EventDetailPage() {
                     </div>
                   </div>
                 )}
-                {canEdit && (
+                {canEditSchedule && (
                   <div className="pt-2">
                     <Link
                       to={`/events/${id}/schedule`}
@@ -1397,7 +1416,7 @@ export default function EventDetailPage() {
 
               if (isPrivileged || teamTasks.length === 0) {
                 return tasks.map((task) => (
-                  <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} />
+                  <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} highlighted={highlightedTaskId === task.id} onHighlightDone={clearHighlight} />
                 ))
               }
 
@@ -1413,7 +1432,7 @@ export default function EventDetailPage() {
                       </summary>
                       <div className="space-y-4 mt-2">
                         {myTasks.map((task) => (
-                          <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} />
+                          <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} highlighted={highlightedTaskId === task.id} onHighlightDone={clearHighlight} />
                         ))}
                       </div>
                     </details>
@@ -1428,7 +1447,7 @@ export default function EventDetailPage() {
                       </summary>
                       <div className="space-y-4 mt-2">
                         {teamTasks.map((task) => (
-                          <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} />
+                          <TaskCardWrapper key={task.id} task={task} readOnly={!canEdit} highlighted={highlightedTaskId === task.id} onHighlightDone={clearHighlight} />
                         ))}
                       </div>
                     </details>

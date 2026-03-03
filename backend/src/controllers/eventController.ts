@@ -39,6 +39,19 @@ function isConfirmedEventManager(eventTeams: any, userId: string): boolean {
   return false
 }
 
+/** Returns true if user is a confirmed member in any team of the event. */
+function isConfirmedTeamMember(eventTeams: any, userId: string): boolean {
+  if (!Array.isArray(eventTeams)) return false
+  for (const team of eventTeams) {
+    for (const m of (team.members || [])) {
+      if (!m.is_user || m.contact_id !== userId) continue
+      const status = m.status || 'confirmed'
+      if (status === 'confirmed') return true
+    }
+  }
+  return false
+}
+
 export const getEvents = async (
   req: AuthRequest,
   res: Response,
@@ -227,7 +240,8 @@ export const getEvent = async (
       throw new AppError('Not authorized to view this event', 403)
     }
 
-    res.json({ ...event, team_member_status: teamStatus, can_edit: canEdit })
+    const canEditSchedule = canEdit || isConfirmedTeamMember(event.event_teams, userId)
+    res.json({ ...event, team_member_status: teamStatus, can_edit: canEdit, can_edit_schedule: canEditSchedule })
   } catch (error) {
     next(error)
   }
@@ -437,7 +451,9 @@ export const updateEvent = async (
       const wsRole = await getWorkspaceMemberRole(existing.workspace_id, req.user!.id)
       canModify = wsRole === 'admin' || wsRole === 'planner'
     }
-    if (!canModify) {
+    // Confirmed team members can update schedule-related fields only
+    const isTeamMember = !canModify && isConfirmedTeamMember(existing.event_teams, req.user!.id)
+    if (!canModify && !isTeamMember) {
       throw new AppError('Not authorized to modify this event', 403)
     }
 
@@ -448,6 +464,23 @@ export const updateEvent = async (
       venue_id, parent_tour_id, tags, program_agenda, rider_details,
       event_teams, flow_service_id,
     } = req.body
+
+    // Team members can only update schedule/setlist fields
+    if (isTeamMember && !canModify) {
+      const scheduleOnly: any = {}
+      if (program_agenda !== undefined) scheduleOnly.program_agenda = program_agenda
+      if (flow_service_id !== undefined) scheduleOnly.flow_service_id = flow_service_id
+
+      if (Object.keys(scheduleOnly).length === 0) {
+        throw new AppError('Not authorized to modify this event', 403)
+      }
+
+      const updated = await prisma.event.update({
+        where: { id },
+        data: scheduleOnly,
+      })
+      return res.json(updated)
+    }
 
     // Validate parent_tour_id if being updated — user must have access to the tour
     if (parent_tour_id) {
