@@ -336,27 +336,11 @@ export const createEvent = async (
       if (type === 'worship') {
         const eventStartDate = new Date(date_start)
 
-        const users = await tx.user.findMany({
-          where: {
-            OR: [
-              { name: { in: ['Levi', 'Rebekah', 'Shilo'] } },
-              { username: { in: ['Levi', 'Rebekah', 'Shilo'] } },
-            ],
-          },
-          select: { id: true, name: true, username: true },
-        })
-
-        const findUser = (n: string) => users.find(u => u.name === n || u.username === n)
-        const leviUser = findUser('Levi')
-        const rebekahUser = findUser('Rebekah')
-        const shiloUser = findUser('Shilo')
-
         const defaultTasks = [
-          { title: 'Make Flyer', assignee_id: leviUser?.id, days_before: 18 },
-          { title: 'Publish Flyer', assignee_id: rebekahUser?.id, days_before: 14 },
-          { title: 'Choose Setlist', assignee_id: shiloUser?.id, days_before: 7 },
-          { title: 'Set Projection', assignee_id: rebekahUser?.id, days_before: 4 },
-          { title: 'Send Technical Rider', assignee_id: rebekahUser?.id, days_before: 4 },
+          { title: 'הכנת פלייר', assignee_id: undefined as string | undefined, days_before: 18 },
+          { title: 'פרסום פלייר', assignee_id: req.user!.id, days_before: 14 },
+          { title: 'הכנת מצגת', assignee_id: req.user!.id, days_before: 4 },
+          { title: 'שליחת ריידר', assignee_id: req.user!.id, days_before: 4 },
         ]
 
         const createdTasks = await Promise.all(
@@ -689,6 +673,73 @@ export const updateEvent = async (
 
       if (notificationOps.length > 0) {
         await Promise.all(notificationOps)
+      }
+
+      // Auto-create tasks when Content Team roles get assigned
+      const CONTENT_ROLE_TASKS: Record<string, { title: string; days_before: number }> = {
+        'setlist overseer':       { title: 'בחירת רשימת שירים',       days_before: 7 },
+        'אחראי רשימת שירים':     { title: 'בחירת רשימת שירים',       days_before: 7 },
+        'prayer leader':          { title: 'הכנת נקודות תפילה',      days_before: 2 },
+        'מדריך תפילה':           { title: 'הכנת נקודות תפילה',      days_before: 2 },
+      }
+
+      // Build set of old assigned contact_ids per role (lowercase) to detect new assignments
+      const oldAssignedByRole = new Map<string, Set<string>>()
+      for (const team of oldTeams) {
+        for (const m of team.members || []) {
+          if (m.contact_id && m.role) {
+            const key = m.role.toLowerCase()
+            if (!oldAssignedByRole.has(key)) oldAssignedByRole.set(key, new Set())
+            oldAssignedByRole.get(key)!.add(m.contact_id)
+          }
+        }
+      }
+
+      const autoTaskOps: Promise<any>[] = []
+      for (const team of enrichedTeams) {
+        for (const m of team.members || []) {
+          if (!m.contact_id || !m.role) continue
+          const roleKey = m.role.toLowerCase()
+          const taskDef = CONTENT_ROLE_TASKS[roleKey]
+          if (!taskDef) continue
+          // Only create if this person wasn't already assigned to this role
+          const wasAssigned = oldAssignedByRole.get(roleKey)?.has(m.contact_id)
+          if (wasAssigned) continue
+
+          const dueDate = new Date(existing.date_start)
+          dueDate.setDate(dueDate.getDate() - taskDef.days_before)
+          const assignmentStatus = m.contact_id === req.user!.id ? 'confirmed' : (m.is_user ? 'pending' : null)
+
+          autoTaskOps.push(
+            prisma.task.create({
+              data: {
+                title: taskDef.title,
+                priority: 'normal',
+                status: 'not_started',
+                due_at: dueDate,
+                event_id: id,
+                assignee_id: m.is_user ? m.contact_id : null,
+                assignee_contact_id: m.is_user ? null : m.contact_id,
+                assignee_is_user: m.is_user,
+                assignment_status: assignmentStatus,
+                creator_id: req.user!.id,
+              },
+            }).then(task => {
+              if (m.is_user && m.contact_id !== req.user!.id) {
+                return notify(m.contact_id, 'task_assignment', {
+                  event_id: id,
+                  event_title: event.title,
+                  task_id: task.id,
+                  task_title: task.title,
+                  assigned_by_name: inviterName || req.user!.email,
+                }).catch(() => {})
+              }
+            })
+          )
+        }
+      }
+      if (autoTaskOps.length > 0) {
+        await Promise.all(autoTaskOps)
       }
 
       emitEventUpdate(id, 'event:updated')

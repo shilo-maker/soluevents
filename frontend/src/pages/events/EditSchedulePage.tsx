@@ -766,7 +766,7 @@ export default function EditSchedulePage() {
       )}
 
       {/* Solu Integrations */}
-      <div className="rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6">
+      <div className="rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-6 overflow-visible relative z-10">
         <button
           type="button"
           onClick={() => setShowSoluFlow(!showSoluFlow)}
@@ -838,7 +838,7 @@ export default function EditSchedulePage() {
                     </div>
                   </div>
                   {/* Setlist Overseer */}
-                  <div className="flex items-center gap-2 p-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg">
+                  <div className="flex items-center gap-2 p-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg overflow-visible">
                     <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
                     <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
                     {setlistOverseer ? (
