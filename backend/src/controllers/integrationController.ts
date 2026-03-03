@@ -423,10 +423,23 @@ export async function generateSolucastInternal(eventId: string, userId: string) 
     songMappings.map((m) => [m.soluflowId, m.solupresenterId])
   )
 
-  // Collect all SoluCast song UUIDs we need (from mappings + direct UUIDs)
+  // Resolve FlowServiceSong UUIDs to actual Song UUIDs (soluflow_song_id now stores
+  // FlowServiceSong IDs, not Song IDs; backward-compat: fall back to direct Song lookup)
+  const fsToSongId = new Map<string, string>()
+  if (uuidSongIds.length > 0) {
+    const flowSongRecords = await prisma.flowServiceSong.findMany({
+      where: { id: { in: uuidSongIds } },
+      select: { id: true, songId: true },
+    })
+    for (const fsr of flowSongRecords) {
+      if (fsr.songId) fsToSongId.set(fsr.id.toLowerCase(), fsr.songId.toLowerCase())
+    }
+  }
+
+  // Collect all SoluCast song UUIDs we need (from mappings + resolved FlowServiceSong UUIDs)
   const allSolucastSongIds = [
     ...songMappings.map((m) => m.solupresenterId).filter((sid): sid is string => !!sid),
-    ...uuidSongIds,
+    ...uuidSongIds.map(uid => fsToSongId.get(uid) || uid), // resolved or fallback to direct
   ]
   const songs = allSolucastSongIds.length > 0
     ? await prisma.song.findMany({
@@ -462,7 +475,9 @@ export async function generateSolucastInternal(eventId: string, userId: string) 
         let solucastSongId: string | undefined
 
         if (UUID_RE.test(String(rawId))) {
-          solucastSongId = String(rawId).toLowerCase()
+          // Resolve FlowServiceSong UUID → Song UUID; fall back to direct lookup
+          const lower = String(rawId).toLowerCase()
+          solucastSongId = fsToSongId.get(lower) || lower
         } else {
           solucastSongId = mappingBySoluflowId.get(Number(rawId))?.toLowerCase() || undefined
         }

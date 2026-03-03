@@ -86,7 +86,7 @@ export const handleSoluflowSync = async (
       })
 
       const fsSongs = await tx.flowServiceSong.findMany({
-        where: { serviceId: flowService.id, segmentType: 'song' },
+        where: { serviceId: flowService.id },
         orderBy: { position: 'asc' },
         include: {
           song: { select: { id: true, title: true, musicalKey: true, bpm: true } },
@@ -96,6 +96,7 @@ export const handleSoluflowSync = async (
       return {
         linkedEvents: events,
         flowSongs: fsSongs.map((fs) => ({
+          id: fs.id,
           songId: fs.song?.id || null,
           songTitle: fs.song?.title || null,
           songMusicalKey: fs.song?.musicalKey || null,
@@ -103,6 +104,7 @@ export const handleSoluflowSync = async (
           position: fs.position,
           segmentType: fs.segmentType,
           segmentTitle: fs.segmentTitle,
+          segmentContent: fs.segmentContent || null,
           transposition: fs.transposition || 0,
         })),
       }

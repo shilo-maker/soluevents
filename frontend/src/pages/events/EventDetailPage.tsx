@@ -194,13 +194,13 @@ export default function EventDetailPage() {
       const origKey = fs.song.musicalKey || ''
       const semitones = fs.transposition || 0
       if (!origKey || !semitones) {
-        map.set(fs.song.id, origKey)
+        map.set(fs.id, origKey)
       } else {
         const isMinor = origKey.endsWith('m')
         const root = isMinor ? origKey.slice(0, -1) : origKey
         const normalized = flatToSharp[root] || root
         const idx = keys.indexOf(normalized)
-        map.set(fs.song.id, idx === -1 ? origKey : keys[((idx + semitones) % 12 + 12) % 12] + (isMinor ? 'm' : ''))
+        map.set(fs.id, idx === -1 ? origKey : keys[((idx + semitones) % 12 + 12) % 12] + (isMinor ? 'm' : ''))
       }
     }
     return map

@@ -26,6 +26,7 @@ interface ProgramItem {
 }
 
 interface FlowSong {
+  id?: string
   songId: string | null
   songTitle: string | null
   songMusicalKey: string | null
@@ -33,6 +34,7 @@ interface FlowSong {
   position: number
   segmentType: string
   segmentTitle: string | null
+  segmentContent: string | null
   transposition: number
 }
 
@@ -66,28 +68,61 @@ function buildMergedSchedule(
   const opening = currentSchedule[0]
   const closing = currentSchedule[currentSchedule.length - 1]
 
-  // Record non-song items with their relative position (how many songs appeared before them)
-  const nonSongPositions: { item: ProgramItem; afterSongIndex: number }[] = []
-  let songCount = 0
+  // Record manually-added items (no soluflow_song_id) with their relative position
+  // (how many flow items appeared before them)
+  const manualPositions: { item: ProgramItem; afterFlowIndex: number }[] = []
+  let flowCount = 0
   for (const item of currentSchedule.slice(1, -1)) {
-    if (item.type === 'song') {
-      songCount++
+    if (item.soluflow_song_id) {
+      flowCount++
     } else {
-      nonSongPositions.push({ item, afterSongIndex: songCount })
+      manualPositions.push({ item, afterFlowIndex: flowCount })
     }
   }
 
-  // Build a map of existing songs by soluflow_song_id to preserve manual edits
-  const existingSongMap = new Map<string, ProgramItem>()
+  // Build a map of existing flow items by soluflow_song_id to preserve manual edits
+  const existingFlowMap = new Map<string, ProgramItem>()
   for (const item of currentSchedule) {
-    if (item.type === 'song' && item.soluflow_song_id) {
-      existingSongMap.set(item.soluflow_song_id, item)
+    if (item.soluflow_song_id) {
+      existingFlowMap.set(item.soluflow_song_id, item)
     }
   }
 
-  const songItems: ProgramItem[] = flowSongs.map((fs) => {
-    const songId = fs.songId
-    const existing = songId ? existingSongMap.get(songId) : null
+  const flowItems: ProgramItem[] = flowSongs.map((fs) => {
+    const flowItemId = fs.id || fs.songId
+    // Backward compat: existing events may have soluflow_song_id = songId (old format)
+    const existing = (flowItemId ? existingFlowMap.get(flowItemId) : null)
+      || (fs.songId ? existingFlowMap.get(fs.songId) : null)
+
+    if (fs.segmentType === 'prayer') {
+      let prayerData: any = {}
+      try { if (fs.segmentContent) prayerData = JSON.parse(fs.segmentContent) } catch {}
+      return {
+        offset_minutes: existing?.offset_minutes,
+        type: 'prayer',
+        title: fs.segmentTitle || prayerData.title || 'Prayer',
+        title_translation: prayerData.title_translation,
+        same_verse_for_all: prayerData.same_verse_for_all,
+        shared_bible_ref: prayerData.shared_bible_ref,
+        prayer_points: prayerData.prayer_points,
+        soluflow_song_id: flowItemId || undefined,
+        prayer_leader: existing?.prayer_leader || '',
+        prayer_leader_id: existing?.prayer_leader_id || '',
+        prayer_leader_is_user: existing?.prayer_leader_is_user || false,
+        person: existing?.person || '',
+        person_id: existing?.person_id || '',
+        person_is_user: existing?.person_is_user || false,
+        speaker: existing?.speaker || '',
+        speaker_id: existing?.speaker_id || '',
+        speaker_is_user: existing?.speaker_is_user || false,
+        topic: existing?.topic || '',
+        points: existing?.points || '',
+        facilitator: existing?.facilitator || '',
+        facilitator_id: existing?.facilitator_id || '',
+        facilitator_is_user: existing?.facilitator_is_user || false,
+        has_ministry_team: existing?.has_ministry_team || false,
+      }
+    }
 
     return {
       offset_minutes: existing?.offset_minutes,
@@ -98,7 +133,7 @@ function buildMergedSchedule(
       person_is_user: existing?.person_is_user || false,
       key: fs.songMusicalKey ? transposeKey(fs.songMusicalKey, fs.transposition || 0) : '',
       bpm: fs.songBpm?.toString() || '',
-      soluflow_song_id: songId || undefined,
+      soluflow_song_id: flowItemId || undefined,
       speaker: existing?.speaker || '',
       speaker_id: existing?.speaker_id || '',
       speaker_is_user: existing?.speaker_is_user || false,
@@ -114,11 +149,11 @@ function buildMergedSchedule(
     }
   })
 
-  // Re-insert non-song items at their original relative positions
-  const middleItems = [...songItems]
+  // Re-insert manually-added items at their original relative positions
+  const middleItems = [...flowItems]
   let insertionOffset = 0
-  for (const { item, afterSongIndex } of nonSongPositions) {
-    const pos = Math.min(afterSongIndex, middleItems.length) + insertionOffset
+  for (const { item, afterFlowIndex } of manualPositions) {
+    const pos = Math.min(afterFlowIndex, middleItems.length) + insertionOffset
     middleItems.splice(pos, 0, item)
     insertionOffset++
   }

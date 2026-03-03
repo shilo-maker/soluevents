@@ -76,11 +76,12 @@ export async function getFlowServiceByCode(code: string) {
       },
       songs: {
         orderBy: { position: 'asc' },
-        where: { segmentType: 'song' },
         select: {
           id: true,
           position: true,
+          segmentType: true,
           segmentTitle: true,
+          segmentContent: true,
           transposition: true,
           song: {
             select: {

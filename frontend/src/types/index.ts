@@ -422,7 +422,9 @@ export interface RegisterData {
 export interface FlowServiceSong {
   id: string
   position: number
+  segmentType?: string
   segmentTitle?: string
+  segmentContent?: string | null
   transposition?: number | null
   song: {
     id: string
