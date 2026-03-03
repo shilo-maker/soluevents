@@ -56,6 +56,12 @@ function buildPushContent(type: string, payload: Record<string, any>): PushConte
         url: payload.event_id ? `/events/${payload.event_id}` : '/',
       }
     }
+    case 'debrief_request':
+      return {
+        title: 'משוב לאירוע',
+        body: `נא למלא משוב עבור: ${payload.event_title || 'אירוע'}`,
+        url: payload.event_id ? `/events/${payload.event_id}?tab=debrief` : '/',
+      }
     case 'task_assignment':
       return {
         title: 'שיבוץ למשימה',

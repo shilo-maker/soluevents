@@ -95,6 +95,12 @@ enum EntityType {
   tour_day
 }
 
+enum DebriefStatus {
+  draft
+  sent
+  closed
+}
+
 enum TemplateKind {
   event
   tour
@@ -258,6 +264,7 @@ model User {
   memberInvitesSent     WorkspaceMemberInvite[] @relation("MemberInviteSender")
   pushSubscriptions     PushSubscription[]
   sentReminders         SentReminder[]
+  debrief_responses     DebriefResponse[]
 
   // --- SoluCast relations (Group A) ---
   operatedRooms              Room[]
@@ -893,6 +900,7 @@ model Event {
   files            SoluplanFile[]
   linked_tour_days TourDay[]
   invitations      EventInvitation[]
+  debriefs         EventDebrief[]
 
   @@index([created_by])
   @@index([venue_id])
@@ -1218,4 +1226,35 @@ model SentReminder {
   @@unique([entity_type, entity_id, user_id, reminder_key])
   @@index([sent_at])
   @@map("sent_reminders")
+}
+
+model EventDebrief {
+  id            String          @id @default(uuid()) @db.Uuid
+  event_id      String          @db.Uuid
+  event         Event           @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  status        DebriefStatus   @default(draft)
+  questions     Json
+  sent_at       DateTime?
+  closed_at     DateTime?
+  created_by    String          @db.Uuid
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+  responses     DebriefResponse[]
+
+  @@unique([event_id])
+  @@map("event_debriefs")
+}
+
+model DebriefResponse {
+  id            String        @id @default(uuid()) @db.Uuid
+  debrief_id    String        @db.Uuid
+  debrief       EventDebrief  @relation(fields: [debrief_id], references: [id], onDelete: Cascade)
+  user_id       String        @db.Uuid
+  user          User          @relation(fields: [user_id], references: [id])
+  answers       Json
+  submitted_at  DateTime      @default(now())
+
+  @@unique([debrief_id, user_id])
+  @@index([debrief_id])
+  @@map("debrief_responses")
 }

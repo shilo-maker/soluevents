@@ -87,3 +87,29 @@
 .animate-wave-slow { animation: wave-drift 14s linear infinite; }
 .animate-wave-mid  { animation: wave-drift 10s linear infinite; }
 .animate-wave-fast { animation: wave-drift 7s linear infinite; }
+
+/* Print styles for document pages */
+@media print {
+  .no-print,
+  .doc-toolbar {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .doc-table-row {
+    page-break-inside: avoid;
+  }
+
+  table {
+    box-shadow: none !important;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+}

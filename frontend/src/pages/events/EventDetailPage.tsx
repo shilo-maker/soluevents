@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense, Component, type ReactNode, type ErrorInfo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -23,6 +23,8 @@ import {
   Copy,
   Check,
   Mail,
+  User,
+  ClipboardList,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/axios'
@@ -40,8 +42,10 @@ import TaskCard from '@/components/TaskCard'
 import { useEventRoom } from '@/hooks/useEventRoom'
 import type { Task } from '@/types'
 import FilesTab from '@/components/FilesTab'
+import SummariesTab from '@/components/SummariesTab'
+const DebriefTab = lazy(() => import('@/pages/events/DebriefTab'))
 
-type Tab = 'overview' | 'tasks' | 'files'
+type Tab = 'overview' | 'tasks' | 'files' | 'summaries' | 'debrief'
 
 // Wrapper component to handle task updates
 function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) {
@@ -71,6 +75,25 @@ function TaskCardWrapper({ task, readOnly }: { task: any; readOnly?: boolean }) 
       onUpdateTask={handleUpdateTask}
     />
   )
+}
+
+class LazyTabBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(_: Error, info: ErrorInfo) { console.error('Lazy tab load failed:', info) }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="card text-center py-12">
+          <p className="text-sm text-gray-500 mb-3">Failed to load this tab.</p>
+          <button onClick={() => this.setState({ hasError: false })} className="text-sm text-teal-600 hover:underline">
+            Try again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 export default function EventDetailPage() {
@@ -252,10 +275,21 @@ export default function EventDetailPage() {
   // const handleCreateSoluFlowService = async () => { ... }
   void createSoluFlowService
 
+  const isPastEvent = event?.date_end ? new Date(event.date_end) < new Date() : false
+
+  // Fall back to overview if debrief tab selected but not available (e.g. notification deep-link to a non-past event)
+  useEffect(() => {
+    if (activeTab === 'debrief' && event && !isPastEvent) {
+      setActiveTab('overview')
+    }
+  }, [activeTab, event, isPastEvent])
+
   const tabs = [
     { id: 'overview', label: t('events.tabs.overview') },
     { id: 'tasks', label: t('events.tabs.tasks'), count: tasks?.length },
     { id: 'files', label: t('events.tabs.files') },
+    { id: 'summaries', label: t('events.tabs.summaries') },
+    ...(isPastEvent ? [{ id: 'debrief', label: t('events.tabs.debrief') }] : []),
   ]
 
   return (
@@ -304,6 +338,36 @@ export default function EventDetailPage() {
                     return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/25 text-white">{isEventMgr ? t('events.eventManager') : t('events.teamMember')}</span>
                   })()}
                 </>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-sm text-white/75">
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-white/50" />
+                {formatDateTime(event.date_start)}
+              </span>
+              {event.location_name && (
+                event.address ? (
+                  <a
+                    href={event.address}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 hover:text-white transition-colors"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-white/50" />
+                    <span className="hover:underline">{event.location_name}</span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-white/50" />
+                    {event.location_name}
+                  </span>
+                )
+              )}
+              {event.est_attendance && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-white/50" />
+                  {event.est_attendance} {t('events.people')}
+                </span>
               )}
             </div>
           </div>
@@ -382,37 +446,163 @@ export default function EventDetailPage() {
       <div>
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Details Card */}
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {t('events.details')}
-              </h3>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  {formatDateTime(event.date_start)}
-                </span>
+            {/* My Summary */}
+            {currentUser && (() => {
+              // Team assignments
+              const myTeams: Array<{ team: string; role: string; status?: string }> = []
+              if (event.event_teams) {
+                for (const team of event.event_teams) {
+                  for (const member of team.members || []) {
+                    if (member.is_user && member.contact_id === currentUser.id) {
+                      myTeams.push({ team: team.name, role: member.role, status: member.status })
+                    }
+                  }
+                }
+              }
 
-                {event.location_name && (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([event.location_name, event.address].filter(Boolean).join(', '))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-teal-600 transition-colors"
-                  >
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="hover:underline">{event.location_name}{event.address ? `, ${event.address}` : ''}</span>
-                  </a>
-                )}
+              // Rider roles
+              if (event.rider_details) {
+                const pt = event.rider_details.production_team
+                if (pt) {
+                  const roles = [
+                    { key: 'soundman' as const, label: t('events.soundman') },
+                    { key: 'projection' as const, label: t('events.projection') },
+                    { key: 'host' as const, label: t('events.host') },
+                  ]
+                  for (const r of roles) {
+                    const entry = (pt as any)[r.key]
+                    if (entry?.is_user && (entry.user_id === currentUser.id || entry.contact_id === currentUser.id)) {
+                      if (!myTeams.some((t) => t.role === r.label)) {
+                        myTeams.push({ team: t('events.productionTeam'), role: r.label })
+                      }
+                    }
+                  }
+                }
+                if (event.rider_details.worship_team) {
+                  for (const member of event.rider_details.worship_team) {
+                    if (member.is_user && (member.user_id === currentUser.id || member.contact_id === currentUser.id)) {
+                      if (!myTeams.some((t) => t.role === (member.role || ''))) {
+                        myTeams.push({ team: t('events.worshipTeam'), role: member.role || '' })
+                      }
+                    }
+                  }
+                }
+              }
 
-                {event.est_attendance && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-600">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    {event.est_attendance} {t('events.people')}
-                  </span>
-                )}
-              </div>
-            </div>
+              // Schedule appearances
+              const mySchedule: Array<{ time: string; title: string }> = []
+              if (event.program_agenda?.program_schedule) {
+                for (const item of event.program_agenda.program_schedule) {
+                  const isMe =
+                    (item.person_is_user && item.person_id === currentUser.id) ||
+                    (item.speaker_is_user && item.speaker_id === currentUser.id) ||
+                    ((item as any).facilitator_is_user && (item as any).facilitator_id === currentUser.id) ||
+                    ((item as any).prayer_leader_is_user && (item as any).prayer_leader_id === currentUser.id)
+                  if (isMe) {
+                    const base = new Date(event.date_start)
+                    const time = item.offset_minutes != null
+                      ? new Date(base.getTime() + item.offset_minutes * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+                      : '—'
+                    mySchedule.push({ time, title: item.title || '—' })
+                  }
+                }
+              }
+
+              // Tasks
+              const myTasks = (tasks || []).filter(
+                (task: any) => task.assignee_id === currentUser.id || task.assignee_contact_id === currentUser.id
+              )
+              const openTasks = myTasks.filter((t: any) => t.status !== 'done')
+              const doneTasks = myTasks.filter((t: any) => t.status === 'done')
+
+              const hasAnything = myTeams.length > 0 || mySchedule.length > 0 || myTasks.length > 0
+              if (!hasAnything) return null
+
+              return (
+                <div className="card bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 border-gray-300">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                      <User className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {t('events.myRole')}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Team & Role chips */}
+                    {myTeams.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {myTeams.map((item, i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setShowTeams(true)
+                              setTimeout(() => document.getElementById('event-teams')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-teal-200 text-teal-800 shadow-sm hover:bg-teal-50 transition-colors cursor-pointer"
+                          >
+                            {item.role && <span>{item.role}</span>}
+                            {item.role && item.team && <span className="text-teal-300">·</span>}
+                            <span className="text-teal-500 text-xs">{item.team}</span>
+                            {item.status && item.status !== 'confirmed' && (
+                              <InvitationStatusBadge status={item.status as any} />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Schedule appearances */}
+                    {mySchedule.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+                          {t('events.mySchedule')}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {mySchedule.map((item, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm bg-white border border-gray-200 text-gray-700"
+                            >
+                              <Clock className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="font-mono text-xs text-gray-500">{item.time}</span>
+                              {item.title}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tasks summary */}
+                    {myTasks.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+                          {t('events.myTasks')}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          {openTasks.length > 0 && (
+                            <button
+                              onClick={() => setActiveTab('tasks')}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" />
+                              {openTasks.length} {t('events.tasksOpen')}
+                            </button>
+                          )}
+                          {doneTasks.length > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-sm font-medium bg-green-50 border border-green-200 text-green-700">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {doneTasks.length} {t('events.tasksDone')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Description */}
             {event.description && (
@@ -869,7 +1059,7 @@ export default function EventDetailPage() {
 
             {/* Event Teams */}
             {event.event_teams && Array.isArray(event.event_teams) && event.event_teams.length > 0 && (
-              <div className="card">
+              <div id="event-teams" className="card">
                 <button
                   onClick={() => setShowTeams(!showTeams)}
                   className="w-full flex items-center justify-between text-left"
@@ -1248,6 +1438,18 @@ export default function EventDetailPage() {
 
         {activeTab === 'files' && (
           <FilesTab eventId={id!} canEdit={canEdit} />
+        )}
+
+        {activeTab === 'summaries' && (
+          <SummariesTab eventId={id!} event={event} />
+        )}
+
+        {activeTab === 'debrief' && isPastEvent && (
+          <LazyTabBoundary>
+            <Suspense fallback={<div className="flex items-center justify-center py-16"><div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /></div>}>
+              <DebriefTab eventId={id!} canEdit={canEdit} />
+            </Suspense>
+          </LazyTabBoundary>
         )}
 
       </div>

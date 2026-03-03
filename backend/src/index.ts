@@ -23,6 +23,7 @@ import pushRoutes from './routes/push'
 import fileRoutes from './routes/files'
 import documentRoutes from './routes/documents'
 import webhookRoutes from './routes/webhooks'
+import debriefRoutes from './routes/debrief'
 import { errorHandler } from './middleware/errorHandler'
 import prisma from './lib/prisma'
 import { setupSocketIO, closeIO } from './lib/socket'
@@ -87,6 +88,7 @@ app.use('/api/notifications', notificationRoutes)
 app.use('/api/push', pushRoutes)
 app.use('/api/files', fileRoutes)
 app.use('/api/documents', documentRoutes)
+app.use('/api/events', debriefRoutes)
 // Rate limiting on webhook endpoints (prevent brute-force + DoS)
 const webhookLimiter = rateLimit({
   windowMs: 60 * 1000,

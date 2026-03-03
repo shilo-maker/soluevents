@@ -3,6 +3,8 @@ import fs from 'fs/promises'
 import path from 'path'
 import prisma from './prisma'
 import { notify } from './notify'
+import { getQuestionsForEvent } from '../constants/debriefQuestions'
+import { collectInvolvedUserIds } from '../controllers/debriefController'
 
 const TASK_WINDOWS = [
   { key: 'task_24h', hoursBeforeDeadline: 24 },
@@ -197,10 +199,69 @@ async function purgeExpiredFiles(): Promise<void> {
   }
 }
 
+async function processDebriefAutoSend(): Promise<void> {
+  const now = new Date()
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+  // Find events that ended 2h–7d ago and don't have a debrief yet
+  const events = await prisma.event.findMany({
+    where: {
+      date_end: { gt: sevenDaysAgo, lt: twoHoursAgo },
+      status: { notIn: ['canceled', 'archived'] },
+      debriefs: { none: {} },
+    },
+    select: {
+      id: true,
+      title: true,
+      created_by: true,
+      event_teams: true,
+      program_agenda: true,
+      role_assignments: { select: { user_id: true } },
+    },
+    take: 10, // Process in small batches
+  })
+
+  for (const event of events) {
+    try {
+      const questions = getQuestionsForEvent(event.event_teams as any[] | null)
+
+      const debrief = await prisma.eventDebrief.create({
+        data: {
+          event_id: event.id,
+          questions: questions as any,
+          created_by: event.created_by,
+          status: 'sent',
+          sent_at: now,
+        },
+      })
+
+      // Collect involved users (shared logic with manual send)
+      const userIds = collectInvolvedUserIds(event)
+
+      // Notify all involved users
+      await Promise.allSettled(
+        Array.from(userIds).map(userId =>
+          notify(userId, 'debrief_request', {
+            event_id: event.id,
+            debrief_id: debrief.id,
+            event_title: event.title,
+          })
+        )
+      )
+
+      console.log(`Auto-sent debrief for event "${event.title}" to ${userIds.size} user(s)`)
+    } catch (err) {
+      console.error(`Failed to auto-send debrief for event ${event.id}:`, err)
+    }
+  }
+}
+
 async function runReminders(): Promise<void> {
   try {
     await processTaskReminders()
     await processEventReminders()
+    await processDebriefAutoSend()
     await purgeOldReminders()
     await purgeExpiredFiles()
   } catch (err) {

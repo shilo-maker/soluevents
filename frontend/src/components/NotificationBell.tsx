@@ -36,6 +36,7 @@ const NOTIFICATION_STYLE: Record<string, StyleEntry> = {
   },
   event_team_invite:        { icon: Music, gradient: 'from-teal-500 to-green-500', highlight: 'bg-teal-50/50' },
   workspace_invite:         { icon: Building2, gradient: 'from-teal-500 to-cyan-500', highlight: 'bg-teal-50/50' },
+  debrief_request:          { icon: MessageCircle, gradient: 'from-amber-500 to-orange-500', highlight: 'bg-amber-50/50' },
 }
 const DEFAULT_STYLE: StyleEntry = { icon: Building2, gradient: 'from-teal-500 to-cyan-500', highlight: 'bg-teal-50/50' }
 
@@ -191,6 +192,7 @@ export default function NotificationBell() {
     const isEventReminder = n.type === 'event_reminder'
     const isTaskAssignment = n.type === 'task_assignment'
     const isTaskAssignmentResponse = n.type === 'task_assignment_response'
+    const isDebriefRequest = n.type === 'debrief_request'
     const payload = n.payload || {}
     const isActing = acting?.id === n.id
     const hasActions = isInvite || isTeamInvite || isTaskAssignment
@@ -261,6 +263,16 @@ export default function NotificationBell() {
                   className="hover:underline"
                 >
                   {t(`notifications.reminder.${payload.reminder_key || 'task_24h'}`, { title: payload.task_title || t('notifications.aTask') })}
+                </Link>
+              </p>
+            ) : isDebriefRequest ? (
+              <p className="text-sm text-gray-900">
+                <Link
+                  to={payload.event_id ? `/events/${payload.event_id}?tab=debrief` : '/'}
+                  onClick={closeDropdown}
+                  className="hover:underline"
+                >
+                  {t('notifications.debriefRequest', { title: payload.event_title || t('notifications.anEvent') })}
                 </Link>
               </p>
             ) : isEventReminder ? (

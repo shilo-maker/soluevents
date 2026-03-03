@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight } from 'lucide-react'
+import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight, Lock } from 'lucide-react'
 import soluflowLogo from '@/assets/soluflow-logo.png'
 import solucastLogo from '@/assets/solucast-logo.png'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEvent, useUpdateEvent, useFlowService, useFlowServiceByCode, useSetlist } from '@/hooks/useEvents'
 import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
-import TimeInput from '@/components/TimeInput'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
@@ -206,6 +205,8 @@ export default function EditSchedulePage() {
   const preEventIds = useMemo(() => preEventSchedule.map((_, i) => `pre-${i}`), [preEventSchedule])
   const programIds = useMemo(() => programSchedule.map((_, i) => `program-${i}`), [programSchedule])
   const postEventIds = useMemo(() => postEventSchedule.map((_, i) => `post-${i}`), [postEventSchedule])
+
+  const isLinked = !!link.serviceId
 
   // Build program items from SoluFlow songs, merging between Opening and Closing
   const transposeKey = useCallback((key: string, semitones: number): string => {
@@ -530,6 +531,29 @@ export default function EditSchedulePage() {
       const oldIndex = programSchedule.findIndex((_, i) => `program-${i}` === active.id)
       const newIndex = programSchedule.findIndex((_, i) => `program-${i}` === over.id)
       const newSchedule = arrayMove(programSchedule, oldIndex, newIndex)
+
+      // When linked, validate SoluFlow song order is preserved
+      if (isLinked) {
+        const canonicalIds = (linkedService?.songs || [])
+          .map((s: FlowServiceSong) => s.song?.id)
+          .filter((id): id is string => !!id)
+        const canonicalSet = new Set(canonicalIds)
+
+        // Only validate songs whose IDs exist in the current linked service;
+        // orphaned IDs (from a previous link or manual autocomplete) are ignored
+        const relevantIds = newSchedule
+          .filter(item => item.soluflow_song_id && canonicalSet.has(item.soluflow_song_id))
+          .map(item => item.soluflow_song_id!)
+
+        // Check relevantIds is a subsequence of canonicalIds
+        let ci = 0
+        for (const flowId of relevantIds) {
+          const found = canonicalIds.indexOf(flowId, ci)
+          if (found === -1) return // Reject reorder
+          ci = found + 1
+        }
+      }
+
       newSchedule[newIndex] = { ...newSchedule[newIndex], offset_minutes: null as any }
       setProgramSchedule(newSchedule)
     }
@@ -880,11 +904,13 @@ export default function EditSchedulePage() {
                           </button>
                         )}
                       </td>
-                      <td className="py-2 px-3 w-32">
-                        <TimeInput
+                      <td className="py-2 px-3 w-24">
+                        <input
+                          type="time"
                           value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                          onChange={(v) => {
-                            const [h, m] = v.split(':').map(Number)
+                          onChange={(e) => {
+                            if (!e.target.value) return
+                            const [h, m] = e.target.value.split(':').map(Number)
                             const [eh, em] = eventTime.split(':').map(Number)
                             const offset = (h * 60 + m) - (eh * 60 + em)
                             const updated = [...preEventSchedule]
@@ -940,47 +966,65 @@ export default function EditSchedulePage() {
               <SortableContext items={programIds} strategy={verticalListSortingStrategy}>
                 <tbody>
                   {programSchedule.map((item, index) => {
+                    const isLockedSong = isLinked && !!item.soluflow_song_id
+                    const lockedInputClass = isLockedSong ? ' opacity-50 cursor-not-allowed bg-gray-50' : ''
+                    const details = getItemDetails(item)
                     return (
                       <SortableRow key={`program-${index}`} id={`program-${index}`}>
                         <td className="py-2 px-3">
                           {editingProgramItem === index ? (
                             <div className="space-y-3">
                               <div className="flex gap-2">
-                                <select
-                                  value={item.type}
-                                  onChange={(e) => {
-                                    const updated = [...programSchedule]
-                                    updated[index].type = e.target.value
-                                    setProgramSchedule(updated)
-                                  }}
-                                  className="input text-sm w-32"
-                                >
-                                  <option value="song">{t('events.itemTypes.song')}</option>
-                                  <option value="share">{t('events.itemTypes.share')}</option>
-                                  <option value="prayer">{t('events.itemTypes.prayer')}</option>
-                                  <option value="ministry">{t('events.itemTypes.ministry')}</option>
-                                  <option value="other">{t('events.itemTypes.other')}</option>
-                                </select>
+                                {isLockedSong ? (
+                                  <span className="input text-sm w-32 flex items-center bg-gray-50 text-gray-500 cursor-not-allowed">
+                                    {t(`events.itemTypes.${item.type}`)}
+                                  </span>
+                                ) : (
+                                  <select
+                                    value={item.type}
+                                    onChange={(e) => {
+                                      const updated = [...programSchedule]
+                                      updated[index].type = e.target.value
+                                      setProgramSchedule(updated)
+                                    }}
+                                    className="input text-sm w-32"
+                                  >
+                                    {(!isLinked || item.type === 'song') && <option value="song">{t('events.itemTypes.song')}</option>}
+                                    <option value="share">{t('events.itemTypes.share')}</option>
+                                    <option value="prayer">{t('events.itemTypes.prayer')}</option>
+                                    <option value="ministry">{t('events.itemTypes.ministry')}</option>
+                                    <option value="other">{t('events.itemTypes.other')}</option>
+                                  </select>
+                                )}
                                 <div className="flex-1">
                                   {item.type === 'song' ? (
-                                    <SongAutocomplete
-                                      value={item.title}
-                                      soluflowSongId={item.soluflow_song_id ? Number(item.soluflow_song_id) : undefined}
-                                      onChange={(title, song) => {
-                                        const updated = [...programSchedule]
-                                        updated[index].title = title
-                                        if (song) {
-                                          updated[index].soluflow_song_id = String(song.id)
-                                          updated[index].key = song.key || updated[index].key
-                                          updated[index].bpm = song.bpm?.toString() || updated[index].bpm
-                                        } else {
-                                          updated[index].soluflow_song_id = undefined
-                                        }
-                                        setProgramSchedule(updated)
-                                      }}
-                                      placeholder={t('autocomplete.searchSongs')}
-                                      className="input text-sm"
-                                    />
+                                    isLockedSong ? (
+                                      <input
+                                        type="text"
+                                        value={item.title}
+                                        disabled
+                                        className="input text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                                      />
+                                    ) : (
+                                      <SongAutocomplete
+                                        value={item.title}
+                                        soluflowSongId={item.soluflow_song_id ? Number(item.soluflow_song_id) : undefined}
+                                        onChange={(title, song) => {
+                                          const updated = [...programSchedule]
+                                          updated[index].title = title
+                                          if (song) {
+                                            updated[index].soluflow_song_id = String(song.id)
+                                            updated[index].key = song.key || updated[index].key
+                                            updated[index].bpm = song.bpm?.toString() || updated[index].bpm
+                                          } else {
+                                            updated[index].soluflow_song_id = undefined
+                                          }
+                                          setProgramSchedule(updated)
+                                        }}
+                                        placeholder={t('autocomplete.searchSongs')}
+                                        className="input text-sm"
+                                      />
+                                    )
                                   ) : item.type === 'prayer' ? (
                                     <ContactAutocomplete
                                       value={item.prayer_leader}
@@ -1017,6 +1061,30 @@ export default function EditSchedulePage() {
                               {/* Song fields */}
                               {item.type === 'song' && (
                                 <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={item.key || ''}
+                                    onChange={(e) => {
+                                      const updated = [...programSchedule]
+                                      updated[index].key = e.target.value
+                                      setProgramSchedule(updated)
+                                    }}
+                                    disabled={isLockedSong}
+                                    className={`input text-sm w-20${lockedInputClass}`}
+                                    placeholder={t('events.schedule.key')}
+                                  />
+                                  <input
+                                    type="text"
+                                    value={item.bpm || ''}
+                                    onChange={(e) => {
+                                      const updated = [...programSchedule]
+                                      updated[index].bpm = e.target.value
+                                      setProgramSchedule(updated)
+                                    }}
+                                    disabled={isLockedSong}
+                                    className={`input text-sm w-20${lockedInputClass}`}
+                                    placeholder={t('events.schedule.bpm')}
+                                  />
                                   <div className="flex-1">
                                     <ContactAutocomplete
                                       value={item.person || ''}
@@ -1034,28 +1102,6 @@ export default function EditSchedulePage() {
                                       className="input text-sm"
                                     />
                                   </div>
-                                  <input
-                                    type="text"
-                                    value={item.key || ''}
-                                    onChange={(e) => {
-                                      const updated = [...programSchedule]
-                                      updated[index].key = e.target.value
-                                      setProgramSchedule(updated)
-                                    }}
-                                    className="input text-sm w-20"
-                                    placeholder={t('events.schedule.key')}
-                                  />
-                                  <input
-                                    type="text"
-                                    value={item.bpm || ''}
-                                    onChange={(e) => {
-                                      const updated = [...programSchedule]
-                                      updated[index].bpm = e.target.value
-                                      setProgramSchedule(updated)
-                                    }}
-                                    className="input text-sm w-20"
-                                    placeholder={t('events.schedule.bpm')}
-                                  />
                                 </div>
                               )}
 
@@ -1309,10 +1355,13 @@ export default function EditSchedulePage() {
                               onClick={() => setEditingProgramItem(index)}
                               className="text-start w-full py-2 px-3 text-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                             >
-                              <div className="font-semibold">{item.title || t('common.clickToEdit')}</div>
-                              {getItemDetails(item).length > 0 && (
+                              <div className="font-semibold">
+                                {isLockedSong && <Lock className="w-3.5 h-3.5 inline mr-1 text-gray-400" />}
+                                {item.title || t('common.clickToEdit')}
+                              </div>
+                              {details.length > 0 && (
                                 <div className="text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-1">
-                                  {getItemDetails(item).map((el, i) => (
+                                  {details.map((el, i) => (
                                     <span key={i} className="inline-flex items-center">
                                       {i > 0 && <span className="mx-1">•</span>}
                                       {el}
@@ -1324,10 +1373,12 @@ export default function EditSchedulePage() {
                           )}
                         </td>
                         <td className="py-2 px-3 w-24">
-                          <TimeInput
+                          <input
+                            type="time"
                             value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(v) => {
-                              const [h, m] = v.split(':').map(Number)
+                            onChange={(e) => {
+                              if (!e.target.value) return
+                              const [h, m] = e.target.value.split(':').map(Number)
                               const [eh, em] = eventTime.split(':').map(Number)
                               const offset = (h * 60 + m) - (eh * 60 + em)
                               const updated = [...programSchedule]
@@ -1338,17 +1389,19 @@ export default function EditSchedulePage() {
                           />
                         </td>
                         <td className="py-2 px-3 align-top">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setProgramSchedule(programSchedule.filter((_, i) => i !== index))
-                              if (editingProgramItem === index) setEditingProgramItem(null)
-                            }}
-                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title={t('common.remove')}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          {!isLockedSong && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProgramSchedule(programSchedule.filter((_, i) => i !== index))
+                                if (editingProgramItem === index) setEditingProgramItem(null)
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title={t('common.remove')}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </SortableRow>
                     )
@@ -1438,10 +1491,12 @@ export default function EditSchedulePage() {
                           )}
                         </td>
                         <td className="py-2 px-3 w-24">
-                          <TimeInput
+                          <input
+                            type="time"
                             value={item.offset_minutes != null ? calculateTime(item.offset_minutes) : ''}
-                            onChange={(v) => {
-                              const [h, m] = v.split(':').map(Number)
+                            onChange={(e) => {
+                              if (!e.target.value) return
+                              const [h, m] = e.target.value.split(':').map(Number)
                               const [eh, em] = eventTime.split(':').map(Number)
                               const offset = (h * 60 + m) - (eh * 60 + em)
                               const updated = [...postEventSchedule]

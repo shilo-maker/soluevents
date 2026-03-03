@@ -8,7 +8,6 @@ import { useContacts } from '@/hooks/useContacts'
 import VenueAutocomplete from '@/components/VenueAutocomplete'
 import { useUpdateVenue } from '@/hooks/useVenues'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
-import TimeInput from '@/components/TimeInput'
 import PersonHoverCard from '@/components/PersonHoverCard'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import type { EventType, EventPhase, EventStatus } from '@/types'
@@ -949,9 +948,10 @@ export default function NewEventWizard() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {t('events.startTime')} *
                 </label>
-                <TimeInput
+                <input
+                  type="time"
                   value={formData.event_time}
-                  onChange={(v) => setFormData({ ...formData, event_time: v })}
+                  onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
                   className="input"
                 />
               </div>
@@ -1090,10 +1090,12 @@ export default function NewEventWizard() {
                         {formData.pre_event_schedule.map((item, index) => (
                           <SortableRow key={`pre-${index}`} id={`pre-${index}`}>
                             <td className="py-2 px-3 w-32">
-                              <TimeInput
+                              <input
+                                type="time"
                                 value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                onChange={(v) => {
-                                  const [hours, minutes] = v.split(':').map(Number)
+                                onChange={(e) => {
+                                  if (!e.target.value) return
+                                  const [hours, minutes] = e.target.value.split(':').map(Number)
                                   const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                   const totalMinutes = hours * 60 + minutes
                                   const eventTotalMinutes = eventHours * 60 + eventMinutes
@@ -1236,10 +1238,12 @@ export default function NewEventWizard() {
                           return (
                             <SortableRow key={`program-${index}`} id={`program-${index}`}>
                               <td className="py-2 px-3 w-24">
-                                <TimeInput
+                                <input
+                                  type="time"
                                   value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                  onChange={(v) => {
-                                    const [hours, minutes] = v.split(':').map(Number)
+                                  onChange={(e) => {
+                                    if (!e.target.value) return
+                                    const [hours, minutes] = e.target.value.split(':').map(Number)
                                     const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                     const totalMinutes = hours * 60 + minutes
                                     const eventTotalMinutes = eventHours * 60 + eventMinutes
@@ -1310,23 +1314,6 @@ export default function NewEventWizard() {
                                     {/* Song fields */}
                                     {item.type === 'song' && (
                                       <div className="flex gap-2">
-                                        <div className="flex-1">
-                                          <ContactAutocomplete
-                                            value={item.person}
-                                            contactId={item.person_id}
-                                            isUser={item.person_is_user}
-                                            freeTextOnly
-                                            onChange={(name, contactId, isUser) => {
-                                              const newSchedule = [...formData.program_schedule]
-                                              newSchedule[index].person = name
-                                              newSchedule[index].person_id = contactId || ''
-                                              newSchedule[index].person_is_user = isUser || false
-                                              setFormData({ ...formData, program_schedule: newSchedule })
-                                            }}
-                                            placeholder={t('events.itemLabels.leader')}
-                                            className="input text-sm"
-                                          />
-                                        </div>
                                         <input
                                           type="text"
                                           value={item.key || ''}
@@ -1348,6 +1335,23 @@ export default function NewEventWizard() {
                                           }}
                                           className="input text-sm w-20"
                                           placeholder={t('events.itemLabels.bpm')}
+                                        />
+                                        <div className="flex-1">
+                                          <ContactAutocomplete
+                                            value={item.person}
+                                            contactId={item.person_id}
+                                            isUser={item.person_is_user}
+                                            freeTextOnly
+                                            onChange={(name, contactId, isUser) => {
+                                              const newSchedule = [...formData.program_schedule]
+                                              newSchedule[index].person = name
+                                              newSchedule[index].person_id = contactId || ''
+                                              newSchedule[index].person_is_user = isUser || false
+                                              setFormData({ ...formData, program_schedule: newSchedule })
+                                            }}
+                                            placeholder={t('events.itemLabels.leader')}
+                                            className="input text-sm"
+                                          />
                                         />
                                       </div>
                                     )}
@@ -1589,10 +1593,12 @@ export default function NewEventWizard() {
                           {formData.post_event_schedule.map((item, index) => (
                             <SortableRow key={`post-${index}`} id={`post-${index}`}>
                               <td className="py-2 px-3 w-24">
-                                <TimeInput
+                                <input
+                                  type="time"
                                   value={item.offset_minutes !== null ? calculateTime(item.offset_minutes) : ''}
-                                  onChange={(v) => {
-                                    const [hours, minutes] = v.split(':').map(Number)
+                                  onChange={(e) => {
+                                    if (!e.target.value) return
+                                    const [hours, minutes] = e.target.value.split(':').map(Number)
                                     const [eventHours, eventMinutes] = formData.event_time.split(':').map(Number)
                                     const totalMinutes = hours * 60 + minutes
                                     const eventTotalMinutes = eventHours * 60 + eventMinutes

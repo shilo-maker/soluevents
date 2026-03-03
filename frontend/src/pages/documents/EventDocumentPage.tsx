@@ -203,23 +203,22 @@ function EventHeader({ event }: { event: EventData }) {
           {timeStr}
         </span>
         {event.location_name && (
-          <span className="flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-gray-400" />
-            {event.location_name}
-            {event.address && (
-              <>
-                {' — '}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-600 hover:underline print:text-gray-600 print:no-underline"
-                >
-                  {event.address}
-                </a>
-              </>
-            )}
-          </span>
+          event.address ? (
+            <a
+              href={event.address}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-teal-600 hover:underline print:text-gray-600 print:no-underline"
+            >
+              <MapPin className="w-4 h-4 text-gray-400" />
+              {event.location_name}
+            </a>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              {event.location_name}
+            </span>
+          )
         )}
       </div>
     </div>

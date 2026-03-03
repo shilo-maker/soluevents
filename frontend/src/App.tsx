@@ -28,6 +28,7 @@ const WorkspaceSettingsPage = lazy(() => import('./pages/WorkspaceSettingsPage')
 const UserSettingsPage = lazy(() => import('./pages/UserSettingsPage'))
 const InvitationResponsePage = lazy(() => import('./pages/InvitationResponsePage'))
 const MemberInviteResponsePage = lazy(() => import('./pages/MemberInviteResponsePage'))
+const EventDocumentPage = lazy(() => import('./pages/documents/EventDocumentPage'))
 
 function RedirectToLogin() {
   const location = useLocation()
@@ -78,6 +79,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/invitation/:token" element={<InvitationResponsePage />} />
+          <Route path="/events/:id/doc/:docType" element={<EventDocumentPage />} />
           <Route path="*" element={<RedirectToLogin />} />
         </Routes>
       </Suspense>
@@ -85,11 +87,12 @@ function App() {
   }
 
   // Standalone pages rendered without Layout (sidebar/nav)
-  if (location.pathname.startsWith('/invitation/')) {
+  if (location.pathname.startsWith('/invitation/') || /^\/events\/[^/]+\/doc\//.test(location.pathname)) {
     return (
       <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
         <Routes>
           <Route path="/invitation/:token" element={<InvitationResponsePage />} />
+          <Route path="/events/:id/doc/:docType" element={<EventDocumentPage />} />
         </Routes>
       </Suspense>
     )
