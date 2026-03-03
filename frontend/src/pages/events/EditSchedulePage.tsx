@@ -364,13 +364,17 @@ export default function EditSchedulePage() {
       }
     })
 
-    // Re-insert manually-added items at their original relative positions
+    // Re-insert manually-added items at their original relative positions,
+    // but only if this is a re-sync (existing flow items found). On first link
+    // the "manual" items are just default placeholders that should be replaced.
     const middleItems = [...flowItems]
-    let insertionOffset = 0
-    for (const { item, afterFlowIndex } of manualPositions) {
-      const pos = Math.min(afterFlowIndex, middleItems.length) + insertionOffset
-      middleItems.splice(pos, 0, item)
-      insertionOffset++
+    if (flowCount > 0) {
+      let insertionOffset = 0
+      for (const { item, afterFlowIndex } of manualPositions) {
+        const pos = Math.min(afterFlowIndex, middleItems.length) + insertionOffset
+        middleItems.splice(pos, 0, item)
+        insertionOffset++
+      }
     }
 
     return [opening, ...middleItems, closing]
