@@ -225,6 +225,15 @@ export default function EventDetailPage() {
     return { byEmail, byName, byId }
   }, [event?.invitations])
 
+  const isPastEvent = event?.date_end ? new Date(event.date_end) < new Date() : false
+
+  // Fall back to overview if debrief tab selected but not available (e.g. notification deep-link to a non-past event)
+  useEffect(() => {
+    if (activeTab === 'debrief' && event && !isPastEvent) {
+      setActiveTab('overview')
+    }
+  }, [activeTab, event, isPastEvent])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -274,15 +283,6 @@ export default function EventDetailPage() {
   // TODO: SoluFlow service creation - temporarily commented to avoid noUnusedLocals
   // const handleCreateSoluFlowService = async () => { ... }
   void createSoluFlowService
-
-  const isPastEvent = event?.date_end ? new Date(event.date_end) < new Date() : false
-
-  // Fall back to overview if debrief tab selected but not available (e.g. notification deep-link to a non-past event)
-  useEffect(() => {
-    if (activeTab === 'debrief' && event && !isPastEvent) {
-      setActiveTab('overview')
-    }
-  }, [activeTab, event, isPastEvent])
 
   const tabs = [
     { id: 'overview', label: t('events.tabs.overview') },
