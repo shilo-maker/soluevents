@@ -465,19 +465,15 @@ export const updateEvent = async (
       event_teams, flow_service_id,
     } = req.body
 
-    // Team members can only update schedule/setlist fields
+    // Team members can only link/unlink the SoluFlow setlist
     if (isTeamMember && !canModify) {
-      const scheduleOnly: any = {}
-      if (program_agenda !== undefined) scheduleOnly.program_agenda = program_agenda
-      if (flow_service_id !== undefined) scheduleOnly.flow_service_id = flow_service_id
-
-      if (Object.keys(scheduleOnly).length === 0) {
+      if (flow_service_id === undefined) {
         throw new AppError('Not authorized to modify this event', 403)
       }
 
       const updated = await prisma.event.update({
         where: { id },
-        data: scheduleOnly,
+        data: { flow_service_id: flow_service_id || null },
       })
       return res.json(updated)
     }

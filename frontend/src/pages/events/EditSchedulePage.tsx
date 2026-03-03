@@ -152,6 +152,9 @@ export default function EditSchedulePage() {
   const { data: event, isLoading } = useEvent(id!)
   const updateEvent = useUpdateEvent()
   const accessToken = useAuthStore((s) => s.accessToken)
+  // Full edit = event manager / creator / admin; schedule-only = any confirmed team member
+  const canEdit = event?.can_edit ?? true
+  const canEditSchedule = event?.can_edit_schedule ?? canEdit
 
   const [preEventSchedule, setPreEventSchedule] = useState<PreEventItem[]>([])
   const [programSchedule, setProgramSchedule] = useState<ProgramItem[]>([])
@@ -705,18 +708,20 @@ export default function EditSchedulePage() {
   const handleSave = async () => {
     setError('')
     try {
-      await updateEvent.mutateAsync({
-        id: id!,
-        data: {
-          program_agenda: {
-            pre_event_schedule: preEventSchedule,
-            program_schedule: programSchedule,
-            has_post_event_schedule: hasPostEvent,
-            post_event_schedule: postEventSchedule,
-          },
-          flow_service_id: link.serviceId || null,
-        } as any,
-      })
+      // Team members (canEditSchedule but not canEdit) can only save the SoluFlow link
+      const data: any = canEdit
+        ? {
+            program_agenda: {
+              pre_event_schedule: preEventSchedule,
+              program_schedule: programSchedule,
+              has_post_event_schedule: hasPostEvent,
+              post_event_schedule: postEventSchedule,
+            },
+            flow_service_id: link.serviceId || null,
+          }
+        : { flow_service_id: link.serviceId || null }
+
+      await updateEvent.mutateAsync({ id: id!, data })
 
       // Auto-generate/sync SoluCast setlist if SoluFlow is linked
       if (link.serviceId && programSchedule.some(item => item.type === 'song')) {
@@ -855,7 +860,7 @@ export default function EditSchedulePage() {
                     <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
                     {setlistOverseer ? (
                       <span className="text-xs font-semibold text-white">{setlistOverseer.name}</span>
-                    ) : (
+                    ) : canEdit ? (
                       <div className="flex-1 max-w-[200px]">
                         <ContactAutocomplete
                           value=""
@@ -865,6 +870,8 @@ export default function EditSchedulePage() {
                           className="bg-white/20 border-white/20 text-white placeholder-white/50 text-xs rounded-md px-2 py-1 focus:ring-white/30"
                         />
                       </div>
+                    ) : (
+                      <span className="text-xs text-white/50">—</span>
                     )}
                   </div>
                 </div>
@@ -937,7 +944,7 @@ export default function EditSchedulePage() {
       </div>
 
       {/* Pre-Event Schedule */}
-      <div className="card">
+      <div className={`card${!canEdit ? ' pointer-events-none opacity-50' : ''}`}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.preEventSchedule')}</h3>
         <div className="overflow-x-auto">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePreEventDragEnd}>
@@ -1039,7 +1046,7 @@ export default function EditSchedulePage() {
       </div>
 
       {/* Program Schedule */}
-      <div className="card">
+      <div className={`card${!canEdit ? ' pointer-events-none opacity-50' : ''}`}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.programSchedule')}</h3>
         <div className="overflow-x-auto">
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProgramDragEnd}>
@@ -1510,7 +1517,7 @@ export default function EditSchedulePage() {
       </div>
 
       {/* Post-Event Schedule */}
-      <div className="card">
+      <div className={`card${!canEdit ? ' pointer-events-none opacity-50' : ''}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t('events.postEventSchedule')}</h3>
           <label className="flex items-center cursor-pointer">
