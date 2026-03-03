@@ -120,6 +120,8 @@ const TEAM_CATEGORY_MAP: Record<string, QuestionCategory> = {
   'צוות לוגיסטיקה': 'logistics',
   'Ministry Team': 'logistics',
   'צוות שרות': 'logistics',
+  'Content Team': 'general',
+  'צוות תוכן': 'general',
 }
 
 /** Determine which question categories apply based on event teams */

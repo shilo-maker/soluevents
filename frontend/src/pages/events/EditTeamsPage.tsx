@@ -139,6 +139,14 @@ function getDefaultTeams(t: (key: string) => string): Team[] {
       ],
     },
     {
+      name: t('teams.contentTeam'),
+      members: [
+        { role: t('roles.setlistPicker'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.prayerLeader'), contact_id: '', is_user: false, name: '' },
+        { role: t('roles.speaker'), contact_id: '', is_user: false, name: '' },
+      ],
+    },
+    {
       name: t('teams.logisticsTeam'),
       members: [
         { role: t('roles.eventManager'), contact_id: '', is_user: false, name: '' },

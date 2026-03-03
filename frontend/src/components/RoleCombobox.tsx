@@ -29,6 +29,11 @@ const ROLE_KEYS_BY_CATEGORY: Record<string, string[]> = {
     'roles.registration',
     'roles.hospitality',
   ],
+  content: [
+    'roles.setlistPicker',
+    'roles.prayerLeader',
+    'roles.speaker',
+  ],
 }
 
 function getRolesForTeam(teamName: string, t: (key: string) => string): string[] {
@@ -36,12 +41,14 @@ function getRolesForTeam(teamName: string, t: (key: string) => string): string[]
   const worshipName = t('teams.worshipTeam').toLowerCase()
   const productionName = t('teams.productionTeam').toLowerCase()
   const logisticsName = t('teams.logisticsTeam').toLowerCase()
+  const contentName = t('teams.contentTeam').toLowerCase()
 
   let keys: string[]
   if (name.includes('worship') || name.includes(worshipName)) keys = ROLE_KEYS_BY_CATEGORY.worship
   else if (name.includes('production') || name.includes(productionName)) keys = ROLE_KEYS_BY_CATEGORY.production
   else if (name.includes('logistics') || name.includes(logisticsName)) keys = ROLE_KEYS_BY_CATEGORY.logistics
-  else keys = [...ROLE_KEYS_BY_CATEGORY.worship, ...ROLE_KEYS_BY_CATEGORY.production, ...ROLE_KEYS_BY_CATEGORY.logistics]
+  else if (name.includes('content') || name.includes(contentName)) keys = ROLE_KEYS_BY_CATEGORY.content
+  else keys = [...ROLE_KEYS_BY_CATEGORY.worship, ...ROLE_KEYS_BY_CATEGORY.production, ...ROLE_KEYS_BY_CATEGORY.logistics, ...ROLE_KEYS_BY_CATEGORY.content]
 
   // Deduplicate (Keys#2 maps to same key as Keys)
   return [...new Set(keys.map(k => t(k)))]
