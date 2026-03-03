@@ -99,19 +99,11 @@ export async function getFlowServiceByCode(code: string) {
 
 export async function getEditTokenByServiceCode(code: string): Promise<string | null> {
   try {
-    // Query the flow_services table (SoluPresenter's table, camelCase columns)
-    const rows = await prisma.$queryRaw<any[]>(
-      Prisma.sql`
-        SELECT fs."editToken"
-        FROM flow_services fs
-        WHERE UPPER(fs.code) = ${code.toUpperCase()}
-        LIMIT 1
-      `
-    )
-    if (rows && rows.length > 0 && rows[0].editToken) {
-      return rows[0].editToken
-    }
-    return null
+    const service = await prisma.flowService.findFirst({
+      where: { code: { equals: code, mode: 'insensitive' } },
+      select: { editToken: true },
+    })
+    return service?.editToken ?? null
   } catch (err: any) {
     console.warn(
       '[FlowService] editToken query failed:',

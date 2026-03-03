@@ -652,6 +652,7 @@ model FlowService {
   code        String?   @unique(map: "flow_services_code") @db.VarChar(8)
   isPublic    Boolean?  @default(false) @map("isPublic")
   isArchived  Boolean?  @default(false) @map("isArchived")
+  editToken   String?   @unique(map: "flow_services_edit_token_unique") @map("editToken") @db.VarChar(64)
   createdAt   DateTime  @default(now()) @map("createdAt") @db.Timestamptz(6)
   updatedAt   DateTime  @updatedAt @map("updatedAt") @db.Timestamptz(6)
 
