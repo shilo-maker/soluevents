@@ -330,6 +330,15 @@ function TaskCard({ task, currentUser, onToggle, onUpdateLink, onUpdateTask }: T
                   {t('events.schedule.openSetlistSchedule')}
                 </button>
               )}
+              {/נקודות תפילה|prayer points/i.test(task.title) && task.event_id && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/events/${task.event_id}/schedule?highlight=soluflow`) }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 shadow-sm transition-colors"
+                >
+                  <Music className="w-3.5 h-3.5" />
+                  {t('events.schedule.openPrayerSchedule')}
+                </button>
+              )}
               {canComment && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setCommentsOpen((o) => !o) }}

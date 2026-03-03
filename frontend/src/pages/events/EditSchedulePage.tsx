@@ -10,6 +10,8 @@ import api from '@/lib/axios'
 import { useAuthStore } from '@/stores/authStore'
 import ContactAutocomplete from '@/components/ContactAutocomplete'
 import PersonHoverCard from '@/components/PersonHoverCard'
+import Avatar from '@/components/Avatar'
+import { useContacts } from '@/hooks/useContacts'
 import SongAutocomplete from '@/components/SongAutocomplete'
 import BibleRefPicker from '@/components/BibleRefPicker'
 import type { FlowServiceSong } from '@/types'
@@ -277,6 +279,65 @@ export default function EditSchedulePage() {
       setAssigningOverseer(false)
     }
   }
+
+  // Extract prayer guide from Content Team
+  const PRAYER_GUIDE_ROLES = ['prayer leader', 'מדריך תפילה']
+  const prayerGuide = useMemo(() => {
+    if (!event?.event_teams || !Array.isArray(event.event_teams)) return null
+    for (const team of event.event_teams as any[]) {
+      for (const m of team.members || []) {
+        if (m.role && PRAYER_GUIDE_ROLES.includes(m.role.toLowerCase()) && m.contact_id) {
+          return m as { name: string; contact_id: string; is_user: boolean }
+        }
+      }
+    }
+    return null
+  }, [event?.event_teams])
+
+  const [assigningPrayerGuide, setAssigningPrayerGuide] = useState(false)
+
+  const handleAssignPrayerGuide = async (name: string, contactId?: string, isUser?: boolean) => {
+    if (!contactId || !event) return
+    setAssigningPrayerGuide(true)
+    try {
+      const teams = JSON.parse(JSON.stringify(event.event_teams || []))
+      const contentTeamNames = ['content team', 'צוות תוכן']
+      let contentTeam = teams.find((t: any) => contentTeamNames.includes(t.name?.toLowerCase()))
+      if (!contentTeam) {
+        contentTeam = { name: t('teams.contentTeam'), members: [] }
+        teams.push(contentTeam)
+      }
+      const guideMember = contentTeam.members.find((m: any) =>
+        m.role && PRAYER_GUIDE_ROLES.includes(m.role.toLowerCase())
+      )
+      if (guideMember) {
+        guideMember.contact_id = contactId
+        guideMember.is_user = isUser || false
+        guideMember.name = name
+        guideMember.member_id = undefined
+        guideMember.status = undefined
+      } else {
+        contentTeam.members.push({
+          role: t('roles.prayerLeader'),
+          contact_id: contactId,
+          is_user: isUser || false,
+          name,
+        })
+      }
+      await updateEvent.mutateAsync({ id: id!, data: { event_teams: teams } as any })
+      queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    } catch {
+      // best-effort
+    } finally {
+      setAssigningPrayerGuide(false)
+    }
+  }
+
+  // Look up contact avatars for role display
+  const { data: contacts } = useContacts()
+  const getContactAvatar = (contactId: string) =>
+    contacts?.find((c: any) => c.id === contactId)?.avatar_url
 
   // Build program items from SoluFlow songs, merging between Opening and Closing
   const transposeKey = useCallback((key: string, semitones: number): string => {
@@ -887,22 +948,62 @@ export default function EditSchedulePage() {
                   </div>
                   {/* Setlist Overseer */}
                   <div className="flex items-center gap-2 p-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg overflow-visible">
-                    <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
-                    <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
                     {setlistOverseer ? (
-                      <span className="text-xs font-semibold text-white">{setlistOverseer.name}</span>
+                      <>
+                        <Avatar src={getContactAvatar(setlistOverseer.contact_id)} name={setlistOverseer.name} size="xs" className="ring-1 ring-white/30" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
+                        <span className="text-xs font-semibold text-white">{setlistOverseer.name}</span>
+                      </>
                     ) : canEdit ? (
-                      <div className="flex-1 max-w-[200px]">
-                        <ContactAutocomplete
-                          value=""
-                          freeTextOnly
-                          onChange={handleAssignSetlistOverseer}
-                          placeholder={t('events.schedule.assignOverseer')}
-                          className="bg-white/20 border-white/20 text-white placeholder-white/50 text-xs rounded-md px-2 py-1 focus:ring-white/30"
-                        />
-                      </div>
+                      <>
+                        <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
+                        <div className="flex-1 max-w-[200px]">
+                          <ContactAutocomplete
+                            value=""
+                            freeTextOnly
+                            onChange={handleAssignSetlistOverseer}
+                            placeholder={t('events.schedule.assignOverseer')}
+                            className="bg-white/20 border-white/20 text-white placeholder-white/50 text-xs rounded-md px-2 py-1 focus:ring-white/30"
+                          />
+                        </div>
+                      </>
                     ) : (
-                      <span className="text-xs text-white/50">—</span>
+                      <>
+                        <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
+                        <span className="text-xs text-white/50">—</span>
+                      </>
+                    )}
+                  </div>
+                  {/* Prayer Guide */}
+                  <div className="flex items-center gap-2 p-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg overflow-visible">
+                    {prayerGuide ? (
+                      <>
+                        <Avatar src={getContactAvatar(prayerGuide.contact_id)} name={prayerGuide.name} size="xs" className="ring-1 ring-white/30" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.prayerGuide')}:</span>
+                        <span className="text-xs font-semibold text-white">{prayerGuide.name}</span>
+                      </>
+                    ) : canEdit ? (
+                      <>
+                        <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.prayerGuide')}:</span>
+                        <div className="flex-1 max-w-[200px]">
+                          <ContactAutocomplete
+                            value=""
+                            freeTextOnly
+                            onChange={handleAssignPrayerGuide}
+                            placeholder={t('events.schedule.assignPrayerGuide')}
+                            className="bg-white/20 border-white/20 text-white placeholder-white/50 text-xs rounded-md px-2 py-1 focus:ring-white/30"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+                        <span className="text-xs font-medium text-white/70">{t('events.schedule.prayerGuide')}:</span>
+                        <span className="text-xs text-white/50">—</span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -1118,7 +1219,7 @@ export default function EditSchedulePage() {
                                   >
                                     {(!isLinked || item.type === 'song') && <option value="song">{t('events.itemTypes.song')}</option>}
                                     <option value="share">{t('events.itemTypes.share')}</option>
-                                    <option value="prayer">{t('events.itemTypes.prayer')}</option>
+                                    {(!isLinked || item.type === 'prayer') && <option value="prayer">{t('events.itemTypes.prayer')}</option>}
                                     <option value="ministry">{t('events.itemTypes.ministry')}</option>
                                     <option value="other">{t('events.itemTypes.other')}</option>
                                   </select>
