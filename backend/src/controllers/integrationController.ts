@@ -77,7 +77,14 @@ export const getService = async (
     if (!service) {
       throw new AppError('FlowService not found', 404)
     }
-    res.json(service)
+
+    // Fetch edit_token from the shared SoluFlow services table
+    let editToken: string | null = null
+    if (service.code) {
+      editToken = await flowServiceService.getEditTokenByServiceCode(service.code)
+    }
+
+    res.json({ ...service, editToken })
   } catch (error) {
     next(error)
   }

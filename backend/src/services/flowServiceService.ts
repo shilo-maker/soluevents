@@ -97,6 +97,30 @@ export async function getFlowServiceByCode(code: string) {
   })
 }
 
+export async function getEditTokenByServiceCode(code: string): Promise<string | null> {
+  try {
+    // Query the flow_services table (SoluPresenter's table, camelCase columns)
+    const rows = await prisma.$queryRaw<any[]>(
+      Prisma.sql`
+        SELECT fs."editToken"
+        FROM flow_services fs
+        WHERE UPPER(fs.code) = ${code.toUpperCase()}
+        LIMIT 1
+      `
+    )
+    if (rows && rows.length > 0 && rows[0].editToken) {
+      return rows[0].editToken
+    }
+    return null
+  } catch (err: any) {
+    console.warn(
+      '[FlowService] editToken query failed:',
+      err?.message || err
+    )
+    return null
+  }
+}
+
 export async function createFlowService(data: {
   title: string
   workspaceId: string

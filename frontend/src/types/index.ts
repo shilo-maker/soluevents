@@ -437,6 +437,7 @@ export interface FlowService {
   id: string
   title: string
   code: string
+  editToken?: string | null
   isPublic?: boolean
   workspaceId?: string
   leader?: { id: string; name: string | null } | null

@@ -295,17 +295,19 @@ export default function EventDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-5 sm:p-6 overflow-hidden">
+      <div className="relative rounded-2xl bg-gradient-to-br from-teal-800 via-cyan-600 to-emerald-600 gradient-animate shadow-lg p-5 sm:p-6">
         {/* Animated waves */}
-        <svg className="absolute bottom-0 left-0 w-[200%] h-24 sm:h-32 opacity-[0.12] animate-wave-slow" viewBox="0 0 1440 100" preserveAspectRatio="none">
-          <path d="M0,50 Q180,90 360,50 Q540,10 720,50 Q900,90 1080,50 Q1260,10 1440,50 L1440,100 L0,100Z" fill="white" />
-        </svg>
-        <svg className="absolute bottom-0 left-0 w-[200%] h-20 sm:h-28 opacity-[0.09] animate-wave-mid" viewBox="0 0 1440 100" preserveAspectRatio="none">
-          <path d="M0,50 Q120,85 240,50 Q360,15 480,50 Q600,85 720,50 Q840,15 960,50 Q1080,85 1200,50 Q1320,15 1440,50 L1440,100 L0,100Z" fill="white" />
-        </svg>
-        <svg className="absolute bottom-0 left-0 w-[200%] h-16 sm:h-24 opacity-[0.07] animate-wave-fast" viewBox="0 0 1440 100" preserveAspectRatio="none">
-          <path d="M0,50 Q90,80 180,50 Q270,20 360,50 Q450,80 540,50 Q630,20 720,50 Q810,80 900,50 Q990,20 1080,50 Q1170,80 1260,50 Q1350,20 1440,50 L1440,100 L0,100Z" fill="white" />
-        </svg>
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+          <svg className="absolute bottom-0 left-0 w-[200%] h-24 sm:h-32 opacity-[0.12] animate-wave-slow" viewBox="0 0 1440 100" preserveAspectRatio="none">
+            <path d="M0,50 Q180,90 360,50 Q540,10 720,50 Q900,90 1080,50 Q1260,10 1440,50 L1440,100 L0,100Z" fill="white" />
+          </svg>
+          <svg className="absolute bottom-0 left-0 w-[200%] h-20 sm:h-28 opacity-[0.09] animate-wave-mid" viewBox="0 0 1440 100" preserveAspectRatio="none">
+            <path d="M0,50 Q120,85 240,50 Q360,15 480,50 Q600,85 720,50 Q840,15 960,50 Q1080,85 1200,50 Q1320,15 1440,50 L1440,100 L0,100Z" fill="white" />
+          </svg>
+          <svg className="absolute bottom-0 left-0 w-[200%] h-16 sm:h-24 opacity-[0.07] animate-wave-fast" viewBox="0 0 1440 100" preserveAspectRatio="none">
+            <path d="M0,50 Q90,80 180,50 Q270,20 360,50 Q450,80 540,50 Q630,20 720,50 Q810,80 900,50 Q990,20 1080,50 Q1170,80 1260,50 Q1350,20 1440,50 L1440,100 L0,100Z" fill="white" />
+          </svg>
+        </div>
         <div className="relative z-10 flex items-center gap-4">
           <Link
             to="/events"
@@ -951,7 +953,7 @@ export default function EventDetailPage() {
                   </span>
                   <h3 className="text-lg font-semibold text-gray-900">{t('events.resources')}</h3>
                   <div className="flex flex-wrap gap-2 ml-auto">
-                    {event.flow_service_id && linkedService?.code && (
+                    {event.flow_service_id && (linkedService?.editToken || linkedService?.code) && (
                       <div className="relative group">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-semibold rounded-lg border border-blue-200 cursor-default">
                           <Music className="w-4 h-4" />
@@ -959,7 +961,9 @@ export default function EventDetailPage() {
                         </div>
                         <div className="absolute right-0 bottom-full pb-1 hidden group-hover:flex flex-col z-10 min-w-[140px]"><div className="bg-white rounded-lg shadow-lg border border-gray-200 py-1">
                           <a
-                            href={`https://soluflow.app/service/code/${linkedService.code}`}
+                            href={linkedService.editToken
+                              ? `https://soluflow.app/service/edit/${linkedService.editToken}`
+                              : `https://soluflow.app/service/code/${linkedService.code}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
@@ -969,7 +973,10 @@ export default function EventDetailPage() {
                           </a>
                           <button
                             onClick={() => {
-                              navigator.clipboard.writeText(`https://soluflow.app/service/code/${linkedService.code}`)
+                              const url = linkedService.editToken
+                                ? `https://soluflow.app/service/edit/${linkedService.editToken}`
+                                : `https://soluflow.app/service/code/${linkedService.code}`
+                              navigator.clipboard.writeText(url)
                               setSoluflowCopied(true)
                               setTimeout(() => setSoluflowCopied(false), 2000)
                             }}

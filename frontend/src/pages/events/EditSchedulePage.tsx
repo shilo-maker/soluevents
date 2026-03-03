@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight, Lock } from 'lucide-react'
+import { ArrowLeft, X, GripVertical, Loader2, Save, Link2, Unlink, RefreshCw, Plus, ExternalLink, Monitor, Copy, Check, ChevronRight, Lock, User } from 'lucide-react'
 import soluflowLogo from '@/assets/soluflow-logo.png'
 import solucastLogo from '@/assets/solucast-logo.png'
 import { useQueryClient } from '@tanstack/react-query'
@@ -207,6 +207,61 @@ export default function EditSchedulePage() {
   const postEventIds = useMemo(() => postEventSchedule.map((_, i) => `post-${i}`), [postEventSchedule])
 
   const isLinked = !!link.serviceId
+
+  // Extract setlist overseer from Content Team
+  const SETLIST_OVERSEER_ROLES = ['setlist overseer', 'אחראי רשימת שירים']
+  const setlistOverseer = useMemo(() => {
+    if (!event?.event_teams || !Array.isArray(event.event_teams)) return null
+    for (const team of event.event_teams as any[]) {
+      for (const m of team.members || []) {
+        if (m.role && SETLIST_OVERSEER_ROLES.includes(m.role.toLowerCase()) && m.contact_id) {
+          return m as { name: string; contact_id: string; is_user: boolean }
+        }
+      }
+    }
+    return null
+  }, [event?.event_teams])
+
+  const [assigningOverseer, setAssigningOverseer] = useState(false)
+
+  const handleAssignSetlistOverseer = async (name: string, contactId?: string, isUser?: boolean) => {
+    if (!contactId || !event) return
+    setAssigningOverseer(true)
+    try {
+      // Update event_teams: set the overseer in Content Team
+      const teams = JSON.parse(JSON.stringify(event.event_teams || []))
+      const contentTeamNames = ['content team', 'צוות תוכן']
+      let contentTeam = teams.find((t: any) => contentTeamNames.includes(t.name?.toLowerCase()))
+      if (!contentTeam) {
+        contentTeam = { name: t('teams.contentTeam'), members: [] }
+        teams.push(contentTeam)
+      }
+      const overseerMember = contentTeam.members.find((m: any) =>
+        m.role && SETLIST_OVERSEER_ROLES.includes(m.role.toLowerCase())
+      )
+      if (overseerMember) {
+        overseerMember.contact_id = contactId
+        overseerMember.is_user = isUser || false
+        overseerMember.name = name
+        overseerMember.member_id = undefined
+        overseerMember.status = undefined
+      } else {
+        contentTeam.members.push({
+          role: t('roles.setlistPicker'),
+          contact_id: contactId,
+          is_user: isUser || false,
+          name,
+        })
+      }
+      await updateEvent.mutateAsync({ id: id!, data: { event_teams: teams } as any })
+      queryClient.invalidateQueries({ queryKey: ['events', 'detail', id] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    } catch {
+      // best-effort
+    } finally {
+      setAssigningOverseer(false)
+    }
+  }
 
   // Build program items from SoluFlow songs, merging between Opening and Closing
   const transposeKey = useCallback((key: string, semitones: number): string => {
@@ -738,45 +793,67 @@ export default function EditSchedulePage() {
                 <h4 className="text-sm font-semibold text-white">SoluFlow</h4>
               </div>
               {link.serviceId ? (
-                <div className="flex items-center justify-between p-3 bg-white/15 backdrop-blur-sm border border-white/20 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Link2 className="w-4 h-4 text-white" />
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {t('events.schedule.linkedTo')}{' '}
-                        {linkedService?.code ? (
-                          <a
-                            href={`https://soluflow.app/service/code/${linkedService.code}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-white hover:text-white/80 hover:underline"
-                          >
-                            {link.serviceTitle || t('events.schedule.soluflowService')}
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          link.serviceTitle || t('events.schedule.soluflowService')
-                        )}
-                      </p>
-                      <p className="text-xs text-white/70">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 bg-white/15 backdrop-blur-sm border border-white/20 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Link2 className="w-4 h-4 text-white" />
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {t('events.schedule.linkedTo')}{' '}
+                          {link.serviceTitle || t('events.schedule.soluflowService')}
+                        </p>
+                        <p className="text-xs text-white/70">{link.songCount} song{link.songCount !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(linkedService?.editToken || linkedService?.code) && (
+                        <a
+                          href={linkedService.editToken
+                            ? `https://soluflow.app/service/edit/${linkedService.editToken}`
+                            : `https://soluflow.app/service/code/${linkedService.code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title={t('events.schedule.openInSoluflow')}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          {t('events.schedule.openInSoluflow')}
+                        </a>
+                      )}
+                      <button
+                        onClick={handleRefresh}
+                        disabled={link.loading}
+                        className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                        title={t('events.schedule.refreshSongs')}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${link.loading ? 'animate-spin' : ''}`} />
+                      </button>
+                      <button
+                        onClick={handleUnlink}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/20 rounded-lg transition-colors"
+                      >
+                        <Unlink className="w-3.5 h-3.5" />
+                        {t('events.schedule.unlink')}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleRefresh}
-                      disabled={link.loading}
-                      className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
-                      title={t('events.schedule.refreshSongs')}
-                    >
-                      <RefreshCw className={`w-4 h-4 ${link.loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                      onClick={handleUnlink}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-200 hover:bg-red-500/20 rounded-lg transition-colors"
-                    >
-                      <Unlink className="w-3.5 h-3.5" />
-                      {t('events.schedule.unlink')}
-                    </button>
+                  {/* Setlist Overseer */}
+                  <div className="flex items-center gap-2 p-2.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-lg">
+                    <User className="w-3.5 h-3.5 text-white/70 flex-shrink-0" />
+                    <span className="text-xs font-medium text-white/70">{t('events.schedule.setlistOverseer')}:</span>
+                    {setlistOverseer ? (
+                      <span className="text-xs font-semibold text-white">{setlistOverseer.name}</span>
+                    ) : (
+                      <div className="flex-1 max-w-[200px]">
+                        <ContactAutocomplete
+                          value=""
+                          freeTextOnly
+                          onChange={handleAssignSetlistOverseer}
+                          placeholder={t('events.schedule.assignOverseer')}
+                          className="bg-white/20 border-white/20 text-white placeholder-white/50 text-xs rounded-md px-2 py-1 focus:ring-white/30"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : soluFlowMode === 'choose' ? (
