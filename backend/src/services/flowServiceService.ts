@@ -46,6 +46,7 @@ export async function getFlowServiceById(id: string) {
           position: true,
           segmentType: true,
           segmentTitle: true,
+          segmentContent: true,
           transposition: true,
           song: {
             select: {
